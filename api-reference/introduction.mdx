@@ -1,33 +1,224 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "Introduction"
+description: "Complete technical reference for all UIP API endpoints"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Welcome to UIP API Reference
 
-## Welcome
+This section contains the complete technical documentation for integrating UIP's biometric identity, signature, and messaging services into your application. All endpoints are REST-based with JSON payloads and responses.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+<Info>
+**New to UIP?** Start with the [Getting Started Guide](/getting-started) to understand core concepts before diving into endpoint details.
+</Info>
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+## Core APIs
+
+UIP provides three primary APIs that work together to deliver complete identity and signature infrastructure:
+
+<CardGroup cols={3}>
+  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
+    Biometric authentication and identity verification. Request verified user information like name, age, location, and more.
+
+    **$0.01 per authentication**
+  </Card>
+
+  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
+    Quick biometric signatures for lightweight agreements. Perfect for TOS, policies, and attestations. 5-minute signing window.
+
+    **$0.03 per signature**
+  </Card>
+
+  <Card title="Message API" icon="message" href="/api-reference/endpoint/message">
+    Long-term encrypted messaging with optional attachments. Send documents for signature with up to 3 months availability.
+
+    **$0.03 text / $0.10 with attachment**
+  </Card>
+</CardGroup>
+
+## Supporting APIs
+
+<CardGroup cols={3}>
+  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
+    Retrieve permanent audit trails for all actions. Court-admissible evidence with cryptographic proof.
+
+    **Always free**
+  </Card>
+
+  <Card title="Invalidate API" icon="ban" href="/api-reference/endpoint/invalidate">
+    Cancel pending signature requests before recipients sign. Only works for unsigned messages.
+  </Card>
+
+  <Card title="Webhook Test" icon="webhook" href="/api-reference/endpoint/webhook-test">
+    Test your webhook endpoint configuration before going live.
+  </Card>
+</CardGroup>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All UIP API endpoints require authentication using Bearer tokens. Include your API key in the Authorization header of every request.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+**Header format:**
 ```
+Authorization: Bearer YOUR_API_KEY
+```
+
+<Warning>
+**Keep your API keys secure.** Never expose them in client-side code, public repositories, or logs. Treat them like passwords.
+</Warning>
+
+### Getting API Keys
+
+<Steps>
+  <Step title="Create UIP Identity">
+    Sign up at [business.uip.digital/identify](https://business.uip.digital/identify) and create your identity with government ID verification
+  </Step>
+
+  <Step title="Receive $5 Credit">
+    New accounts automatically receive $5 in credits—enough for testing and initial implementation
+  </Step>
+
+  <Step title="Generate API Key">
+    Create your API key from the dashboard and start making requests
+  </Step>
+</Steps>
+
+## Base URL
+
+All API requests use the following base URL:
+
+```
+https://api.uip.digital/v1
+```
+
+<Note>
+**Production only:** UIP doesn't provide a sandbox environment. Use your $5 signup credit for testing with real biometric verification.
+</Note>
+
+## Request & Response Format
+
+All requests and responses use JSON format with UTF-8 encoding.
+
+**Required headers:**
+- `Authorization: Bearer YOUR_API_KEY`
+- `Content-Type: application/json`
+
+## Webhook Integration
+
+Most UIP APIs work asynchronously using webhooks. Instead of polling for results, UIP sends POST requests to your webhook URL when actions complete.
+
+<AccordionGroup>
+  <Accordion title="Webhook Security" icon="shield-check">
+    Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook secret is a UUID v4 identifier provided when you create your API key.
+
+    **Verify all webhook requests** to ensure they're from UIP and haven't been tampered with.
+  </Accordion>
+
+  <Accordion title="Webhook Events" icon="bolt">
+    Different APIs send different webhook events:
+
+    - **Identify API:** `authentication_completed`, `authentication_failed`, `session_expired`
+    - **Sign API:** `signature_completed`, `signature_declined`, `signature_expired`
+    - **Message API:** `message_delivered`, `message_signed`, `message_declined`
+  </Accordion>
+
+  <Accordion title="Testing Webhooks" icon="flask">
+    Use the [Webhook Test endpoint](/api-reference/endpoint/webhook-test) to verify your webhook handler before going live. It sends a test payload to your URL and reports the response.
+  </Accordion>
+</AccordionGroup>
+
+## QR Code Flow
+
+The Identify and Sign APIs return QR codes for user authentication. Users scan these codes with the UIP mobile app to complete actions.
+
+**Implementation flow:**
+
+<Steps>
+  <Step title="Request Session">
+    Call the appropriate endpoint (Identify or Sign) with your webhook URL
+  </Step>
+
+  <Step title="Display QR Code">
+    Show the returned QR code to users (desktop) or provide app deep link (mobile)
+  </Step>
+
+  <Step title="User Scans & Authenticates">
+    User opens UIP app, scans code, and authenticates with biometric
+  </Step>
+
+  <Step title="Receive Webhook">
+    UIP sends result to your webhook URL with verified identity or signature proof
+  </Step>
+</Steps>
+
+<Info>
+**Best Practice:** Always ask users if they're on mobile or desktop first. Mobile users can open the UIP app directly without scanning a QR code.
+</Info>
+
+## Error Handling
+
+UIP uses standard HTTP status codes and provides detailed error information in the response body.
+
+**Check HTTP status code first:**
+- **2xx:** Success
+- **4xx:** Client error (fix your request)
+- **5xx:** Server error (retry with exponential backoff)
+
+**Then examine the error code:**
+```json
+{
+  "error": "The requested resource was not found",
+  "code": "resource/not-found"
+}
+```
+
+See the [Error Handling Guide](/core-concepts/error-handling) for complete error code reference.
+
+## Rate Limits
+
+<Note>
+**No rate limits currently enforced.** UIP may add rate limiting in the future to ensure fair usage and system stability. You'll be notified before any limits are implemented.
+</Note>
+
+## Audit Trail
+
+Every UIP action generates a permanent audit record accessible via the Audit API. These records include:
+
+- Complete action details (authentication, signature, message)
+- Verified identity information
+- Cryptographic proof of action
+- Precise timestamps
+- Tamper-evident storage
+
+**Audit queries are always free and unlimited.** Store audit IDs from webhook responses to retrieve records anytime.
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Getting Started Guide" icon="rocket" href="/getting-started">
+    Step-by-step guide to your first UIP integration
+  </Card>
+
+  <Card title="QR Integration Guide" icon="qrcode" href="/core-concepts/qr-integration">
+    Learn how to implement the QR code authentication flow
+  </Card>
+
+  <Card title="API Services Overview" icon="layer-group" href="/api-services/identify">
+    Understand what each API does and when to use it
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
+    Complete guide to handling errors effectively
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Contact Support" icon="life-ring" href="mailto:support@uip.digital">
+    Questions about implementation or integration? We're here to help.
+  </Card>
+
+  <Card title="View Protocol Overview" icon="book" href="/core-concepts/protocol-overview">
+    Learn about UIP's vision and technical architecture
+  </Card>
+</CardGroup>

@@ -93,6 +93,31 @@ Control how urgently users are notified about your messages with four severity l
   </Accordion>
 </AccordionGroup>
 
+## Endpoint
+
+<Card title="POST /v1/message" icon="code">
+  **Base URL:**
+  - `https://api.uip.digital/v1/message`
+
+  **Headers:**
+  - `Authorization: Bearer YOUR_API_KEY`
+  - `Content-Type: application/json`
+
+  **Request Body:**
+  - `recipient_uip_id` - UIP ID of recipient
+  - `webhook_url` - Your webhook endpoint URL
+  - `subject` - Message subject/title
+  - `message` - Message content/body
+  - `severity` - Notification priority (optional)
+  - `attachment` - Document file (optional)
+  - `requires_signature` - Whether signature required (optional)
+
+  **Response:**
+  - `message_id` - Unique message identifier
+  - `status` - Delivery status
+  - `expires_at` - When message expires (3 months)
+</Card>
+
 ## Request Parameters
 
 <AccordionGroup>

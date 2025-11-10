@@ -32,6 +32,29 @@ The Sign API provides instant biometric signing for lightweight legal use cases.
 
 The Sign API provides instant biometric signing through a simple webhook-based flow. Users scan a QR code (desktop) or open the UIP app directly (mobile), review the document text, and sign with their biometric.
 
+## Endpoint
+
+<Card title="POST /v1/sign" icon="code">
+  **Base URL:**
+  - `https://api.uip.digital/v1/sign`
+
+  **Headers:**
+  - `Authorization: Bearer YOUR_API_KEY`
+  - `Content-Type: application/json`
+
+  **Request Body:**
+  - `webhook_url` - Your webhook endpoint URL
+  - `document_title` - Title of what user is signing
+  - `document_content` - Full text content to sign
+  - `metadata` - Optional tracking data
+
+  **Response:**
+  - `session_id` - Unique session identifier
+  - `qr_code` - Base64-encoded QR code image
+  - `deep_link` - Mobile app deep link
+  - `expires_in` - Session expiration (5 minutes)
+</Card>
+
 ## Request Parameters
 
 <AccordionGroup>
