@@ -1,68 +1,64 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "UIP Documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0070F3",
+    "light": "#3B82F6",
+    "dark": "#1E40AF"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Introduction",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "what-is-uip",
+              "getting-started",
+              "pricing"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "core-concepts/protocol-overview",
+              "core-concepts/qr-integration",
+              "core-concepts/error-handling"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "API Services",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "api-services/identify",
+              "api-services/sign",
+              "api-services/messaging",
+              "api-services/audit"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Endpoints",
             "pages": [
               "api-reference/introduction"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "API Endpoints",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/endpoint/identify",
+              "api-reference/endpoint/sign",
+              "api-reference/endpoint/message",
+              "api-reference/endpoint/invalidate",
+              "api-reference/endpoint/audit",
+              "api-reference/endpoint/webhook-test"
             ]
           }
         ]
@@ -71,14 +67,19 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Consumer App",
+          "href": "https://uip.digital",
+          "icon": "mobile"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Business Portal",
+          "href": "https://business.uip.digital",
+          "icon": "building"
+        },
+        {
+          "anchor": "Support",
+          "href": "mailto:support@uip.digital",
+          "icon": "life-ring"
         }
       ]
     }
@@ -90,14 +91,14 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Get API Keys",
+        "href": "https://business.uip.digital/identify"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Business Dashboard",
+      "href": "https://business.uip.digital"
     }
   },
   "contextual": {
@@ -114,9 +115,9 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/uip_protocol",
+      "github": "https://github.com/uip-protocol",
+      "linkedin": "https://linkedin.com/company/uip-protocol"
     }
   }
 }

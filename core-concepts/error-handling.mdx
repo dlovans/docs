@@ -1,0 +1,359 @@
+---
+title: "Error Handling"
+description: "Understanding and handling UIP API errors effectively"
+---
+
+## Error Response Format
+
+All UIP API errors follow a consistent JSON structure:
+
+```json
+{
+  "error": "The requested resource was not found",
+  "code": "resource/not-found"
+}
+```
+
+<Info>
+**Best Practice:** First check if the HTTP status code is **not 2xx**. Then examine the `code` field for specific details about what went wrong.
+</Info>
+
+## How to Handle Errors
+
+<Steps>
+  <Step title="Check HTTP Status Code">
+    Verify if the response status code is in the 2xx range (success) or not.
+  </Step>
+
+  <Step title="Examine Error Code">
+    If status is not 2xx, read the `code` field for specific error details.
+  </Step>
+
+  <Step title="Take Appropriate Action">
+    Use the error code to determine how to handle the error (retry, show message, etc.).
+  </Step>
+</Steps>
+
+## HTTP Status Codes
+
+UIP uses standard HTTP status codes:
+
+| Status Code | Meaning | When It Occurs |
+|-------------|---------|----------------|
+| **200** | Success | Request completed successfully |
+| **400** | Bad Request | Invalid request parameters or format |
+| **401** | Unauthorized | Invalid or missing API key |
+| **403** | Forbidden | Insufficient permissions |
+| **404** | Not Found | Resource doesn't exist |
+| **429** | Too Many Requests | Rate limit exceeded |
+| **500** | Internal Server Error | Server-side issue |
+| **503** | Service Unavailable | Temporary service disruption |
+
+<Note>
+**Rate Limits:** Currently, no rate limits are enforced on UIP APIs. However, rate limiting may be added in the future to ensure fair usage and system stability.
+</Note>
+
+## Error Codes Reference
+
+### Internal Errors
+
+<AccordionGroup>
+  <Accordion title="internal/server-error" icon="server" defaultOpen>
+    **HTTP 500** - An internal server error occurred
+
+    **Cause:**
+    - Unexpected server-side issue
+    - Database or service failure
+    - Infrastructure problem
+
+    **Solution:**
+    - Retry request with exponential backoff
+    - If persists, contact support@uip.digital
+  </Accordion>
+</AccordionGroup>
+
+### Resource Errors
+
+<AccordionGroup>
+  <Accordion title="resource/not-found" icon="magnifying-glass">
+    **HTTP 404** - The requested resource was not found
+
+    **Cause:**
+    - Invalid session ID (Invalidate API)
+    - Invalid audit reference ID (Audit API)
+    - Resource was already completed or expired
+    - Typo in resource identifier
+
+    **Solution:**
+    - Verify the ID is correct
+    - Check if session/audit record exists
+    - Ensure resource hasn't been invalidated or completed
+  </Accordion>
+</AccordionGroup>
+
+### Data Errors
+
+<AccordionGroup>
+  <Accordion title="data/corrupt" icon="triangle-exclamation">
+    **HTTP 500** - The requested data is corrupted or invalid
+
+    **Cause:**
+    - Data corruption on server side
+    - Internal data integrity issue
+    - Storage or database corruption
+
+    **Solution:**
+    - Initiate a new request/session
+    - Do not retry the same resource
+    - Contact support@uip.digital if issue persists
+  </Accordion>
+</AccordionGroup>
+
+### Authentication Errors
+
+<AccordionGroup>
+  <Accordion title="auth/unauthorized" icon="lock">
+    **HTTP 401** - Unauthorized access to the requested resource
+
+    **Cause:**
+    - Missing API key
+    - Invalid credentials
+    - Unauthenticated request
+
+    **Solution:**
+    - Include API key in Authorization header
+    - Verify credentials are correct
+    - Check API key hasn't expired
+  </Accordion>
+
+  <Accordion title="auth/insufficient-permissions" icon="shield-halved">
+    **HTTP 403** - Insufficient permissions to access sensitive data
+
+    **Cause:**
+    - API key lacks required scope
+    - Requesting restricted data fields (e.g., `personal_number`)
+    - Account tier doesn't support feature
+
+    **Solution:**
+    - Check API key permissions in dashboard
+    - Upgrade account for enterprise features
+    - Request only data fields your account has access to
+  </Accordion>
+
+  <Accordion title="auth/invalid-api-key" icon="key">
+    **HTTP 401** - The provided API key is invalid
+
+    **Cause:**
+    - API key is incorrect
+    - API key format is malformed
+    - Using wrong environment key
+
+    **Solution:**
+    - Verify API key from dashboard
+    - Check for typos or incorrect key format
+    - Regenerate API key if needed
+  </Accordion>
+
+  <Accordion title="auth/revoked-api-key" icon="key-skeleton">
+    **HTTP 401** - The API key has been revoked
+
+    **Cause:**
+    - API key was manually revoked in dashboard
+    - Security incident triggered automatic revocation
+    - Key was deleted
+
+    **Solution:**
+    - Generate new API key in dashboard
+    - Update application with new key
+    - Review security if unexpected revocation
+  </Accordion>
+
+  <Accordion title="auth/business-archived" icon="box-archive">
+    **HTTP 403** - The business has been archived
+
+    **Cause:**
+    - Business account was archived or suspended
+    - Account closed
+    - Compliance or billing issue
+
+    **Solution:**
+    - Contact support@uip.digital to restore account
+    - Resolve outstanding issues
+    - Check account status in dashboard
+  </Accordion>
+
+  <Accordion title="auth/missing-api-key" icon="circle-exclamation">
+    **HTTP 401** - API key is required
+
+    **Cause:**
+    - No Authorization header provided
+    - Empty API key value
+    - Incorrect header format
+
+    **Solution:**
+    - Include header: `Authorization: Bearer YOUR_API_KEY`
+    - Verify header is being sent
+    - Check for typos in header name
+  </Accordion>
+</AccordionGroup>
+
+### Request Errors
+
+<AccordionGroup>
+  <Accordion title="request/invalid-payload" icon="file-circle-xmark">
+    **HTTP 400** - The request payload is invalid or missing required fields
+
+    **Cause:**
+    - Missing required parameters
+    - Invalid JSON format
+    - Wrong parameter types
+
+    **Solution:**
+    - Check API documentation for required fields
+    - Validate JSON before sending
+    - Verify parameter types match specification
+  </Accordion>
+
+  <Accordion title="request/invalid-file-type" icon="file-excel">
+    **HTTP 400** - The uploaded file type is not allowed
+
+    **Cause:**
+    - Unsupported file format (only PDFs are currently supported)
+    - File extension doesn't match content
+    - Non-PDF file uploaded
+
+    **Solution:**
+    - Convert file to PDF format
+    - Ensure file has `.pdf` extension
+    - Verify MIME type is `application/pdf`
+  </Accordion>
+
+  <Accordion title="request/file-too-large" icon="file-arrow-up">
+    **HTTP 400** - The uploaded file size exceeds the limit
+
+    **Cause:**
+    - File exceeds 20MB limit for attachments
+    - PDF file is too large
+
+    **Solution:**
+    - Compress PDF to reduce file size
+    - Reduce image quality/resolution in PDF
+    - Remove unnecessary pages or content
+    - Maximum file size: 20MB (required for audit traceability)
+  </Accordion>
+
+  <Accordion title="request/webhook-unreachable" icon="webhook">
+    **HTTP 400** - The webhook URL is not accessible
+
+    **Cause:**
+    - Webhook URL is not responding
+    - Firewall blocking UIP servers
+    - Invalid webhook URL
+
+    **Solution:**
+    - Verify webhook URL is accessible publicly
+    - Check firewall rules
+    - Test webhook with `/webhook/test` endpoint
+    - Ensure HTTPS for production webhooks
+  </Accordion>
+
+  <Accordion title="request/not-found" icon="route">
+    **HTTP 404** - No such registered route in API service
+
+    **Cause:**
+    - Invalid API endpoint
+    - Typo in URL path
+    - Using deprecated endpoint
+
+    **Solution:**
+    - Check API documentation for correct endpoint
+    - Verify API version in URL
+    - Remove trailing slashes
+  </Accordion>
+
+  <Accordion title="request/additional-data" icon="circle-plus">
+    **HTTP 400** - Additional data requested
+
+    **Cause:**
+    - Request requires additional information
+    - Missing optional but recommended fields
+
+    **Solution:**
+    - Review error message for required data
+    - Add suggested fields to request
+  </Accordion>
+</AccordionGroup>
+
+### Payment Errors
+
+<AccordionGroup>
+  <Accordion title="payment/insufficient-funds" icon="credit-card">
+    **HTTP 402** - Insufficient funds to complete the operation
+
+    **Cause:**
+    - Account balance too low
+    - Payment method declined
+    - Billing issue
+
+    **Solution:**
+    - Add funds to account
+    - Update payment method in dashboard
+    - Contact billing support
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Status Code First" icon="hashtag">
+    Always check HTTP status code before parsing error details. Non-2xx means an error occurred.
+  </Card>
+
+  <Card title="Use Specific Error Codes" icon="list-check">
+    Don't just check for 400 or 500. Use the `code` field for specific handling.
+  </Card>
+
+  <Card title="Implement Retry Logic" icon="rotate">
+    Retry server errors (5xx) with exponential backoff. Don't retry 4xx errors (client errors).
+  </Card>
+
+  <Card title="Don't Retry 4xx Errors" icon="ban">
+    Client errors won't succeed on retry. Fix the request instead.
+  </Card>
+
+  <Card title="Monitor Error Rates" icon="chart-line">
+    Track error rates by code to identify integration issues early.
+  </Card>
+
+  <Card title="Log Error Details" icon="clipboard-list">
+    Always log error code and message for debugging purposes.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Getting Started"
+    icon="rocket"
+    href="/getting-started"
+  >
+    Build your first integration with proper error handling
+  </Card>
+
+  <Card
+    title="QR Integration"
+    icon="qrcode"
+    href="/core-concepts/qr-integration"
+  >
+    Learn about session expiration and timeout handling
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Complete API documentation with all endpoints
+  </Card>
+</CardGroup>

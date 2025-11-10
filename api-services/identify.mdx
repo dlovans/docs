@@ -1,0 +1,459 @@
+---
+title: "Identify API"
+description: "Authenticate users and retrieve verified identity information with UIP's core identification endpoint."
+---
+
+## Overview
+
+The Identify API authenticates users through their UIP identity and returns verified personal information. Users always see exactly what data you're requesting and can choose to approve or deny the request.
+
+<CardGroup cols={2}>
+  <Card title="Biometric Security" icon="fingerprint">
+    Authentication with verified identity data
+  </Card>
+
+  <Card title="QR Code Ready" icon="qrcode">
+    Automatic generation for desktop flows
+  </Card>
+
+  <Card title="Granular Control" icon="sliders">
+    Request only the data you need
+  </Card>
+
+  <Card title="Real-time Webhooks" icon="webhook">
+    Instant authentication notifications
+  </Card>
+</CardGroup>
+
+## Endpoint
+
+<Card title="POST /v1/identify" icon="code">
+  **Base URL:**
+  - `https://api.uip.digital/v1/identify`
+
+  **Headers:**
+  - `Authorization: Bearer YOUR_API_KEY`
+  - `Content-Type: application/json`
+</Card>
+
+<Info>
+**Pricing:** $0.01 per successful authentication. Only charged when users complete authentication.
+</Info>
+
+## Request Parameters
+
+<AccordionGroup>
+  <Accordion title="webhook_url (required)" icon="webhook" defaultOpen>
+    **Type:** string (URL format)
+
+    URL to receive authentication results. Must be HTTPS in production.
+
+    Your webhook will receive a POST request when the user completes or cancels authentication.
+  </Accordion>
+
+  <Accordion title="requested_data (optional)" icon="list">
+    **Type:** array of strings
+
+    Specific data fields to request from the user. If empty or omitted, requests all available data.
+
+    **Available fields:**
+    - `full_name` - User's complete legal name
+    - `date_of_birth` - Date of birth in YYYY-MM-DD format
+    - `country_of_origin` - Country where identity was verified (ISO 3166-1 alpha-2)
+    - `personal_number` - Government-issued ID number (enterprise/government only)
+
+    **Default:** All available data fields
+  </Accordion>
+
+  <Accordion title="device_type (optional)" icon="mobile-screen">
+    **Type:** string
+
+    Indicates the user's device context for optimal flow:
+    - `mobile` - User wants to authenticate on their current mobile device
+    - `desktop` - User wants to scan QR code with another device
+
+    **Default:** `desktop`
+  </Accordion>
+
+  <Accordion title="redirect_url (optional)" icon="arrow-turn-down-right">
+    **Type:** string (URL format)
+
+    Deep link URL to return the user to your app after mobile authentication. Required when `device_type: "mobile"`.
+
+    **Format:** `yourapp://auth-callback` or `https://yourapp.com/auth-callback`
+  </Accordion>
+
+  <Accordion title="min_age (optional)" icon="calendar">
+    **Type:** integer
+
+    Minimum age requirement for authentication. User must be at least this age to proceed.
+
+    **Use case:** Age verification for restricted content without exposing date of birth.
+  </Accordion>
+
+  <Accordion title="metadata (optional)" icon="tags">
+    **Type:** object
+
+    Additional data to associate with the authentication session for your records.
+
+    **Common fields:** user_ip, session_info, internal_user_id, context
+
+    **Note:** Metadata is returned in webhook responses
+  </Accordion>
+</AccordionGroup>
+
+## Available Data Fields
+
+Control exactly what information you receive. Users will see your business name and the specific data you're requesting.
+
+<Tabs>
+  <Tab title="Standard Fields">
+    ### full_name
+
+    User's complete legal name as verified during identity verification (powered by Didit).
+
+    **Example:** `"Alice Marie Johnson"`
+
+    **Privacy note:** Only request if you need the user's real name.
+
+    ---
+
+    ### date_of_birth
+
+    User's date of birth in YYYY-MM-DD format.
+
+    **Example:** `"1990-05-15"`
+
+    **Privacy note:** Consider using `min_age` parameter instead for age verification.
+
+    ---
+
+    ### country_of_origin
+
+    Country where the user's identity was verified, using ISO 3166-1 alpha-2 country codes.
+
+    **Example:** `"US"`, `"GB"`, `"CA"`
+
+    **Use case:** Geographic restrictions, compliance requirements
+  </Tab>
+
+  <Tab title="Restricted Fields">
+    ### personal_number
+
+    Government-issued personal identification number (SSN, National ID, etc.).
+
+    <Warning>
+    **Restricted Access:** Only available to verified enterprise and government accounts. Contact support@uip.digital to request access.
+    </Warning>
+
+    **Example:** `"123-45-6789"` (format varies by country)
+
+    **Compliance:** Subject to strict data handling requirements. Must demonstrate legitimate need and proper security measures.
+  </Tab>
+</Tabs>
+
+## Privacy Best Practice
+
+<Check>Only request the data you actually need</Check>
+
+Users can see exactly what you're requesting and are more likely to approve minimal data requests. All responses always include the user's `uip_id` regardless of requested fields.
+
+## Request Examples
+
+<AccordionGroup>
+  <Accordion title="Request All Available Data" icon="database">
+    Omit the `requested_data` parameter or pass an empty array to request all available fields (respecting your account permissions).
+
+    This requests:
+    - `uip_id` (always included)
+    - `full_name`
+    - `date_of_birth`
+    - `country_of_origin`
+    - `verified` status
+
+    **Use case:** Initial user registration where you need complete profile information.
+  </Accordion>
+
+  <Accordion title="Request Specific Fields" icon="filter">
+    Only request the fields you need for your use case.
+
+    **Example:** Only request name and date of birth.
+
+    This requests:
+    - `uip_id` (always included)
+    - `full_name`
+    - `date_of_birth`
+
+    **Use case:** Account verification, personalization
+  </Accordion>
+
+  <Accordion title="Age Verification Only" icon="id-badge">
+    Use `min_age` parameter to verify age without exposing date of birth.
+
+    Pass `min_age: 21` to verify user is at least 21 years old.
+
+    Response includes:
+    - `uip_id` (always included)
+    - `age_verified: true/false`
+
+    **Use case:** Age-restricted content, alcohol sales, gambling
+  </Accordion>
+
+  <Accordion title="Mobile Device Flow" icon="mobile">
+    For users authenticating on their mobile device, specify `device_type: "mobile"` and provide a redirect URL.
+
+    Response includes an `app_url` that opens the UIP app directly, skipping the QR code.
+
+    **Use case:** Mobile web apps, progressive web apps
+  </Accordion>
+</AccordionGroup>
+
+## Webhook Response
+
+Your webhook endpoint receives authentication results when the user completes or cancels the request.
+
+<Tabs>
+  <Tab title="Success Response">
+    **Event:** `authentication_completed`
+
+    Sent when a user successfully authenticates with their biometric.
+
+    **Payload includes:**
+    - `event`: Event type (`authentication_completed`)
+    - `session_id`: Unique session identifier
+    - `status`: `success`
+    - `user_data`: Object containing requested identity data
+      - `uip_id`: User's unique UIP identifier (always included)
+      - `verified`: Boolean indicating government ID verification status
+      - Additional fields based on your request
+    - `timestamp`: ISO 8601 timestamp
+
+    **Example:**
+    ```json
+    {
+      "event": "authentication_completed",
+      "session_id": "sess_1234567890abcdef",
+      "status": "success",
+      "user_data": {
+        "uip_id": "uip_user_9876543210",
+        "full_name": "Alice Johnson",
+        "date_of_birth": "1990-05-15",
+        "verified": true
+      },
+      "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+  </Tab>
+
+  <Tab title="Failed/Cancelled">
+    **Event:** `authentication_failed`
+
+    Sent when authentication fails, is cancelled by the user, or expires.
+
+    **Payload includes:**
+    - `event`: Event type (`authentication_failed`)
+    - `session_id`: Unique session identifier
+    - `status`: `failed`, `cancelled`, or `expired`
+    - `reason`: Human-readable failure reason
+    - `timestamp`: ISO 8601 timestamp
+
+    **Common reasons:**
+    - User cancelled the request
+    - Session expired (5 minutes)
+    - User denied data sharing permission
+    - Biometric authentication failed
+    - User doesn't meet minimum age requirement
+  </Tab>
+</Tabs>
+
+## Webhook Security
+
+<Warning>
+**Always verify webhook authenticity** using the signature header before processing the data.
+</Warning>
+
+Every webhook includes an `X-UIP-Signature` header. Your webhook secret is a UUID v4 identifier (without any prefix).
+
+### Signature Verification
+
+Verify the webhook signature using HMAC SHA-256:
+
+1. Get the raw request body (as string)
+2. Compute HMAC SHA-256 using your webhook secret
+3. Compare with the `X-UIP-Signature` header
+4. Only process if signatures match
+
+<Info>
+Your webhook secret is available in the [Business Dashboard](https://business.uip.digital) under Settings → API Keys.
+</Info>
+
+## Common Use Cases
+
+<Tabs>
+  <Tab title="Passwordless Login">
+    **Goal:** Replace username/password authentication
+
+    **Flow:**
+    1. User clicks "Login with UIP"
+    2. Call Identify API with empty `requested_data` (or just name)
+    3. Display QR code or redirect to app
+    4. Receive webhook confirmation
+    5. Create user session using `uip_id`
+
+    **Benefits:**
+    - No password storage or management
+    - Government-verified identities
+    - Biometric security
+    - Zero friction for users
+  </Tab>
+
+  <Tab title="Age Verification">
+    **Goal:** Verify user meets minimum age without exposing birth date
+
+    **Flow:**
+    1. User attempts to access age-restricted content
+    2. Call Identify API with `min_age: 21` (or required age)
+    3. Display QR code or redirect to app
+    4. Receive webhook with `age_verified: true/false`
+    5. Grant or deny access
+
+    **Benefits:**
+    - Privacy-preserving (no DOB exposure)
+    - Instant verification
+    - Government ID verified
+    - No manual checking required
+  </Tab>
+
+  <Tab title="KYC Compliance">
+    **Goal:** Collect verified identity information for regulatory compliance
+
+    **Flow:**
+    1. User initiates account opening
+    2. Call Identify API requesting `full_name`, `date_of_birth`, `country_of_origin`
+    3. Display QR code or redirect to app
+    4. Receive webhook with verified identity data
+    5. Store data for compliance records
+
+    **Benefits:**
+    - Government ID verification included
+    - No manual document review
+    - Instant onboarding
+    - Global coverage
+  </Tab>
+
+  <Tab title="Account Recovery">
+    **Goal:** Verify user identity before allowing password reset or account changes
+
+    **Flow:**
+    1. User requests account recovery
+    2. Call Identify API with stored `uip_id` match verification
+    3. Display QR code or redirect to app
+    4. Receive webhook confirmation
+    5. Allow account recovery only if `uip_id` matches
+
+    **Benefits:**
+    - Prevents account takeover
+    - More secure than email/SMS
+    - Instant verification
+  </Tab>
+</Tabs>
+
+## Response Times
+
+<CardGroup cols={3}>
+  <Card title="API Response" icon="bolt">
+    **< 200ms**
+
+    Initial API call returns QR code or deep link instantly
+  </Card>
+
+  <Card title="User Action" icon="user-check">
+    **10-30 seconds**
+
+    Average time for user to scan and authenticate
+  </Card>
+
+  <Card title="Webhook Delivery" icon="webhook">
+    **< 1 second**
+
+    Webhook sent immediately after user completes action
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+Common error responses and how to handle them:
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized" icon="lock">
+    **Cause:** Invalid or missing API key
+
+    **Solution:** Check that your API key is correct and included in the `Authorization` header
+  </Accordion>
+
+  <Accordion title="400 Bad Request" icon="circle-exclamation">
+    **Cause:** Invalid request parameters
+
+    **Common issues:**
+    - `webhook_url` is not a valid HTTPS URL
+    - `requested_data` contains invalid field names
+    - `device_type` is set to `mobile` but `redirect_url` is missing
+    - `min_age` is not a positive integer
+
+    **Solution:** Validate request parameters before sending
+  </Accordion>
+
+  <Accordion title="403 Forbidden" icon="ban">
+    **Cause:** Requesting restricted data without permission
+
+    **Example:** Requesting `personal_number` without enterprise account
+
+    **Solution:** Remove restricted fields or contact support to upgrade account
+  </Accordion>
+
+  <Accordion title="429 Rate Limit" icon="gauge-high">
+    **Cause:** Exceeded rate limits
+
+    **Limits:**
+    - Sandbox: 100 requests/minute
+    - Production: 1,000 requests/minute
+
+    **Solution:** Implement exponential backoff and retry logic
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Get API Keys"
+    icon="key"
+    href="https://business.uip.digital/identify"
+  >
+    Start integrating UIP authentication
+  </Card>
+
+  <Card
+    title="QR Integration Guide"
+    icon="qrcode"
+    href="/core-concepts/qr-integration"
+  >
+    Learn about device flows and QR implementation
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/endpoint/identify"
+  >
+    Complete API reference with request/response schemas
+  </Card>
+
+  <Card
+    title="Error Handling"
+    icon="triangle-exclamation"
+    href="/core-concepts/error-handling"
+  >
+    Handle errors gracefully in your integration
+  </Card>
+</CardGroup>

@@ -1,16 +1,19 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
-    "version": "1.0.0"
+    "title": "UIP API",
+    "description": "Universal Identity Protocol API for biometric authentication, signatures, and messaging",
+    "version": "1.0.0",
+    "contact": {
+      "name": "UIP Support",
+      "email": "support@uip.digital",
+      "url": "https://business.uip.digital"
+    }
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://api.uip.digital/v1",
+      "description": "Production"
     }
   ],
   "security": [
@@ -19,36 +22,66 @@
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
+    "/identify": {
+      "post": {
+        "summary": "Identify Identity",
+        "description": "Identify and verify a user's identity with biometric verification. Returns a QR code or deep link for the user to scan.",
+        "operationId": "identify",
+        "tags": ["Identity"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentifyRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic authentication",
+                  "value": {
+                    "redirect_url": "https://myapp.com/auth/callback",
+                    "metadata": {
+                      "user_id": "user_123"
+                    }
+                  }
+                },
+                "age_verification": {
+                  "summary": "Age verification",
+                  "value": {
+                    "redirect_url": "https://myapp.com/auth/callback",
+                    "min_age": 21,
+                    "metadata": {
+                      "user_id": "user_123"
+                    }
+                  }
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Authentication session created",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/IdentifyResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "session_id": "sess_abc123def456",
+                      "qr_data": "uip://auth?session=sess_abc123def456",
+                      "expires_at": "2025-01-10T12:05:00Z",
+                      "status": "pending"
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Unexpected error",
+            "description": "Bad request",
             "content": {
               "application/json": {
                 "schema": {
@@ -56,35 +89,9 @@
                 }
               }
             }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -96,28 +103,69 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
+    "/sign": {
+      "post": {
+        "summary": "Request Signature",
+        "description": "Request a legally binding biometric signature from a user",
+        "operationId": "sign",
+        "tags": ["Signatures"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic signature request",
+                  "value": {
+                    "user_id": "user_abc123",
+                    "title": "Employment Contract",
+                    "description": "Please review and sign your employment contract",
+                    "document_url": "https://myapp.com/contracts/emp_contract_123.pdf",
+                    "metadata": {
+                      "contract_id": "contract_123"
+                    }
+                  }
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
+          "200": {
+            "description": "Signature request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "signature_id": "sig_abc123def456",
+                      "status": "pending",
+                      "created_at": "2025-01-10T12:00:00Z",
+                      "expires_at": "2025-01-10T12:05:00Z"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "unexpected error",
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -128,25 +176,295 @@
           }
         }
       }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
+    },
+    "/message": {
       "post": {
-        "description": "Information about a new plant added to the store",
+        "summary": "Send Message",
+        "description": "Send an encrypted message to a UIP user with optional attachments",
+        "operationId": "message",
+        "tags": ["Messaging"],
         "requestBody": {
-          "description": "Plant added to the store",
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/MessageRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic message",
+                  "value": {
+                    "user_id": "user_abc123",
+                    "title": "Account Update",
+                    "message": "Your account has been successfully updated",
+                    "priority": "normal"
+                  }
+                },
+                "with_attachment": {
+                  "summary": "Message with attachment",
+                  "value": {
+                    "user_id": "user_abc123",
+                    "title": "Monthly Statement",
+                    "message": "Your monthly statement is attached",
+                    "priority": "high",
+                    "attachment_url": "https://myapp.com/statements/jan_2025.pdf"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "Message sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "message_id": "msg_abc123def456",
+                      "status": "delivered",
+                      "sent_at": "2025-01-10T12:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invalidate": {
+      "post": {
+        "summary": "Invalidate Message",
+        "description": "Cancel an active session (authentication, signature, or message request)",
+        "operationId": "invalidate",
+        "tags": ["Sessions"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidateRequest"
+              },
+              "examples": {
+                "session": {
+                  "summary": "Invalidate auth session",
+                  "value": {
+                    "session_id": "sess_abc123def456"
+                  }
+                },
+                "signature": {
+                  "summary": "Invalidate signature request",
+                  "value": {
+                    "signature_id": "sig_abc123def456"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session invalidated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidateResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "status": "invalidated",
+                      "invalidated_at": "2025-01-10T12:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit": {
+      "get": {
+        "summary": "Get Audit Record",
+        "description": "Retrieve the complete audit record for a completed action",
+        "operationId": "audit",
+        "tags": ["Audit"],
+        "parameters": [
+          {
+            "name": "reference_id",
+            "in": "query",
+            "required": true,
+            "description": "The reference ID of the action to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit record retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditResponse"
+                },
+                "examples": {
+                  "signature": {
+                    "value": {
+                      "reference_id": "ref_abc123def456",
+                      "action_type": "signature",
+                      "status": "completed",
+                      "signatory": {
+                        "user_id": "user_abc123",
+                        "verified": true,
+                        "verification_level": "government_id"
+                      },
+                      "timestamp": "2025-01-10T12:00:00Z",
+                      "requester": {
+                        "organization_id": "org_xyz789",
+                        "organization_name": "Acme Corp"
+                      },
+                      "document_hash": "sha256:abc123...",
+                      "signature_proof": "0x123abc..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Audit record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/test": {
+      "post": {
+        "summary": "Test Webhook",
+        "description": "Test your webhook endpoint configuration by triggering a test notification",
+        "operationId": "webhookTest",
+        "tags": ["Webhooks"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookTestRequest"
+              },
+              "examples": {
+                "authentication": {
+                  "summary": "Test authentication webhook",
+                  "value": {
+                    "webhook_url": "https://myapp.com/webhooks/uip",
+                    "event_type": "authentication.completed"
+                  }
+                },
+                "signature": {
+                  "summary": "Test signature webhook",
+                  "value": {
+                    "webhook_url": "https://myapp.com/webhooks/uip",
+                    "event_type": "signature.completed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook test sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "test_id": "test_abc123def456",
+                      "webhook_url": "https://myapp.com/webhooks/uip",
+                      "status": "sent",
+                      "response_code": 200,
+                      "response_time_ms": 145,
+                      "sent_at": "2025-01-10T12:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -154,55 +472,341 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "IdentifyRequest": {
         "type": "object",
+        "required": ["redirect_url"],
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "redirect_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to redirect user after authentication"
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+          "min_age": {
+            "type": "integer",
+            "description": "Minimum age requirement for age verification"
+          },
+          "require_location": {
+            "type": "boolean",
+            "description": "Whether to require location verification"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional metadata to associate with the session"
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
-          },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          }
-        ]
-      },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "IdentifyResponse": {
         "type": "object",
         "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
+          "session_id": {
+            "type": "string",
+            "description": "Unique session identifier"
+          },
+          "qr_data": {
+            "type": "string",
+            "description": "QR code data or deep link URL"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Session expiration timestamp"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "expired", "cancelled"],
+            "description": "Current session status"
+          }
+        }
+      },
+      "SignRequest": {
+        "type": "object",
+        "required": ["user_id", "title", "description"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "UIP user ID to request signature from"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the document to be signed"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description or intent of the signature"
+          },
+          "document_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the document to be signed"
+          },
+          "document_hash": {
+            "type": "string",
+            "description": "SHA-256 hash of the document"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional metadata to associate with the signature"
+          }
+        }
+      },
+      "SignResponse": {
+        "type": "object",
+        "properties": {
+          "signature_id": {
+            "type": "string",
+            "description": "Unique signature request identifier"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "signed", "declined", "expired"],
+            "description": "Current signature status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Request creation timestamp"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Request expiration timestamp"
+          },
+          "reference_id": {
+            "type": "string",
+            "description": "Audit trail reference ID (available after signature)"
+          }
+        }
+      },
+      "MessageRequest": {
+        "type": "object",
+        "required": ["user_id", "title", "message"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "UIP user ID to send message to"
+          },
+          "title": {
+            "type": "string",
+            "description": "Message title"
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Message content"
+          },
+          "attachment_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to attachment (max 20MB)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "normal", "high", "urgent"],
+            "default": "normal",
+            "description": "Message priority level"
+          },
+          "request_signature": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to request signature on this message"
+          }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Unique message identifier"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["sent", "delivered", "read", "failed"],
+            "description": "Message delivery status"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Message send timestamp"
+          }
+        }
+      },
+      "InvalidateRequest": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Authentication session ID to invalidate"
+          },
+          "signature_id": {
+            "type": "string",
+            "description": "Signature request ID to invalidate"
+          }
+        },
+        "oneOf": [
+          {"required": ["session_id"]},
+          {"required": ["signature_id"]}
+        ]
+      },
+      "InvalidateResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["invalidated"],
+            "description": "Invalidation status"
+          },
+          "invalidated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Invalidation timestamp"
+          }
+        }
+      },
+      "AuditResponse": {
+        "type": "object",
+        "properties": {
+          "reference_id": {
+            "type": "string",
+            "description": "Unique audit reference ID"
+          },
+          "action_type": {
+            "type": "string",
+            "enum": ["authentication", "signature", "message"],
+            "description": "Type of action"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["completed", "failed"],
+            "description": "Action status"
+          },
+          "signatory": {
+            "type": "object",
+            "properties": {
+              "user_id": {
+                "type": "string",
+                "description": "UIP user ID"
+              },
+              "verified": {
+                "type": "boolean",
+                "description": "Whether identity is government verified"
+              },
+              "verification_level": {
+                "type": "string",
+                "description": "Level of identity verification"
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Action timestamp"
+          },
+          "requester": {
+            "type": "object",
+            "properties": {
+              "organization_id": {
+                "type": "string",
+                "description": "Requesting organization ID"
+              },
+              "organization_name": {
+                "type": "string",
+                "description": "Requesting organization name"
+              }
+            }
+          },
+          "document_hash": {
+            "type": "string",
+            "description": "SHA-256 hash of signed document (for signatures)"
+          },
+          "signature_proof": {
+            "type": "string",
+            "description": "Cryptographic signature proof"
+          }
+        }
+      },
+      "WebhookTestRequest": {
+        "type": "object",
+        "required": ["webhook_url", "event_type"],
+        "properties": {
+          "webhook_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Your webhook endpoint URL to test"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "authentication.completed",
+              "authentication.failed",
+              "signature.completed",
+              "signature.declined",
+              "message.delivered",
+              "message.read"
+            ],
+            "description": "Type of webhook event to simulate"
+          }
+        }
+      },
+      "WebhookTestResponse": {
+        "type": "object",
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "description": "Unique test identifier"
+          },
+          "webhook_url": {
+            "type": "string",
+            "description": "The webhook URL that was tested"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["sent", "failed"],
+            "description": "Test delivery status"
+          },
+          "response_code": {
+            "type": "integer",
+            "description": "HTTP response code from your webhook"
+          },
+          "response_time_ms": {
+            "type": "integer",
+            "description": "Response time in milliseconds"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Test sent timestamp"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "Error message if test failed"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "details": {
+                "type": "object",
+                "description": "Additional error context"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Request ID for debugging"
           }
         }
       }
@@ -210,7 +814,9 @@
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "Use your UIP API key as a bearer token"
       }
     }
   }

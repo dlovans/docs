@@ -1,0 +1,449 @@
+---
+title: "Messaging API"
+description: "Send encrypted messages with document attachments and signature requests to verified UIP users."
+---
+
+## Overview
+
+The Messaging API enables secure, encrypted communication between your application and UIP users. Send text messages, documents for signing, legal contracts, and other important communications with configurable notification priorities.
+
+<CardGroup cols={2}>
+  <Card title="Text Messages" icon="message">
+    Secure notifications, alerts, and communications without attachments
+  </Card>
+
+  <Card title="Document Messages" icon="file-signature">
+    Contracts, legal documents, and files requiring signature with full audit trail
+  </Card>
+
+  <Card title="Encrypted Delivery" icon="lock">
+    End-to-end encryption ensures only the recipient can read your messages
+  </Card>
+
+  <Card title="Signature Collection" icon="pen-to-square">
+    Request signatures on messages and documents with cryptographic proof
+  </Card>
+</CardGroup>
+
+## Message Types
+
+<Tabs>
+  <Tab title="Text Messages">
+    **Perfect for:**
+    - Account notifications and alerts
+    - Password reset confirmations
+    - Transaction confirmations
+    - System status updates
+    - General communications
+
+    **Pricing:** $0.03 per message
+  </Tab>
+
+  <Tab title="Document Messages">
+    **Perfect for:**
+    - Employment contracts
+    - Legal agreements
+    - Financial documents
+    - Policy updates requiring acknowledgment
+    - Multi-party contracts
+
+    **Pricing:** $0.10 per message with attachment (up to 20MB)
+  </Tab>
+</Tabs>
+
+## Notification Severity Levels
+
+Control how urgently users are notified about your messages with four severity levels:
+
+<AccordionGroup>
+  <Accordion title="Low" icon="bell" defaultOpen>
+    **No push notification** - Background delivery only.
+
+    User sees message when they open the UIP app. Perfect for non-urgent notifications, marketing messages, or optional updates.
+
+    **Use for:** Non-urgent updates, promotional content, informational messages
+  </Accordion>
+
+  <Accordion title="Medium (Default)" icon="bell-on">
+    **Standard push notification** with default sound and vibration.
+
+    User receives immediate notification but not intrusive. Perfect for most use cases.
+
+    **Use for:** Account notifications, transaction confirmations, general alerts
+  </Accordion>
+
+  <Accordion title="High" icon="bell-exclamation">
+    **Priority notification** with enhanced sound and persistent alert until acknowledged.
+
+    User receives prominent notification that stays visible. Perfect for important actions requiring attention.
+
+    **Use for:** Contract signing requests, security alerts, payment confirmations
+  </Accordion>
+
+  <Accordion title="Extreme" icon="siren-on">
+    **Emergency-level notification** with maximum alert intensity.
+
+    <Warning>
+    **Restricted Access:** Extreme severity is only available to verified government and emergency service accounts.
+    </Warning>
+
+    Reserved for critical situations requiring immediate action.
+
+    **Use for:** Emergency alerts, public safety notifications, critical government communications
+  </Accordion>
+</AccordionGroup>
+
+## Request Parameters
+
+<AccordionGroup>
+  <Accordion title="recipient_uip_id (required)" icon="user">
+    **Type:** string
+
+    UIP ID of the message recipient. Must be a valid UIP user identifier.
+  </Accordion>
+
+  <Accordion title="webhook_url (required)" icon="webhook">
+    **Type:** string (URL format)
+
+    URL to receive message delivery and response events. Must be HTTPS in production.
+
+    Your webhook will receive notifications when the message is delivered, read, or signed.
+  </Accordion>
+
+  <Accordion title="subject (required)" icon="heading">
+    **Type:** string
+
+    Message subject or title. This appears in notifications and the message list.
+
+    **Best Practice:** Keep concise but descriptive (e.g., "Employment Contract - Please Review")
+  </Accordion>
+
+  <Accordion title="message (required)" icon="file-lines">
+    **Type:** string
+
+    Message content or body. Can include plain text or markdown formatting.
+
+    **Best Practice:** Provide context and clear next steps for the recipient
+  </Accordion>
+
+  <Accordion title="severity (optional)" icon="bell">
+    **Type:** string
+
+    Notification priority level: `low`, `medium`, `high`, `extreme`
+
+    **Default:** `medium`
+
+    Choose based on urgency and importance of the message.
+  </Accordion>
+
+  <Accordion title="attachment (optional)" icon="paperclip">
+    **Type:** object
+
+    Document attachment (up to 20MB). Required fields:
+    - `filename`: File name with extension
+    - `content_type`: MIME type
+    - `data`: Base64-encoded file data
+    - `size`: File size in bytes
+
+    **Supported formats:** PDF, Word, images, text, CSV
+  </Accordion>
+
+  <Accordion title="requires_signature (optional)" icon="signature">
+    **Type:** boolean
+
+    Whether the message or document requires a signature from the recipient.
+
+    **Default:** `false`
+
+    When `true`, recipient must sign before the message is considered complete.
+  </Accordion>
+</AccordionGroup>
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Document Signing">
+    **Scenario:** Send employment contract for signature
+
+    Send a PDF contract with `requires_signature: true`. When the recipient signs, you receive a webhook with the signature proof and audit reference ID.
+
+    **Benefits:**
+    - Legally binding signatures
+    - Permanent audit trail
+    - No physical paperwork
+    - Instant completion
+
+    **Webhook Response:** Includes `audit_reference_id` for permanent proof
+  </Tab>
+
+  <Tab title="Secure Notifications">
+    **Scenario:** Send encrypted account alert
+
+    Send text-only message with sensitive account information. End-to-end encryption ensures only the recipient can read it.
+
+    **Benefits:**
+    - No email interception risk
+    - Verified recipient identity
+    - Delivery confirmation
+    - Read receipts
+
+    **Webhook Response:** Confirms delivery and read status
+  </Tab>
+
+  <Tab title="Multi-Party Agreements">
+    **Scenario:** Collect signatures from multiple parties
+
+    Send the same contract document to multiple recipients with `requires_signature: true`. Track each signature independently using audit reference IDs.
+
+    **Implementation approach:**
+    1. Send message with attachment to Recipient 1
+    2. Save `audit_reference_id_1` from webhook response
+    3. Send same document to Recipient 2
+    4. Save `audit_reference_id_2` from webhook response
+    5. Continue for all parties
+    6. Store all audit IDs together for complete agreement proof
+
+    **Advanced approach:** UIP's modular architecture allows creative solutions:
+    - Use metadata to link related signatures
+    - Create signature collection workflows
+    - Implement approval chains
+    - Build custom signature ordering
+
+    **Benefits:**
+    - Each signature cryptographically verified
+    - Independent audit trails for each party
+    - Flexible workflow design
+    - Permanent proof of multi-party agreement
+  </Tab>
+
+  <Tab title="Policy Acknowledgment">
+    **Scenario:** Require employees to acknowledge updated policies
+
+    Send policy document with `requires_signature: true` to all employees. Track completion with audit records.
+
+    **Benefits:**
+    - Proof of acknowledgment
+    - Timestamp of acceptance
+    - No manual tracking
+    - Compliance ready
+
+    **Webhook Response:** Audit trail for compliance records
+  </Tab>
+</Tabs>
+
+## Invalidating Messages
+
+If you send a message that requires a signature, you can invalidate it before the recipient signs using the [Invalidate Message API](/api-reference/endpoint/invalidate).
+
+<Info>
+**When to Invalidate:** Cancel pending signature requests if terms change, deadlines pass, or the request is no longer needed.
+</Info>
+
+### How It Works
+
+<Steps>
+  <Step title="Send Message">
+    Send a message with `requires_signature: true` to a recipient
+  </Step>
+
+  <Step title="Recipient Hasn't Signed">
+    Before the recipient signs, you decide to cancel the request
+  </Step>
+
+  <Step title="Call Invalidate API">
+    Use the [Invalidate Message API](/api-reference/endpoint/invalidate) with the message ID to cancel
+  </Step>
+
+  <Step title="Request Cancelled">
+    The recipient can no longer sign the message. They'll see it was cancelled.
+  </Step>
+</Steps>
+
+**Use cases for invalidation:**
+- Contract terms changed before signing
+- Recipient should sign updated version
+- Request sent to wrong person
+- Deadline passed without signature
+- Agreement cancelled by another party
+
+<Note>
+Once a recipient signs a message, it **cannot be invalidated**. The signature is permanent and stored in the audit trail.
+</Note>
+
+## Webhook Response
+
+Your webhook endpoint receives message status updates:
+
+<Tabs>
+  <Tab title="Message Delivered">
+    **Event:** `message_delivered`
+
+    Sent when message successfully delivered to recipient's UIP app.
+
+    **Payload includes:**
+    - Message ID
+    - Status: `delivered`
+    - Timestamp
+  </Tab>
+
+  <Tab title="Message Read">
+    **Event:** `message_read`
+
+    Sent when recipient opens and views the message.
+
+    **Payload includes:**
+    - Message ID
+    - Status: `read`
+    - Timestamp
+  </Tab>
+
+  <Tab title="Message Signed">
+    **Event:** `message_signed`
+
+    Sent when recipient signs the message or document.
+
+    **Payload includes:**
+    - Message ID
+    - Status: `signed`
+    - Signature proof
+    - Audit reference ID (save this!)
+    - Timestamp
+  </Tab>
+
+  <Tab title="Signature Declined">
+    **Event:** `signature_declined`
+
+    Sent when recipient declines to sign.
+
+    **Payload includes:**
+    - Message ID
+    - Status: `declined`
+    - Reason (optional)
+    - Timestamp
+  </Tab>
+</Tabs>
+
+## Supported File Types
+
+When including document attachments:
+
+<CardGroup cols={2}>
+  <Card title="Documents" icon="file-pdf">
+    - PDF documents (`.pdf`)
+    - Word documents (`.docx`)
+    - Text files (`.txt`)
+    - CSV files (`.csv`)
+  </Card>
+
+  <Card title="Images" icon="image">
+    - JPEG images (`.jpg`, `.jpeg`)
+    - PNG images (`.png`)
+  </Card>
+</CardGroup>
+
+### File Limits
+
+<Check>Maximum file size: **20MB**</Check>
+<Check>One attachment per message</Check>
+<Check>Base64 encoding required</Check>
+<Check>File size must match encoded data</Check>
+
+## Pricing
+
+<CardGroup cols={2}>
+  <Card title="Text Messages" icon="message">
+    ### $0.03
+    per message
+
+    No attachment, text-only communication
+  </Card>
+
+  <Card title="Messages with Attachment" icon="file-signature">
+    ### $0.10
+    per message
+
+    Includes documents up to 20MB with signature support
+  </Card>
+</CardGroup>
+
+<Info>
+**Billing:** Only charged when messages are successfully delivered. Failed deliveries are not billed.
+</Info>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Choose Severity Wisely" icon="bell">
+    Don't overuse high/extreme severity. Users will ignore notifications if everything is urgent.
+  </Card>
+
+  <Card title="Clear Subject Lines" icon="heading">
+    Make subjects descriptive and actionable. "Action Required: Employment Contract" is better than "New Message"
+  </Card>
+
+  <Card title="Save Audit IDs" icon="database">
+    Always save `audit_reference_id` from signature webhooks for permanent proof and compliance.
+  </Card>
+
+  <Card title="Test Webhooks" icon="webhook">
+    Use the [Test Webhook](/api-reference/endpoint/webhook-test) endpoint before going live.
+  </Card>
+
+  <Card title="Handle Declines Gracefully" icon="user-xmark">
+    Signature declines are normal. Provide clear follow-up actions or retry options.
+  </Card>
+
+  <Card title="Compress Large Files" icon="compress">
+    Optimize PDFs and images before sending to stay under the 20MB limit.
+  </Card>
+</CardGroup>
+
+## Message Security
+
+<AccordionGroup>
+  <Accordion title="End-to-End Encryption" icon="lock" defaultOpen>
+    All messages are encrypted client-to-client. UIP servers cannot read message content.
+
+    Encryption happens on sender's server → transmitted encrypted → decrypted only on recipient's device.
+  </Accordion>
+
+  <Accordion title="Verified Recipients" icon="user-check">
+    All UIP users are government-verified identities. You know exactly who you're communicating with.
+  </Accordion>
+
+  <Accordion title="Tamper-Proof Attachments" icon="shield-check">
+    Document attachments are hashed and stored immutably. Any modification is detectable.
+  </Accordion>
+
+  <Accordion title="Signature Proof" icon="signature">
+    Signatures include cryptographic proof, biometric authentication, and government-verified identity. Court-admissible evidence.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Get API Keys"
+    icon="key"
+    href="https://business.uip.digital/identify"
+  >
+    Start sending encrypted messages
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/endpoint/message"
+  >
+    Complete API reference with request/response schemas
+  </Card>
+
+  <Card
+    title="Invalidate Message"
+    icon="ban"
+    href="/api-reference/endpoint/invalidate"
+  >
+    Learn how to cancel pending signature requests
+  </Card>
+</CardGroup>

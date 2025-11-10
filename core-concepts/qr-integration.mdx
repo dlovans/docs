@@ -1,0 +1,299 @@
+---
+title: "QR Code Integration"
+description: "Learn how to implement UIP authentication with seamless device detection and QR code flows for optimal user experience."
+---
+
+## How UIP Authentication Works
+
+UIP's authentication flow adapts to the user's device context. The key is **asking users upfront** whether they want to authenticate on their current device or another device, eliminating guesswork and ensuring the best user experience.
+
+<CardGroup cols={2}>
+  <Card title="Mobile Flow" icon="mobile-screen">
+    User is on mobile and wants to authenticate on this device → UIP opens the mobile app directly, no QR code needed.
+  </Card>
+
+  <Card title="Desktop Flow" icon="desktop">
+    User is on desktop or wants to use another device → UIP generates a QR code to scan with their mobile UIP app.
+  </Card>
+</CardGroup>
+
+## Best Practice: Always Ask First
+
+Before making any API calls, present users with a choice: **"Authenticate on this device"** or **"Authenticate with another device"**. This prevents failed attempts and ensures the optimal flow every time.
+
+<AccordionGroup>
+  <Accordion title="Why This Matters" icon="lightbulb" defaultOpen>
+    <Check>Eliminates device detection errors and edge cases</Check>
+    <Check>Respects user preference (they might want to use a different device)</Check>
+    <Check>Provides clear user intent for your API integration</Check>
+    <Check>Reduces friction and improves conversion rates</Check>
+  </Accordion>
+</AccordionGroup>
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Present Device Choice">
+    Show users two clear options before initiating authentication:
+
+    **Option 1:** Authenticate on This Device
+    **Option 2:** Scan QR Code with Another Device
+  </Step>
+
+  <Step title="Make API Request">
+    Call the [Identify API](/api-reference/endpoint/identify) or [Sign API](/api-reference/endpoint/sign) with the appropriate parameters based on user choice.
+
+    For mobile/same device flow, include `device_type: "mobile"` and your redirect URL.
+    For desktop/QR code flow, include `device_type: "desktop"`.
+
+    Both flows require your `webhook_url` for receiving authentication results.
+  </Step>
+
+  <Step title="Handle API Response">
+    UIP returns different response formats based on the device type:
+
+    **Mobile Response:**
+    - Type: `redirect`
+    - App URL for opening UIP directly
+    - Session ID for tracking
+
+    **Desktop Response:**
+    - Type: `qr_code`
+    - QR image data (base64-encoded PNG)
+    - Session ID for tracking
+  </Step>
+
+  <Step title="Display Appropriate UI">
+    **For Mobile:** Display a button that opens the UIP app using the provided app URL. Show "Opening UIP app..." feedback.
+
+    **For Desktop:** Display the QR code image prominently with clear instructions: "Scan with UIP app"
+  </Step>
+
+  <Step title="Receive Webhook Confirmation">
+    All communication after the initial API call is handled through webhooks. UIP will send authentication results to your webhook URL.
+
+    The webhook payload includes event type, session ID, status, user data, and timestamp.
+  </Step>
+</Steps>
+
+## Webhook Handling
+
+After the user completes authentication in their UIP app, all communication happens through webhooks. This ensures real-time updates regardless of the user's device or network conditions.
+
+<Info>
+**Webhook Security:** Your webhook secret is a UUID v4 identifier (without any prefix). Always verify the `X-UIP-Signature` header using HMAC SHA-256 before processing webhook data.
+</Info>
+
+### Webhook Events
+
+Your webhook endpoint will receive POST requests with the following event types:
+
+<Tabs>
+  <Tab title="Authentication Completed">
+    **Event:** `authentication_completed`
+
+    Sent when a user successfully authenticates with their biometric.
+
+    **Payload includes:**
+    - Session ID
+    - Status: `success`
+    - User data (based on requested fields)
+    - Timestamp
+  </Tab>
+
+  <Tab title="Authentication Failed">
+    **Event:** `authentication_failed`
+
+    Sent when authentication fails or is cancelled by the user.
+
+    **Payload includes:**
+    - Session ID
+    - Status: `failed` or `cancelled`
+    - Reason
+    - Timestamp
+  </Tab>
+
+  <Tab title="Signature Completed">
+    **Event:** `signature_completed`
+
+    Sent when a user successfully signs a document.
+
+    **Payload includes:**
+    - Session ID
+    - Status: `success`
+    - Signature proof
+    - Audit reference ID
+    - Timestamp
+  </Tab>
+
+  <Tab title="Signature Declined">
+    **Event:** `signature_declined`
+
+    Sent when a user declines to sign.
+
+    **Payload includes:**
+    - Session ID
+    - Status: `declined`
+    - Timestamp
+  </Tab>
+</Tabs>
+
+### Real-time Frontend Updates
+
+Use WebSockets, Server-Sent Events, or short polling to update your frontend when the webhook receives the authentication result. This provides instant feedback to users.
+
+<CardGroup cols={3}>
+  <Card title="WebSockets" icon="bolt">
+    Best for real-time bidirectional communication. Ideal for dashboards and interactive applications.
+  </Card>
+
+  <Card title="Server-Sent Events" icon="rss">
+    Simple one-way updates from server to client. Perfect for status updates and notifications.
+  </Card>
+
+  <Card title="Short Polling" icon="rotate">
+    Fallback option that works everywhere. Check status endpoint every 2-5 seconds until complete.
+  </Card>
+</CardGroup>
+
+## QR Code Display Best Practices
+
+<AccordionGroup>
+  <Accordion title="Size and Positioning" icon="maximize">
+    - **Minimum size:** 200x200 pixels for reliable scanning
+    - **Recommended:** 256x256 to 300x300 pixels
+    - **Center the QR code** prominently on the page
+    - Add adequate white space (quiet zone) around the QR code
+  </Accordion>
+
+  <Accordion title="Visual Feedback" icon="spinner">
+    - Show loading indicator while waiting for scan
+    - Display clear instructions: "Scan with UIP app"
+    - Add animated elements to draw attention to the QR code
+    - Show status updates: "QR code scanned, waiting for confirmation"
+  </Accordion>
+
+  <Accordion title="Error States" icon="triangle-exclamation">
+    - Handle expired QR codes gracefully (typically 5 minutes)
+    - Show "Try Again" button to generate new QR code
+    - Display clear error messages for connection issues
+    - Provide fallback options if QR scanning fails
+  </Accordion>
+
+  <Accordion title="Accessibility" icon="universal-access">
+    - Provide alt text for screen readers
+    - Include text instructions alongside QR code
+    - Ensure sufficient color contrast for visibility
+    - Consider alternative authentication methods for accessibility
+  </Accordion>
+</AccordionGroup>
+
+## Session Management
+
+<CardGroup cols={2}>
+  <Card title="Session Expiration" icon="clock">
+    QR codes expire after **5 minutes**. Always check expiration status and generate new codes as needed.
+  </Card>
+
+  <Card title="One-Time Use" icon="shield-check">
+    Each QR code is **single-use**. After scanning, the session cannot be reused for security.
+  </Card>
+
+  <Card title="HTTPS Required" icon="lock">
+    All UIP integrations must use **HTTPS in production** to prevent man-in-the-middle attacks.
+  </Card>
+
+  <Card title="Concurrent Sessions" icon="users">
+    Support multiple concurrent sessions for users authenticating from different tabs or devices.
+  </Card>
+</CardGroup>
+
+## Testing QR Flows
+
+During development, you can test the QR flow:
+
+<Steps>
+  <Step title="Use Your $5 Signup Credit">
+    New accounts receive $5 in credits—enough for testing your integration
+  </Step>
+
+  <Step title="Create Your UIP Identity">
+    Create your own UIP identity to test the full authentication flow end-to-end
+  </Step>
+
+  <Step title="Verify Webhooks">
+    Use the [Test Webhook](/api-reference/endpoint/webhook-test) endpoint to verify your webhook handler is working correctly
+  </Step>
+
+  <Step title="Test Error Scenarios">
+    Test QR code expiration, user cancellations, and network errors to ensure proper error handling
+  </Step>
+</Steps>
+
+<Info>
+**Testing with real infrastructure:** Use your signup credit to test with actual UIP infrastructure. This gives you the full production experience during development.
+</Info>
+
+## API Reference
+
+<CardGroup cols={2}>
+  <Card
+    title="Identify API"
+    icon="fingerprint"
+    href="/api-reference/endpoint/identify"
+  >
+    Full API reference for authentication requests
+  </Card>
+
+  <Card
+    title="Sign API"
+    icon="file-signature"
+    href="/api-reference/endpoint/sign"
+  >
+    Full API reference for signature requests
+  </Card>
+
+  <Card
+    title="Invalidate Session"
+    icon="ban"
+    href="/api-reference/endpoint/invalidate"
+  >
+    Cancel active sessions or clean up expired ones
+  </Card>
+
+  <Card
+    title="Test Webhook"
+    icon="webhook"
+    href="/api-reference/endpoint/webhook-test"
+  >
+    Test your webhook endpoint before going live
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Get API Keys"
+    icon="key"
+    href="https://business.uip.digital/identify"
+  >
+    Start integrating UIP in minutes
+  </Card>
+
+  <Card
+    title="Identify API Service"
+    icon="fingerprint"
+    href="/api-services/identify"
+  >
+    Learn about authentication use cases
+  </Card>
+
+  <Card
+    title="Error Handling"
+    icon="triangle-exclamation"
+    href="/core-concepts/error-handling"
+  >
+    Handle errors gracefully
+  </Card>
+</CardGroup>
