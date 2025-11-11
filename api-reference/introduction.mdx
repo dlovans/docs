@@ -19,7 +19,7 @@ UIP provides three primary APIs that work together to deliver complete identity 
   <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
     Biometric authentication and identity verification. Request verified user information like name, age, location, and more.
 
-    **$0.01 per authentication**
+    **$0.01 per identification**
   </Card>
 
   <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
@@ -28,28 +28,38 @@ UIP provides three primary APIs that work together to deliver complete identity 
     **$0.03 per signature**
   </Card>
 
-  <Card title="Message API" icon="message" href="/api-reference/endpoint/message">
-    Long-term encrypted messaging with optional attachments. Send documents for signature with up to 3 months availability.
+  <Card title="Message API (Text)" icon="message" href="/api-reference/endpoint/message">
+    Encrypted messaging without attachments. Supports signatures. Perfect for notifications and text agreements.
 
-    **$0.03 text / $0.10 with attachment**
+    **$0.03 per message**
+  </Card>
+
+  <Card title="Message API (with Attachment)" icon="file-signature" href="/api-reference/endpoint/message">
+    Document messaging with attachments up to 20MB. Supports signatures. Available up to 3 months.
+
+    **$0.10 per message**
+  </Card>
+
+  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
+    Retrieve permanent audit trails for all actions. Court-admissible evidence with cryptographic proof.
+
+    **Always Free**
   </Card>
 </CardGroup>
 
 ## Supporting APIs
 
-<CardGroup cols={3}>
-  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
-    Retrieve permanent audit trails for all actions. Court-admissible evidence with cryptographic proof.
-
-    **Always free**
-  </Card>
-
+<CardGroup cols={2}>
   <Card title="Invalidate API" icon="ban" href="/api-reference/endpoint/invalidate">
     Cancel pending signature requests before recipients sign. Only works for unsigned messages.
+
+    **Always Free**
   </Card>
 
   <Card title="Webhook Test" icon="webhook" href="/api-reference/endpoint/webhook-test">
     Test your webhook endpoint configuration before going live.
+
+    **Always Free**
   </Card>
 </CardGroup>
 
