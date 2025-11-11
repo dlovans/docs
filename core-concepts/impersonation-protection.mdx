@@ -1,0 +1,314 @@
+---
+title: "Impersonation Protection"
+description: "How UIP protects against fraudulent businesses through identity traceability and legal accountability"
+---
+
+## Overview
+
+UIP's impersonation protection works through a simple but powerful mechanism: **every business using UIP APIs must have a government-verified identity**. This creates complete traceability and legal accountability, making impersonation a prosecutable crime with clear evidence.
+
+## How Protection Works
+
+### Government-Verified Identity Requirement
+
+Every UIP business account requires the same government ID verification as consumer users:
+
+<CardGroup cols={2}>
+  <Card title="Identity Verification" icon="id-card">
+    Business owners must verify their identity with government-issued ID (passport, driver's license, national ID)
+  </Card>
+
+  <Card title="Biometric Verification" icon="fingerprint">
+    Live biometric verification (selfie matching) ensures the person creating the account is the real ID holder
+  </Card>
+
+  <Card title="Permanent Record" icon="database">
+    All verification data is permanently stored and tied to every API request made by that business
+  </Card>
+
+  <Card title="Audit Trail" icon="list-check">
+    Every authentication or signature request creates an immutable audit record linking back to the verified business owner
+  </Card>
+</CardGroup>
+
+### Complete Traceability
+
+When a business makes an API request through UIP:
+
+1. **Request Origin Tracked** - The business's verified UIP account is recorded
+2. **Identity Linked** - Government ID and biometric data are tied to the request
+3. **Permanent Audit Created** - Immutable record shows who made the request and when
+4. **Legal Evidence Available** - Complete chain of evidence for prosecution if fraud occurs
+
+<Info>
+Unlike traditional systems where businesses can hide behind corporate entities or fake registrations, UIP requires a **real person with verified government ID** to create and use every business account. This makes impersonation traceable and prosecutable.
+</Info>
+
+## Why This Stops Impersonation
+
+### Criminal Liability
+
+Attempting to impersonate another business on UIP means:
+
+<Warning>
+**Legal Consequences for Impersonators:**
+- Your real government-verified identity is tied to every fraudulent request
+- Complete audit trail provides court-admissible evidence
+- Criminal charges for identity fraud and impersonation
+- Civil lawsuits from impersonated businesses
+- No anonymity - your verified ID is permanently linked to the fraud
+</Warning>
+
+### Risk vs. Reward
+
+Traditional fraud allows anonymity. UIP makes it impossible:
+
+| Traditional Systems | UIP Protection |
+|---------------------|----------------|
+| Create fake business accounts easily | Requires government ID verification |
+| Hide behind corporate shells | Real person's identity always linked |
+| No traceability after fraud | Complete permanent audit trail |
+| Limited prosecution evidence | Court-admissible cryptographic proof |
+| Low risk, high reward | High risk, guaranteed prosecution |
+
+## User Verification
+
+While the government ID requirement provides the core protection, users can verify legitimate requests:
+
+### What Users See
+
+When scanning a QR code or receiving a request, users see:
+
+<CardGroup cols={2}>
+  <Card title="Business Name" icon="building">
+    The registered business name from the account
+  </Card>
+
+  <Card title="Request Intent" icon="message">
+    Clear description of why authentication or signature is requested
+  </Card>
+
+  <Card title="Verification Status" icon="badge-check">
+    Whether the business has completed additional business verification (optional badge)
+  </Card>
+
+  <Card title="Request Context" icon="info-circle">
+    What data is being requested and why
+  </Card>
+</CardGroup>
+
+### User Best Practices
+
+<Steps>
+  <Step title="Check Business Name">
+    Verify the business name matches what you expect (exact spelling, correct company)
+  </Step>
+
+  <Step title="Review Intent Message">
+    Read the intent carefully - legitimate businesses use specific, clear language identifying themselves
+  </Step>
+
+  <Step title="Verify Context">
+    Only approve requests you initiated (clicked a button on their site, started account creation, etc.)
+  </Step>
+
+  <Step title="Watch for Red Flags">
+    Reject requests with generic intents, urgent language, or from businesses you don't recognize
+  </Step>
+</Steps>
+
+### Red Flags for Users
+
+<Warning>
+Users should **reject and report requests** if they see:
+- Generic or vague intent messages (e.g., "Authenticate" or "Sign this")
+- Misspelled business names or similar-looking names
+- Requests they didn't initiate
+- Urgent or threatening language
+- Requests for unnecessary data (asking for all info when only age verification is needed)
+- Businesses they've never heard of claiming to be well-known companies
+</Warning>
+
+## Reporting Suspected Impersonation
+
+If you suspect a business is impersonating your organization:
+
+<Steps>
+  <Step title="Document the Fraud">
+    Capture screenshots showing:
+    - The fraudulent request (QR code or message)
+    - Business name displayed
+    - Intent message
+    - Date and time
+  </Step>
+
+  <Step title="Report to UIP">
+    Email [support@uip.digital](mailto:support@uip.digital) with:
+    - Your legitimate business name and UIP account details
+    - Evidence of the impersonation attempt
+    - Description of the fraudulent activity
+    - Any affected users or transactions
+  </Step>
+
+  <Step title="UIP Investigation">
+    UIP security team:
+    - Investigates within 24 hours
+    - Retrieves the impersonator's government-verified identity
+    - Gathers complete audit trail evidence
+    - Suspends the fraudulent account immediately
+  </Step>
+
+  <Step title="Legal Action">
+    With UIP's evidence package:
+    - File criminal charges for identity fraud
+    - Pursue civil damages
+    - Present court-admissible cryptographic proof
+    - Complete chain of custody showing the impersonator's verified identity
+  </Step>
+</Steps>
+
+## Evidence Package for Prosecution
+
+When impersonation is detected, UIP provides a complete evidence package:
+
+<AccordionGroup>
+  <Accordion title="Impersonator Identity" icon="id-card">
+    - Government ID used to create the account
+    - Biometric verification data (selfie)
+    - Full name and ID details
+    - Account creation timestamp
+  </Accordion>
+
+  <Accordion title="Fraudulent Requests" icon="file-invoice">
+    - All API requests made by the impersonator
+    - Intent messages claiming to be your business
+    - Target users and requested data
+    - Timestamps and IP addresses
+  </Accordion>
+
+  <Accordion title="Audit Trail" icon="list-check">
+    - Immutable cryptographic audit records
+    - Chain of custody from impersonator's account to each fraudulent request
+    - Court-admissible evidence
+    - Tamper-proof verification
+  </Accordion>
+
+  <Accordion title="Technical Evidence" icon="code">
+    - API keys used
+    - Webhook endpoints configured
+    - Request patterns and volumes
+    - Integration details
+  </Accordion>
+</AccordionGroup>
+
+## Protecting Your Business
+
+### Use Clear, Specific Intent Messages
+
+Make it easy for users to verify legitimate requests from your business:
+
+<CodeGroup>
+
+```json Good Intent
+{
+  "intent": "Sign in to Acme Corp Customer Portal - acmecorp.com",
+  "requested_data": ["name"]
+}
+```
+
+```json Bad Intent
+{
+  "intent": "Authenticate",
+  "requested_data": ["name"]
+}
+```
+
+</CodeGroup>
+
+### Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Be Specific" icon="crosshairs">
+    Always include your exact business name and context in intent messages
+  </Card>
+
+  <Card title="Use Your Domain" icon="globe">
+    Include your official domain name in the intent to help users verify
+  </Card>
+
+  <Card title="Educate Users" icon="graduation-cap">
+    Train users to check business names and intent messages before approving
+  </Card>
+
+  <Card title="Monitor Requests" icon="chart-line">
+    Watch for unusual patterns that might indicate impersonation attempts
+  </Card>
+</CardGroup>
+
+### Additional Business Verification (Optional)
+
+While government ID verification is required for all business accounts, you can complete additional **business entity verification** to receive a verification badge:
+
+<Note>
+Business verification is **optional** and provides a trust badge in the UIP app. The core impersonation protection comes from the required government ID verification, not the business badge.
+
+**Business verification requires:**
+- Business registration documents
+- Tax ID or incorporation papers
+- Proof of business legitimacy
+- Additional background checks
+</Note>
+
+## Why This System Works
+
+### Traditional Fraud Prevention Fails
+
+Most systems try to prevent fraud at the transaction level:
+- Email verification (easily faked)
+- Phone verification (burner phones)
+- Business registration (fake companies)
+- Trust badges (stolen or forged)
+
+These fail because fraudsters remain anonymous.
+
+### UIP's Approach: Identity-First
+
+UIP prevents fraud at the identity level:
+
+<Steps>
+  <Step title="Real Identity Required">
+    Every business account requires government ID verification - no fake identities possible
+  </Step>
+
+  <Step title="Permanent Traceability">
+    Every action is permanently linked to the verified identity - no anonymity
+  </Step>
+
+  <Step title="Legal Accountability">
+    Impersonation becomes a prosecutable crime with court-admissible evidence
+  </Step>
+
+  <Step title="Risk Deterrent">
+    The certainty of prosecution and evidence makes impersonation too risky
+  </Step>
+</Steps>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
+    Request user authentication with verified identity
+  </Card>
+
+  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
+    Request biometric signatures with audit trails
+  </Card>
+
+  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
+    Retrieve permanent audit records for evidence
+  </Card>
+
+  <Card title="Resellers & Admins" icon="users" href="/core-concepts/resellers-admins">
+    Best practices for platforms making requests on behalf of users
+  </Card>
+</CardGroup>

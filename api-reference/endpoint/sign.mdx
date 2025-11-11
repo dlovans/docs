@@ -1,8 +1,207 @@
 ---
-title: 'Request Signature'
+title: 'Signature Lightweight'
 openapi: 'POST /sign'
 ---
 
-Request a legally binding biometric signature from a user. The user will receive a notification and can review the document before signing with their biometric authentication.
+Request a legally binding biometric signature from a user. Returns a QR code or deep link for the user to scan with their UIP app.
 
-Returns a signature session that can be polled for completion or will trigger a webhook when signed.
+Use this endpoint for quick signatures on lightweight agreements, terms of service, policies, and attestations.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | Must be `application/json` |
+
+### Body Parameters
+
+<ParamField body="intent" type="string" required>
+  Description of why you're requesting a signature. This is shown to the user in the UIP app.
+
+  **Example:** `"Sign Terms of Service"` or `"Acknowledge Privacy Policy"`
+</ParamField>
+
+<ParamField body="signature_information" type="string" required>
+  The content or description of what the user is signing. This is the actual agreement text or reference.
+
+  **Example:** `"I agree to the Terms of Service version 2.1"` or `"I acknowledge receipt of the employee handbook"`
+</ParamField>
+
+## Response
+
+### Success Response (200 OK)
+
+<ResponseField name="session_id" type="string" required>
+  Unique identifier for this signature session
+</ResponseField>
+
+<ResponseField name="expires_at" type="string" required>
+  ISO 8601 timestamp when the session expires (5 minutes from creation)
+</ResponseField>
+
+<ResponseField name="qr_code" type="string" required>
+  Base64-encoded PNG image of the QR code for users to scan
+</ResponseField>
+
+### Example Request
+
+```json
+{
+  "intent": "Sign Terms of Service",
+  "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
+}
+```
+
+### Example Response
+
+```json
+{
+  "session_id": "sess_1a2b3c4d5e6f",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+## Webhook Callback
+
+When the user completes the signature, UIP sends a POST request to your webhook URL with the result.
+
+<Note>
+**Important:** Webhooks are only sent when the user completes the signature. If the user declines or the session expires without completion, no webhook is sent. Your application should handle timeouts on your end (sessions expire after 5 minutes).
+</Note>
+
+### Successful Signature
+
+```json
+{
+  "event": "sign",
+  "data": {
+    "uip_id": "user_abc123def456",
+    "session_id": "sess_1a2b3c4d5e6f",
+    "audit_id": "audit_9z8y7x6w5v4u"
+  }
+}
+```
+
+**Response fields:**
+- `event` - Always `"sign"` for successful signatures
+- `data.uip_id` - The user's unique UIP identifier
+- `data.session_id` - The session ID from your original request
+- `data.audit_id` - Permanent audit trail reference ID (save this for compliance)
+
+<Warning>
+**Save the audit_id:** This is your permanent proof of signature. Store it in your database for compliance and verification purposes.
+</Warning>
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Request Signature">
+    Call the Sign endpoint with your intent and signature information
+  </Step>
+
+  <Step title="Display QR Code">
+    Show the returned QR code to the user, or provide the deep link if they're on mobile
+  </Step>
+
+  <Step title="User Signs">
+    User scans the QR code with the UIP app and signs with biometric verification
+  </Step>
+
+  <Step title="Receive Webhook">
+    Your webhook receives the signature result with verified identity and audit trail
+  </Step>
+
+  <Step title="Complete Action">
+    Use the verified signature to complete the user's action and store the audit_id
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Intent" icon="message">
+    Always provide a clear, user-friendly intent message explaining what they're signing
+  </Card>
+
+  <Card title="Specific Information" icon="file-contract">
+    Include version numbers and dates in signature_information for legal clarity
+  </Card>
+
+  <Card title="Handle Expiration" icon="clock">
+    Sessions expire after 5 minutes. Implement retry logic or allow users to generate a new code
+  </Card>
+
+  <Card title="Save Audit IDs" icon="database">
+    Always save the audit_id from webhook responses for permanent proof and compliance
+  </Card>
+</CardGroup>
+
+## Common Use Cases
+
+<AccordionGroup>
+  <Accordion title="Terms of Service" icon="file-contract">
+    Request users to sign your TOS with biometric verification
+
+    ```json
+    {
+      "intent": "Sign Terms of Service",
+      "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Privacy Policy" icon="shield-check">
+    Get user consent for privacy policies with cryptographic proof
+
+    ```json
+    {
+      "intent": "Acknowledge Privacy Policy",
+      "signature_information": "I acknowledge and agree to the Privacy Policy updated January 2025"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Employee Handbook" icon="book">
+    Require employees to acknowledge receipt and understanding
+
+    ```json
+    {
+      "intent": "Acknowledge Employee Handbook",
+      "signature_information": "I confirm receipt of the 2025 Employee Handbook and agree to comply with all policies"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Code of Conduct" icon="gavel">
+    Get attestations for codes of conduct or ethical guidelines
+
+    ```json
+    {
+      "intent": "Sign Code of Conduct",
+      "signature_information": "I agree to follow the Company Code of Conduct effective January 2025"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Errors
+
+See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+
+Possible error codes for this endpoint:
+
+- `auth/missing-api-key` - No API key provided in Authorization header
+- `auth/invalid-key` - Invalid API key
+- `auth/revoked-api-key` - API key has been revoked
+- `auth/business-archived` - Business account has been archived
+- `auth/verification-required` - UIP account must be verified before using this endpoint
+- `request/invalid-payload` - Request payload is invalid or missing required fields
+- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
+- `payment/insufficient-funds` - Insufficient account balance to complete request
+- `resource/not-found` - Business or UIP not found
+- `internal/server-error` - Failed to create session record
+- `data/corrupt` - Corrupt key data detected

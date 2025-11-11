@@ -97,16 +97,18 @@
                 "$ref": "#/components/schemas/SignRequest"
               },
               "examples": {
-                "basic": {
-                  "summary": "Basic signature request",
+                "tos": {
+                  "summary": "Terms of Service",
                   "value": {
-                    "user_id": "user_abc123",
-                    "title": "Employment Contract",
-                    "description": "Please review and sign your employment contract",
-                    "document_url": "https://myapp.com/contracts/emp_contract_123.pdf",
-                    "metadata": {
-                      "contract_id": "contract_123"
-                    }
+                    "intent": "Sign Terms of Service",
+                    "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
+                  }
+                },
+                "privacy_policy": {
+                  "summary": "Privacy Policy",
+                  "value": {
+                    "intent": "Acknowledge Privacy Policy",
+                    "signature_information": "I acknowledge and agree to the Privacy Policy updated January 2025"
                   }
                 }
               }
@@ -124,10 +126,9 @@
                 "examples": {
                   "success": {
                     "value": {
-                      "signature_id": "sig_abc123def456",
-                      "status": "pending",
-                      "created_at": "2025-01-10T12:00:00Z",
-                      "expires_at": "2025-01-10T12:05:00Z"
+                      "session_id": "sess_abc123def456",
+                      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+                      "expires_at": "2025-01-11T12:35:00Z"
                     }
                   }
                 }
@@ -450,60 +451,33 @@
       },
       "SignRequest": {
         "type": "object",
-        "required": ["user_id", "title", "description"],
+        "required": ["intent", "signature_information"],
         "properties": {
-          "user_id": {
+          "intent": {
             "type": "string",
-            "description": "UIP user ID to request signature from"
+            "description": "Description of why you're requesting a signature. Shown to the user in the UIP app."
           },
-          "title": {
+          "signature_information": {
             "type": "string",
-            "description": "Title of the document to be signed"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description or intent of the signature"
-          },
-          "document_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the document to be signed"
-          },
-          "document_hash": {
-            "type": "string",
-            "description": "SHA-256 hash of the document"
-          },
-          "metadata": {
-            "type": "object",
-            "description": "Optional metadata to associate with the signature"
+            "description": "The content or description of what the user is signing. This is the actual agreement text or reference."
           }
         }
       },
       "SignResponse": {
         "type": "object",
         "properties": {
-          "signature_id": {
+          "session_id": {
             "type": "string",
-            "description": "Unique signature request identifier"
+            "description": "Unique identifier for this signature session"
           },
-          "status": {
+          "qr_code": {
             "type": "string",
-            "enum": ["pending", "signed", "declined", "expired"],
-            "description": "Current signature status"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Request creation timestamp"
+            "description": "Base64-encoded PNG image of the QR code for users to scan"
           },
           "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Request expiration timestamp"
-          },
-          "reference_id": {
-            "type": "string",
-            "description": "Audit trail reference ID (available after signature)"
+            "description": "ISO 8601 timestamp when the session expires (5 minutes from creation)"
           }
         }
       },

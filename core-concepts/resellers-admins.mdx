@@ -1,0 +1,393 @@
+---
+title: "Resellers & Admin Platforms"
+description: "Best practices for platforms and resellers making requests on behalf of end users"
+---
+
+## Overview
+
+If you're building a platform, admin system, or reseller service that makes UIP API requests on behalf of your end users, you must include the real requester's UIP ID in your API calls for legal traceability.
+
+UIP only captures the origin `requester_uip_id` (your platform's UIP ID). Without including the actual end user's UIP ID in the `intent` or `signature_information` fields, audit trails will only show your platform—not the real person making the request.
+
+<Warning>
+**Legal Requirement:** At minimum, and always, include the end user's UIP ID in the intent or signature_information field. For requests to be legally binding, there must be a way to trace back to the real requester. This prevents malicious users (both internally and externally) and ensures complete traceability for legal and compliance purposes.
+</Warning>
+
+## Why This Is Required
+
+### Audit Trail Accuracy
+
+Every UIP action creates a permanent audit record. For compliance, legal, and dispute resolution purposes, audit trails must show:
+
+- **Who actually requested the action** - The real end user's UIP ID (mandatory)
+- **Which organization facilitated it** - Your platform or reseller service
+- **Complete chain of custody** - Full transparency from end user through platform to recipient
+
+Without the end user's UIP ID embedded in the request, your audit trails are incomplete and potentially unusable for legal proceedings.
+
+### Regulatory Compliance
+
+Many industries require knowing the **true originator** of identity verification or signature requests:
+
+- **Financial services** - KYC/AML regulations require identifying the actual account holder
+- **Healthcare** - HIPAA requires tracking who accessed or signed for patient information
+- **Legal documents** - Court-admissible signatures need the real signatory's identity, not a platform's
+- **Government services** - Identity verification must trace to actual citizens, not intermediary platforms
+
+### Preventing Internal & External Fraud
+
+Including the real requester's UIP ID prevents:
+
+- **External fraud** - Outsiders can't impersonate your users because their UIP ID must be included
+- **Internal fraud** - Malicious employees or admins can't hide behind your platform's identity
+- **Account compromise** - If a platform admin account is compromised, the attacker still can't hide their actions
+- **False attribution** - Clear evidence of who actually made each request prevents wrongful accusations
+
+### Dispute Resolution
+
+When disputes arise, you need clear evidence of:
+- **Which specific user made the request** - Their UIP ID provides government-verified identity
+- When they made it through your platform
+- What information they provided
+- The admin who processed it (if applicable)
+
+## How to Include Real Requester Information
+
+UIP captures your platform's `requester_uip_id` automatically. You must embed the actual end user's UIP ID in the `intent` or `signature_information` fields.
+
+<Warning>
+**Legal Traceability Requirement:** For requests to be legally binding, every request made on behalf of an end user must include their UIP ID. Without it, you cannot prove who the real requester was, and the action may not hold up in legal proceedings.
+</Warning>
+
+### Method 1: Include in Intent (Recommended)
+
+<CodeGroup>
+
+```json Identify API
+{
+  "intent": "Sign in to Acme Corp Customer Portal (requested by UIP: user_abc123def456 via Admin Platform)",
+  "requested_data": ["name", "birthdate"]
+}
+```
+
+```json Sign API
+{
+  "intent": "Sign Terms of Service (requested by UIP: user_abc123def456, Employee ID: 12345, via HR Platform)",
+  "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
+}
+```
+
+</CodeGroup>
+
+### Method 2: Include in Signature Information
+
+For Sign API requests, you can embed requester details in the signature information:
+
+```json
+{
+  "intent": "Sign Employee Handbook",
+  "signature_information": "I, [signer's name], confirm receipt of the 2025 Employee Handbook. Requested by HR Manager Sarah Johnson (Employee ID: 67890) on behalf of Acme Corp HR Department."
+}
+```
+
+### Method 3: Structured Format
+
+Use a consistent structured format for programmatic parsing:
+
+```json
+{
+  "intent": "Age verification for content access | Platform: StreamCo Admin | Admin UIP: admin_xyz789 | End User: viewer_id_99887",
+  "requested_data": ["birthdate"]
+}
+```
+
+## Recommended Information to Include
+
+<AccordionGroup>
+  <Accordion title="End User UIP ID (Required for Legal Binding)" icon="user">
+    **Always include** the end user's UIP ID (the person actually making the request through your platform):
+    - **UIP ID** (required for legal traceability) - The actual user's UIP identifier
+    - Internal user ID (optional) - Your system's identifier for correlation
+    - Employee ID (optional) - For HR/employee platforms
+    - Customer number (optional) - For customer service platforms
+
+    **Minimum required format:** `"requested by UIP: user_abc123def456"`
+
+    **Recommended format:** `"UIP: user_abc123def456, Employee ID: 12345"`
+
+    <Warning>
+    Requests without the end user's UIP ID create incomplete audit trails and lack legal traceability. The request may not be legally binding without proof of the real requester's identity.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Admin/Requester UIP ID" icon="user-tie">
+    Include the UIP ID of the admin or person initiating the request in your system:
+    - **Admin UIP ID** (recommended) - The admin's UIP identifier
+    - Role or department (optional) - For additional context
+
+    **Example:** `"by Admin UIP: admin_xyz789"` or `"HR Manager UIP: admin_xyz789"`
+  </Accordion>
+
+  <Accordion title="Platform Context" icon="building">
+    Identify your platform or system:
+    - Platform name
+    - Department or division
+    - System or service name
+
+    **Example:** `"via Acme Corp Admin Platform"` or `"through StreamCo HR System"`
+  </Accordion>
+
+  <Accordion title="Request Timestamp (Optional)" icon="clock">
+    For additional audit clarity, include when the request was initiated:
+
+    **Example:** `"requested on 2025-01-11 at 14:30 UTC"`
+  </Accordion>
+</AccordionGroup>
+
+## Common Use Cases
+
+### HR & Employee Management Platforms
+
+When HR admins request employee signatures for handbooks, policies, or onboarding documents:
+
+```json
+{
+  "intent": "Sign Employee Handbook (requested by HR Admin UIP: admin_xyz789 for Employee UIP: user_abc123, ID: 12345)",
+  "signature_information": "I confirm receipt of the 2025 Employee Handbook and agree to comply with all policies."
+}
+```
+
+### Multi-Tenant SaaS Platforms
+
+When your SaaS platform makes requests on behalf of tenant organizations:
+
+```json
+{
+  "intent": "Verify age for premium content access | Tenant: Acme Corp | Admin UIP: admin_xyz789 | End User UIP: user_abc123",
+  "requested_data": ["birthdate"]
+}
+```
+
+### Healthcare Admin Systems
+
+When healthcare admins request patient consent or identity verification:
+
+```json
+{
+  "intent": "Patient consent for medical procedure (requested by Dr. UIP: doctor_xyz789, Provider ID: 67890, via MedCorp Portal)",
+  "signature_information": "I consent to the medical procedure described in document #MED-2025-1234."
+}
+```
+
+### Financial Services Resellers
+
+When reseller platforms facilitate KYC/AML verification for their clients:
+
+```json
+{
+  "intent": "KYC verification for account opening | Client: First National Bank | Branch: Downtown | Teller UIP: teller_xyz789 | Customer UIP: user_abc123",
+  "requested_data": ["name", "birthdate", "country"]
+}
+```
+
+### Property Management Platforms
+
+When property managers request tenant signatures on leases:
+
+```json
+{
+  "intent": "Sign Residential Lease Agreement (Property Manager UIP: manager_xyz789, Property: 123 Main St, Unit 4B, Tenant UIP: tenant_abc123)",
+  "signature_information": "I agree to the terms of the residential lease for 123 Main St, Unit 4B, effective February 1, 2025 through January 31, 2026."
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Include UIP ID" icon="fingerprint">
+    Required for legal binding: Include the actual end user's UIP ID in every request. Use UIP IDs, not email addresses or generic identifiers.
+  </Card>
+
+  <Card title="Use Consistent Format" icon="list-check">
+    Standardize your format across all requests for easier parsing and auditing
+  </Card>
+
+  <Card title="Include Context" icon="info-circle">
+    Add platform name, department, or system name so audit trails are clear
+  </Card>
+
+  <Card title="Preserve Privacy" icon="lock">
+    Use UIP IDs instead of email addresses. Don't include sensitive personal information like SSN or full credit card numbers
+  </Card>
+</CardGroup>
+
+## Compliance Considerations
+
+### Data Retention
+
+Store mapping between your internal user IDs and UIP session IDs/audit IDs:
+
+```json
+// Your internal database record
+{
+  "internal_user_id": "12345",
+  "end_user_uip_id": "user_abc123def456",
+  "admin_uip_id": "admin_xyz789",
+  "internal_request_id": "req_abc123",
+  "uip_session_id": "sess_1a2b3c4d5e6f",
+  "uip_audit_id": "audit_9z8y7x6w5v4u",
+  "requested_at": "2025-01-11T14:30:00Z",
+  "platform": "Acme Corp HR Platform"
+}
+```
+
+### Audit Query Strategy
+
+When retrieving audit trails via the [Audit API](/api-reference/endpoint/audit), correlate UIP audit records with your internal logs:
+
+1. **Query UIP Audit API** with the `audit_id` to get official UIP audit record
+2. **Cross-reference** with your internal database using the mapping above
+3. **Combine records** to show complete chain: end user → your platform → UIP → recipient
+
+### Legal Documentation
+
+For court-admissible evidence or regulatory audits:
+
+<Steps>
+  <Step title="Retrieve UIP Audit Record">
+    Use the [Audit API](/api-reference/endpoint/audit) to get the cryptographic audit proof
+  </Step>
+
+  <Step title="Retrieve Your Platform Logs">
+    Pull your internal logs showing the end user's request through your system
+  </Step>
+
+  <Step title="Combine Documentation">
+    Present both records together showing the complete chain of custody
+  </Step>
+
+  <Step title="Include Embedded Information">
+    The intent or signature_information fields will show the real requester details you embedded
+  </Step>
+</Steps>
+
+## Technical Implementation
+
+### Backend Workflow
+
+```javascript
+// Your platform's backend (example)
+async function createSignatureRequest(endUserId, adminId, documentDetails) {
+  // 1. Get end user and admin UIP IDs from your database
+  const endUser = await db.users.findById(endUserId);
+  const admin = await db.admins.findById(adminId);
+
+  // 2. Verify end user has a UIP ID (required for legal traceability)
+  if (!endUser.uipId) {
+    throw new Error('End user must have a UIP ID for legally binding requests');
+  }
+
+  // 3. Construct intent with embedded UIP IDs (end user UIP ID required for legal binding)
+  const intent = `${documentDetails.title} (requested by Admin UIP: ${admin.uipId} for Employee UIP: ${endUser.uipId}, ID: ${endUser.employeeId})`;
+
+  // 4. Call UIP API
+  const uipResponse = await fetch('https://api.uip.digital/v1/sign', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${YOUR_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      intent: intent,
+      signature_information: documentDetails.content
+    })
+  });
+
+  const { session_id, qr_code, expires_at } = await uipResponse.json();
+
+  // 5. Store mapping in your database (including UIP IDs for traceability)
+  await db.signatureRequests.create({
+    internal_request_id: generateId(),
+    uip_session_id: session_id,
+    end_user_id: endUserId,
+    end_user_uip_id: endUser.uipId,
+    requested_by_admin_id: adminId,
+    admin_uip_id: admin.uipId,
+    platform: 'Acme Corp HR Platform',
+    created_at: new Date()
+  });
+
+  return { session_id, qr_code, expires_at };
+}
+```
+
+### Webhook Handling
+
+When receiving webhook callbacks, update your internal records:
+
+```javascript
+// Your webhook handler
+app.post('/webhook/uip', async (req, res) => {
+  const { event, data } = req.body;
+
+  if (event === 'sign') {
+    const { uip_id, session_id, audit_id } = data;
+
+    // Find your internal request record
+    const internalRequest = await db.signatureRequests.findOne({
+      uip_session_id: session_id
+    });
+
+    // Update with audit_id and completion status
+    await db.signatureRequests.update(internalRequest.id, {
+      uip_audit_id: audit_id,
+      uip_signer_id: uip_id,
+      status: 'completed',
+      completed_at: new Date()
+    });
+
+    // Notify the end user and admin
+    await notifyEndUser(internalRequest.end_user_id, { status: 'completed' });
+    await notifyAdmin(internalRequest.requested_by_admin_id, { status: 'completed' });
+  }
+
+  res.status(200).send('OK');
+});
+```
+
+## Important Legal & Security Requirement
+
+<Warning>
+**Legal Traceability:** UIP APIs only capture your platform's `requester_uip_id` (the UIP account making the API call). They do NOT have separate fields for end user identifiers.
+
+You must embed the end user's UIP ID in `intent` or `signature_information` fields for requests to be legally binding. Failure to do so means:
+
+- **Incomplete audit trails** - Only your platform's identity is recorded
+- **No legal traceability** - Cannot prove which user made the request, potentially invalidating the action
+- **Compliance risk** - May fail regulatory requirements for identity verification
+- **Internal fraud risk** - Malicious admins can hide behind your platform identity
+- **External fraud risk** - Compromised accounts can make untraceable requests
+- **Liability exposure** - Your business may be held responsible for all actions without proof of the real requester
+
+**For legally binding actions:** At minimum, and always, include the end user's UIP ID to establish traceability back to the real requester.
+</Warning>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
+    Authentication endpoint documentation
+  </Card>
+
+  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
+    Signature endpoint documentation
+  </Card>
+
+  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
+    Retrieve permanent audit records
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
+    Handle API errors properly
+  </Card>
+</CardGroup>
