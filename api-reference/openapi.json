@@ -141,34 +141,59 @@
     "/message": {
       "post": {
         "summary": "Send Message",
-        "description": "Send an encrypted message to a UIP user with optional attachments",
+        "description": "Send an encrypted message to a UIP user with optional PDF attachments (up to 20MB) and signature requests",
         "operationId": "message",
         "tags": ["Messaging"],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/MessageRequest"
+                "$ref": "#/components/schemas/MessageRequestWithAttachment"
               },
               "examples": {
-                "basic": {
-                  "summary": "Basic message",
+                "text_only": {
+                  "summary": "Text message without attachment",
                   "value": {
-                    "user_id": "user_abc123",
-                    "title": "Account Update",
-                    "message": "Your account has been successfully updated",
-                    "priority": "normal"
+                    "intent": "Account Statement Ready",
+                    "message": "Your Q4 2024 account statement is now available for review.",
+                    "priority": "MEDIUM",
+                    "receiver_uip": "user_abc123def456",
+                    "signature_required": false
                   }
                 },
-                "with_attachment": {
-                  "summary": "Message with attachment",
+                "text_with_signature": {
+                  "summary": "Text message with signature required",
                   "value": {
-                    "user_id": "user_abc123",
-                    "title": "Monthly Statement",
-                    "message": "Your monthly statement is attached",
-                    "priority": "high",
-                    "attachment_url": "https://myapp.com/statements/jan_2025.pdf"
+                    "intent": "Sign Employment Contract",
+                    "message": "Please review and sign your employment contract by January 31, 2025.",
+                    "priority": "HIGH",
+                    "receiver_uip": "user_abc123def456",
+                    "signature_required": true,
+                    "signature_expiry": "2025-01-31T23:59:59Z"
+                  }
+                },
+                "attachments": {
+                  "summary": "PDF attachments",
+                  "value": {
+                    "intent": "Review Contract Package",
+                    "message": "Please review the attached contract, terms, and addendum documents.",
+                    "priority": "MEDIUM",
+                    "receiver_uip": "user_abc123def456",
+                    "signature_required": false,
+                    "attachments": ["@/path/to/contract.pdf", "@/path/to/terms.pdf", "@/path/to/addendum.pdf"]
+                  }
+                },
+                "attachments_with_signature": {
+                  "summary": "PDF attachments with signature",
+                  "value": {
+                    "intent": "Review Contract Package",
+                    "message": "Please review the attached contract, terms, and addendum documents.",
+                    "priority": "MEDIUM",
+                    "receiver_uip": "user_abc123def456",
+                    "signature_required": true,
+                    "signature_expiry": "2025-02-15T17:00:00Z",
+                    "attachments": ["@/path/to/contract.pdf", "@/path/to/terms.pdf", "@/path/to/addendum.pdf"]
                   }
                 }
               }
@@ -177,7 +202,7 @@
         },
         "responses": {
           "200": {
-            "description": "Message sent",
+            "description": "Message sent successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -186,9 +211,7 @@
                 "examples": {
                   "success": {
                     "value": {
-                      "message_id": "msg_abc123def456",
-                      "status": "delivered",
-                      "sent_at": "2025-01-10T12:00:00Z"
+                      "message_id": "msg_abc123def456"
                     }
                   }
                 }
@@ -483,54 +506,80 @@
       },
       "MessageRequest": {
         "type": "object",
-        "required": ["user_id", "title", "message"],
+        "required": ["intent", "message", "priority", "receiver_uip", "signature_required"],
         "properties": {
-          "user_id": {
+          "intent": {
             "type": "string",
-            "description": "UIP user ID to send message to"
-          },
-          "title": {
-            "type": "string",
-            "description": "Message title"
+            "description": "Description of why you're sending the message. Shown to the user in the UIP app as the message subject/title."
           },
           "message": {
             "type": "string",
-            "description": "Message content"
-          },
-          "attachment_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to attachment (max 20MB)"
+            "description": "The message content/body. This is the actual message text the recipient will read."
           },
           "priority": {
             "type": "string",
-            "enum": ["low", "normal", "high", "urgent"],
-            "default": "normal",
-            "description": "Message priority level"
+            "enum": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+            "description": "Notification priority level that controls how the message appears to the user."
           },
-          "request_signature": {
+          "receiver_uip": {
+            "type": "string",
+            "description": "The UIP ID of the message recipient. Must be a valid UIP user identifier."
+          },
+          "signature_required": {
             "type": "boolean",
-            "default": false,
-            "description": "Whether to request signature on this message"
+            "description": "Flag indicating whether the recipient must sign the message."
+          },
+          "signature_expiry": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiry date for signature requests in RFC3339 format. Only applies when signature_required is true. Defaults to 7 days from message creation. Maximum allowed: 3 months."
+          }
+        }
+      },
+      "MessageRequestWithAttachment": {
+        "type": "object",
+        "required": ["intent", "message", "priority", "receiver_uip", "signature_required"],
+        "properties": {
+          "intent": {
+            "type": "string",
+            "description": "Description of why you're sending the message. Shown to the user in the UIP app as the message subject/title."
+          },
+          "message": {
+            "type": "string",
+            "description": "The message content/body. This is the actual message text the recipient will read."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+            "description": "Notification priority level that controls how the message appears to the user."
+          },
+          "receiver_uip": {
+            "type": "string",
+            "description": "The UIP ID of the message recipient. Must be a valid UIP user identifier."
+          },
+          "signature_required": {
+            "type": "boolean",
+            "description": "Flag indicating whether the recipient must sign the message."
+          },
+          "signature_expiry": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiry date for signature requests in RFC3339 format. Only applies when signature_required is true. Defaults to 7 days from message creation. Maximum allowed: 3 months."
+          },
+          "attachments": {
+            "type": "string",
+            "format": "binary",
+            "description": "PDF file(s) to attach to the message. Format: PDF only. Size limit: 20MB combined for all attachments."
           }
         }
       },
       "MessageResponse": {
         "type": "object",
+        "required": ["message_id"],
         "properties": {
           "message_id": {
             "type": "string",
-            "description": "Unique message identifier"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["sent", "delivered", "read", "failed"],
-            "description": "Message delivery status"
-          },
-          "sent_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Message send timestamp"
+            "description": "Unique message identifier. Save this ID to track message status and reference it in webhook handlers."
           }
         }
       },

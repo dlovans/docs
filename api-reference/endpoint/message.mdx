@@ -6,3 +6,315 @@ openapi: 'POST /message'
 Send an encrypted message to a UIP user. Optionally include document attachments (up to 20MB) and request signatures directly from the message.
 
 Messages are end-to-end encrypted and support priority notification levels.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | `multipart/form-data` for file uploads, `application/x-www-form-urlencoded` for text-only |
+
+### Body Parameters
+
+<ParamField body="intent" type="string" required>
+  Description of why you're sending the message. This is shown to the user in the UIP app as the message subject/title.
+
+  **Example:** `"Sign Employment Contract"` or `"Review Q4 Financial Report"`
+</ParamField>
+
+<ParamField body="message" type="string" required>
+  The message content/body. This is the actual message text the recipient will read.
+
+  **Example:** `"Please review and sign your employment contract by January 15, 2025"`
+</ParamField>
+
+<ParamField body="priority" type="string" required>
+  Notification priority level that controls how the message appears to the user.
+
+  **Valid values:** `LOW`, `MEDIUM`, `HIGH`, `EXTREME`
+
+  **Default behavior:**
+  - `LOW` - Silent delivery, no notification
+  - `MEDIUM` - Standard notification
+  - `HIGH` - Attention-required notification
+  - `EXTREME` - Emergency alert (use sparingly)
+</ParamField>
+
+<ParamField body="receiver_uip" type="string" required>
+  The UIP ID of the message recipient. Must be a valid UIP user identifier.
+
+  **Example:** `"user_abc123def456"`
+</ParamField>
+
+<ParamField body="signature_required" type="boolean" required>
+  Flag indicating whether the recipient must sign the message.
+
+  **Valid values:** `true`, `false`
+
+  When set to `true`, the message requires biometric signature before it can be marked as complete.
+</ParamField>
+
+<ParamField body="signature_expiry" type="string">
+  Expiry date for signature requests. Only applies when `signature_required` is `true`.
+
+  **Format:** RFC3339 format (ISO 8601 timestamp)
+
+  **Example:** `"2025-01-15T17:00:00Z"`
+
+  **Default behavior:**
+  - If omitted when signature is required: Defaults to 7 days from message creation
+  - Maximum allowed: 3 months from message creation
+  - Cannot be in the past
+
+  <Warning>
+  If you provide a `signature_expiry` date more than 3 months in the future or in the past, the request will fail with error code `request/invalid-payload`.
+  </Warning>
+</ParamField>
+
+<ParamField body="attachments" type="file">
+  Optional document file(s) to attach to the message.
+
+  **Form field name:** `attachments` (use this exact name in multipart form)
+
+  **File restrictions:**
+  - **Format:** PDF only (`.pdf` extension required)
+  - **Size limit:** 20MB combined for all attachments
+  - **Multiple files:** Supported, but total size cannot exceed 20MB
+
+  **Pricing:**
+  - Message without attachment: $0.05
+  - Message with attachment: $0.10 (regardless of number of PDFs, as long as total ≤ 20MB)
+
+  <Note>
+  Only PDF files are accepted. Attempting to upload other file types will result in error code `request/invalid-file-type`.
+  </Note>
+</ParamField>
+
+## Response
+
+### Success Response (200 OK)
+
+Returns a JSON object containing the message ID.
+
+**Response type:** `application/json`
+
+**Example response:**
+```json
+{
+  "message_id": "msg_abc123def456"
+}
+```
+
+<Info>
+Save the `message_id` to track message status and reference it in your webhook handlers.
+</Info>
+
+## Example Requests
+
+### Text Message Without Signature
+
+```bash
+curl -X POST https://api.uip.digital/v1/message \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "intent=Account Statement Ready" \
+  -d "message=Your Q4 2024 account statement is now available for review." \
+  -d "priority=MEDIUM" \
+  -d "receiver_uip=user_abc123def456" \
+  -d "signature_required=false"
+```
+
+### Text Message With Signature Required
+
+```bash
+curl -X POST https://api.uip.digital/v1/message \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "intent=Sign Employment Contract" \
+  -d "message=Please review and sign your employment contract by January 31, 2025." \
+  -d "priority=HIGH" \
+  -d "receiver_uip=user_abc123def456" \
+  -d "signature_required=true" \
+  -d "signature_expiry=2025-01-31T23:59:59Z"
+```
+
+### Message With PDF Attachments
+
+```bash
+curl -X POST https://api.uip.digital/v1/message \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "intent=Review Contract Package" \
+  -F "message=Please review the attached contract, terms, and addendum documents." \
+  -F "priority=MEDIUM" \
+  -F "receiver_uip=user_abc123def456" \
+  -F "signature_required=false" \
+  -F "attachments=@/path/to/contract.pdf" \
+  -F "attachments=@/path/to/terms.pdf" \
+  -F "attachments=@/path/to/addendum.pdf"
+```
+
+### Message With PDF Attachments + Signature
+
+```bash
+curl -X POST https://api.uip.digital/v1/message \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "intent=Review Contract Package" \
+  -F "message=Please review the attached contract, terms, and addendum documents." \
+  -F "priority=MEDIUM" \
+  -F "receiver_uip=user_abc123def456" \
+  -F "signature_required=true" \
+  -F "signature_expiry=2025-02-15T17:00:00Z" \
+  -F "attachments=@/path/to/contract.pdf" \
+  -F "attachments=@/path/to/terms.pdf" \
+  -F "attachments=@/path/to/addendum.pdf"
+```
+
+## Errors
+
+See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+
+Possible error codes for this endpoint:
+
+**Authentication Errors:**
+- `auth/missing-api-key` - No API key provided in Authorization header
+- `auth/invalid-key` - Invalid API key
+- `auth/revoked-api-key` - API key has been revoked
+- `auth/business-archived` - Business account has been archived
+- `auth/verification-required` - UIP account must be verified before using this endpoint
+
+**Request Validation Errors:**
+- `request/invalid-payload` - Request payload is invalid or missing required fields
+  - Intent is required
+  - Message cannot be empty
+  - Priority must be LOW, MEDIUM, HIGH, or EXTREME
+  - Receiver UIP ID cannot be empty
+  - Must specify if signature is required
+  - Signature expiry date format invalid (use RFC3339)
+  - Signature expiry cannot be more than 3 months ahead
+  - Signature expiry cannot be in the past
+- `request/invalid-file-type` - Only PDF files are allowed
+- `request/file-too-large` - Combined file size exceeds 20MB limit
+
+**Payment Errors:**
+- `payment/insufficient-funds` - Insufficient account balance to complete request
+
+**Resource Errors:**
+- `resource/not-found` - Recipient UIP ID not found
+
+**Internal Errors:**
+- `internal/server-error` - Failed to create message, parse form data, or process request
+- `data/corrupt` - Corrupt data detected
+
+## Webhook Callback
+
+The Message API sends webhook events only for signature-required messages.
+
+<Warning>
+**Important:** Webhooks are ONLY sent for signature-required messages (`signature_required: true`) when:
+- **User signs** the message with biometric verification
+- **User declines** to sign with biometric verification
+
+Both signing and declining require biometric verification and create permanent audit records for legal traceability.
+
+**No webhook is sent** for messages without signature requirements (`signature_required: false`), or if signature-required messages expire without user action. Your application must handle timeouts (messages expire after 3 months, or at `signature_expiry` date for signature-required messages).
+</Warning>
+
+### Event: message
+
+Webhook event sent when user signs or declines a signature-required message.
+
+```json
+{
+  "event": "message",
+  "data": {
+    "signing_uip_id": "user_abc123def456",
+    "message_id": "msg_xyz789abc123",
+    "audit_id": "audit_9z8y7x6w5v4u"
+  }
+}
+```
+
+**Response fields:**
+- `event` - Always `"message"` for signature-related events
+- `data.signing_uip_id` - The UIP ID of the user who signed or declined
+- `data.message_id` - The message ID from your original request
+- `data.audit_id` - Permanent audit trail reference ID (save this for compliance)
+
+**When this webhook is sent:**
+
+This webhook is ONLY sent for **signature-required messages** (`signature_required: true`):
+- Sent when user signs the message with biometric verification
+- Sent when user declines to sign with biometric verification
+- Both actions create permanent audit records for legal traceability
+- Query the audit trail using `audit_id` to determine if the message was signed or declined
+
+<Info>
+**Determining Action Taken:** The webhook structure is identical for both signed and declined messages. To determine whether the user signed or declined, query the [Audit API](/api-reference/endpoint/audit) using the `audit_id` to retrieve the specific action details.
+</Info>
+
+<Warning>
+**Save the audit_id:** This is your permanent proof of the action taken. Store it in your database for compliance, legal verification, and to determine whether signatures were signed or declined.
+</Warning>
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Send Message">
+    Call the Message endpoint with intent, message content, priority, recipient UIP ID, and signature settings
+  </Step>
+
+  <Step title="Receive Message ID">
+    Save the returned message ID string to track this message in your system
+  </Step>
+
+  <Step title="User Receives Notification">
+    Recipient receives push notification based on priority level (unless LOW priority)
+  </Step>
+
+  <Step title="User Opens Message">
+    Recipient opens message in UIP app, reads content, and views any attachments
+  </Step>
+
+  <Step title="User Takes Action">
+    - **If signature not required:** User reads message (no webhook sent)
+    - **If signature required:** User signs or declines with biometric verification, webhook sent
+  </Step>
+
+  <Step title="Receive Webhook (Signature-Required Only)">
+    For signature-required messages, your webhook receives the `message` event with signing UIP ID and audit trail reference
+  </Step>
+
+  <Step title="Determine Action & Complete">
+    For signature-required messages: Use the `audit_id` to query the Audit API and determine whether the user signed or declined. Update your internal records and store the audit_id for compliance.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Intent & Message" icon="message">
+    Use descriptive intent titles and clear message content. Recipients need to understand what action is required.
+  </Card>
+
+  <Card title="Appropriate Priority" icon="bell">
+    Use correct priority levels. Reserve HIGH and EXTREME for urgent matters only. Most messages should use MEDIUM.
+  </Card>
+
+  <Card title="PDF Only for Attachments" icon="file-pdf">
+    Only PDF files are supported. Convert documents to PDF before uploading. Keep total size under 20MB.
+  </Card>
+
+  <Card title="Signature Expiry Dates" icon="calendar">
+    For signature-required messages, set realistic expiry dates (default: 7 days). Don't exceed 3-month maximum.
+  </Card>
+
+  <Card title="Save Audit IDs" icon="database">
+    Always save audit_id from webhook responses for permanent proof, compliance, and legal verification.
+  </Card>
+
+  <Card title="Query Audit Trail" icon="magnifying-glass">
+    For signature-required messages: Use the audit_id to query the Audit API and determine whether the user signed or declined.
+  </Card>
+</CardGroup>
