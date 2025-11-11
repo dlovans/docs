@@ -6,3 +6,213 @@ openapi: 'POST /identify'
 Identify and verify a user's identity with biometric verification. Returns a QR code or deep link for the user to scan with their UIP app.
 
 Use this endpoint to authenticate users, verify age requirements, check location, or validate other identity attributes.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | Must be `application/json` |
+
+### Body Parameters
+
+<ParamField body="intent" type="string" required>
+  Description of why you're requesting identity verification. This is shown to the user in the UIP app.
+
+  **Example:** `"Sign in to Example App"` or `"Verify age for content access"`
+</ParamField>
+
+<ParamField body="requested_data" type="array">
+  Optional array specifying which identity attributes to request. If omitted or empty, all available data is returned.
+
+  **Valid values:** `name`, `birthdate`, `country`
+
+  **Example:** `["name", "birthdate"]`
+
+  <Note>
+  Any values not in the list above will be ignored. The user will only be asked to share the requested attributes.
+  </Note>
+</ParamField>
+
+## Response
+
+### Success Response (200 OK)
+
+<ResponseField name="session_id" type="string" required>
+  Unique identifier for this authentication session
+</ResponseField>
+
+<ResponseField name="expires_at" type="string" required>
+  ISO 8601 timestamp when the session expires (5 minutes from creation)
+</ResponseField>
+
+<ResponseField name="qr_code" type="string" required>
+  Base64-encoded PNG image of the QR code for users to scan
+</ResponseField>
+
+### Example Request
+
+```json
+{
+  "intent": "Sign in to Example App",
+  "requested_data": ["name", "birthdate"]
+}
+```
+
+### Example Response
+
+```json
+{
+  "session_id": "sess_1a2b3c4d5e6f",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+## Webhook Callback
+
+When the user completes the authentication, UIP sends a POST request to your webhook URL with the result.
+
+<Note>
+**Important:** Webhooks are only sent when the user completes authentication. If the user cancels or the session expires without completion, no webhook is sent. Your application should handle timeouts on your end (sessions expire after 5 minutes).
+</Note>
+
+### Successful Authentication
+
+```json
+{
+  "event": "identify",
+  "data": {
+    "uip_id": "user_abc123def456",
+    "audit_id": "audit_9z8y7x6w5v4u",
+    "session_id": "sess_1a2b3c4d5e6f",
+    "name": "John Doe",
+    "date_of_birth": "1990-05-15",
+    "country_of_origin": "US"
+  }
+}
+```
+
+**Response fields:**
+- `event` - Always `"identify"` for successful identifications
+- `data.uip_id` - The user's unique UIP identifier
+- `data.audit_id` - Permanent audit trail reference ID (save this for compliance)
+- `data.session_id` - The session ID from your original request
+- `data.name` - User's full name (if requested or all data requested)
+- `data.date_of_birth` - User's date of birth in YYYY-MM-DD format (if requested or all data requested)
+- `data.country_of_origin` - User's country code (if requested or all data requested)
+
+<Info>
+Only the fields you requested in `requested_data` will be included in the response. If you omitted `requested_data` or passed an empty array, all three fields (`name`, `date_of_birth`, `country_of_origin`) will be included.
+</Info>
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Request Authentication">
+    Call the Identify endpoint with your intent and optional requested data fields
+  </Step>
+
+  <Step title="Display QR Code">
+    Show the returned QR code to the user, or provide the deep link if they're on mobile
+  </Step>
+
+  <Step title="User Authenticates">
+    User scans the QR code with the UIP app and approves the request with biometric verification
+  </Step>
+
+  <Step title="Receive Webhook">
+    Your webhook receives the authentication result with verified identity data
+  </Step>
+
+  <Step title="Complete Action">
+    Use the verified identity data to complete the user's action (sign in, verify age, etc.)
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Intent" icon="message">
+    Always provide a clear, user-friendly intent message explaining why you need their identity
+  </Card>
+
+  <Card title="Request Minimum Data" icon="shield-check">
+    Only request the data you actually need. Users are more likely to approve minimal requests
+  </Card>
+
+  <Card title="Handle Expiration" icon="clock">
+    Sessions expire after 5 minutes. Implement retry logic or allow users to generate a new code
+  </Card>
+
+  <Card title="Verify Webhooks" icon="webhook">
+    Always verify the HMAC signature on webhook requests to ensure they're from UIP
+  </Card>
+</CardGroup>
+
+## Common Use Cases
+
+<AccordionGroup>
+  <Accordion title="User Authentication" icon="user-check">
+    Request only the `name` field to authenticate users and create accounts
+
+    ```json
+    {
+      "intent": "Sign in to your account",
+      "requested_data": ["name"]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Age Verification" icon="calendar-check">
+    Request only the `birthdate` field to verify age without exposing other identity data
+
+    ```json
+    {
+      "intent": "Verify you're 18+ to access content",
+      "requested_data": ["birthdate"]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Location Compliance" icon="globe">
+    Request the `country` field to ensure compliance with regional regulations
+
+    ```json
+    {
+      "intent": "Verify your location for service availability",
+      "requested_data": ["country"]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Complete Profile" icon="address-card">
+    Omit `requested_data` or pass empty array to receive all available identity attributes
+
+    ```json
+    {
+      "intent": "Complete your profile setup"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Errors
+
+See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+
+Possible error codes for this endpoint:
+
+- `auth/missing-api-key` - No API key provided in Authorization header
+- `auth/invalid-key` - Invalid API key
+- `auth/revoked-api-key` - API key has been revoked
+- `auth/business-archived` - Business account has been archived
+- `auth/verification-required` - UIP account must be verified before using this endpoint
+- `request/invalid-payload` - Request payload is invalid or missing required fields
+- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
+- `payment/insufficient-funds` - Insufficient account balance to complete request
+- `resource/not-found` - Business not found
+- `internal/server-error` - Failed to create session record
+- `data/corrupt` - Corrupt key data detected

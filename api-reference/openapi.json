@@ -39,20 +39,21 @@
                 "basic": {
                   "summary": "Basic authentication",
                   "value": {
-                    "redirect_url": "https://myapp.com/auth/callback",
-                    "metadata": {
-                      "user_id": "user_123"
-                    }
+                    "intent": "Sign in to Example App",
+                    "requested_data": ["name", "birthdate"]
                   }
                 },
                 "age_verification": {
-                  "summary": "Age verification",
+                  "summary": "Age verification only",
                   "value": {
-                    "redirect_url": "https://myapp.com/auth/callback",
-                    "min_age": 21,
-                    "metadata": {
-                      "user_id": "user_123"
-                    }
+                    "intent": "Verify you're 18+ to access content",
+                    "requested_data": ["birthdate"]
+                  }
+                },
+                "full_profile": {
+                  "summary": "Complete profile",
+                  "value": {
+                    "intent": "Complete your profile setup"
                   }
                 }
               }
@@ -71,31 +72,10 @@
                   "success": {
                     "value": {
                       "session_id": "sess_abc123def456",
-                      "qr_data": "uip://auth?session=sess_abc123def456",
-                      "expires_at": "2025-01-10T12:05:00Z",
-                      "status": "pending"
+                      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+                      "expires_at": "2025-01-11T12:35:00Z"
                     }
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -150,26 +130,6 @@
                       "expires_at": "2025-01-10T12:05:00Z"
                     }
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -230,26 +190,6 @@
                       "sent_at": "2025-01-10T12:00:00Z"
                     }
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -474,24 +414,19 @@
     "schemas": {
       "IdentifyRequest": {
         "type": "object",
-        "required": ["redirect_url"],
+        "required": ["intent"],
         "properties": {
-          "redirect_url": {
+          "intent": {
             "type": "string",
-            "format": "uri",
-            "description": "URL to redirect user after authentication"
+            "description": "Description of why you're requesting identity verification. Shown to the user in the UIP app."
           },
-          "min_age": {
-            "type": "integer",
-            "description": "Minimum age requirement for age verification"
-          },
-          "require_location": {
-            "type": "boolean",
-            "description": "Whether to require location verification"
-          },
-          "metadata": {
-            "type": "object",
-            "description": "Optional metadata to associate with the session"
+          "requested_data": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["name", "birthdate", "country"]
+            },
+            "description": "Optional array of identity attributes to request. If omitted or empty, all data is returned. Valid values: name, birthdate, country"
           }
         }
       },
@@ -500,21 +435,16 @@
         "properties": {
           "session_id": {
             "type": "string",
-            "description": "Unique session identifier"
+            "description": "Unique identifier for this authentication session"
           },
-          "qr_data": {
+          "qr_code": {
             "type": "string",
-            "description": "QR code data or deep link URL"
+            "description": "Base64-encoded PNG image of the QR code for users to scan"
           },
           "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Session expiration timestamp"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "completed", "expired", "cancelled"],
-            "description": "Current session status"
+            "description": "ISO 8601 timestamp when the session expires (5 minutes from creation)"
           }
         }
       },
