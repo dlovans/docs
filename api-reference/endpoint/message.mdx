@@ -179,7 +179,7 @@ Possible error codes for this endpoint:
 
 **Authentication Errors:**
 - `auth/missing-api-key` - No API key provided in Authorization header
-- `auth/invalid-key` - Invalid API key
+- `auth/invalid-api-key` - Invalid API key
 - `auth/revoked-api-key` - API key has been revoked
 - `auth/business-archived` - Business account has been archived
 - `auth/verification-required` - UIP account must be verified before using this endpoint
@@ -196,6 +196,7 @@ Possible error codes for this endpoint:
   - Signature expiry cannot be in the past
 - `request/invalid-file-type` - Only PDF files are allowed
 - `request/file-too-large` - Combined file size exceeds 20MB limit
+- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
 
 **Payment Errors:**
 - `payment/insufficient-funds` - Insufficient account balance to complete request

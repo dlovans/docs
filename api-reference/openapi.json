@@ -224,9 +224,9 @@
     "/invalidate": {
       "post": {
         "summary": "Invalidate Message",
-        "description": "Cancel an active session (authentication, signature, or message request)",
+        "description": "Invalidate a signature-required message that hasn't been signed yet. The message will remain visible to the user but cannot be signed after invalidation.",
         "operationId": "invalidate",
-        "tags": ["Sessions"],
+        "tags": ["Messages"],
         "requestBody": {
           "required": true,
           "content": {
@@ -235,16 +235,10 @@
                 "$ref": "#/components/schemas/InvalidateRequest"
               },
               "examples": {
-                "session": {
-                  "summary": "Invalidate auth session",
+                "message": {
+                  "summary": "Invalidate signature-required message",
                   "value": {
-                    "session_id": "sess_abc123def456"
-                  }
-                },
-                "signature": {
-                  "summary": "Invalidate signature request",
-                  "value": {
-                    "signature_id": "sig_abc123def456"
+                    "message_id": "msg_abc123def456"
                   }
                 }
               }
@@ -253,40 +247,10 @@
         },
         "responses": {
           "200": {
-            "description": "Session invalidated",
+            "description": "Message invalidated successfully. Returns HTTP 200 status code only, no response body.",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvalidateResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "status": "invalidated",
-                      "invalidated_at": "2025-01-10T12:00:00Z"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Session not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+              "text/plain": {
+                "example": "Message invalidated successfully. Returns HTTP 200 status code only, no response body."
               }
             }
           }
@@ -585,33 +549,11 @@
       },
       "InvalidateRequest": {
         "type": "object",
+        "required": ["message_id"],
         "properties": {
-          "session_id": {
+          "message_id": {
             "type": "string",
-            "description": "Authentication session ID to invalidate"
-          },
-          "signature_id": {
-            "type": "string",
-            "description": "Signature request ID to invalidate"
-          }
-        },
-        "oneOf": [
-          {"required": ["session_id"]},
-          {"required": ["signature_id"]}
-        ]
-      },
-      "InvalidateResponse": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["invalidated"],
-            "description": "Invalidation status"
-          },
-          "invalidated_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Invalidation timestamp"
+            "description": "Message ID to invalidate. Only works for signature-required messages that haven't been signed yet."
           }
         }
       },

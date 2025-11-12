@@ -3,6 +3,276 @@ title: 'Invalidate Message'
 openapi: 'POST /invalidate'
 ---
 
-Invalidate an active session (authentication, signature, or message request). Use this to cancel pending requests or clean up expired sessions.
+Invalidate a signature-required message that hasn't been signed yet. Use this endpoint to cancel pending signature requests when they're no longer needed.
 
-Once invalidated, the session cannot be completed by the user.
+When invalidated, the message remains visible to users in their UIP app, but they can no longer sign it.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | Must be `application/json` |
+
+### Body Parameters
+
+<ParamField body="message_id" type="string" required>
+  The unique message identifier returned when the message was created.
+
+  **Example:** `"msg_abc123def456"`
+</ParamField>
+
+## When You Can Invalidate
+
+You can **only** invalidate a message when **all** of the following conditions are true:
+
+<Steps>
+  <Step title="Message Exists">
+    The message must have been successfully created via the [Message API](/api-reference/endpoint/message)
+  </Step>
+
+  <Step title="Signature Required">
+    The message must have been created with `signature_required: true`
+  </Step>
+
+  <Step title="Not Yet Signed">
+    The recipient must not have signed or declined the message yet
+  </Step>
+</Steps>
+
+<Warning>
+**Important:** You cannot invalidate messages that:
+- Don't require signatures (`signature_required: false`)
+- Have already been signed or declined by the recipient
+- Don't exist or were created by a different business account
+</Warning>
+
+## What Happens After Invalidation
+
+### Message Visibility
+- **User can still see the message** - The message remains in the user's UIP app
+- **Cannot be signed** - The signature action is permanently disabled
+- **No webhook sent** - Invalidation does not trigger a webhook event
+
+### Use Cases for Invalidation
+
+<CardGroup cols={2}>
+  <Card title="Request Canceled" icon="xmark">
+    Cancel signature requests when the underlying transaction or agreement is canceled
+  </Card>
+
+  <Card title="Wrong Recipient" icon="user-xmark">
+    Invalidate messages sent to the wrong user before they sign
+  </Card>
+
+  <Card title="Document Updated" icon="file-pen">
+    Invalidate old signature requests when documents are revised or updated
+  </Card>
+
+  <Card title="Business Logic Changes" icon="sitemap">
+    Cancel pending signatures when business requirements or approval workflows change
+  </Card>
+</CardGroup>
+
+## Response
+
+### Success Response (200 OK)
+
+Returns HTTP status code 200 with no response body on successful invalidation.
+
+### Example Request
+
+```bash
+curl -X POST https://api.uip.digital/v1/invalidate \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message_id": "msg_abc123def456"
+  }'
+```
+
+### Example Response
+
+```
+HTTP/1.1 200 OK
+```
+
+No response body is returned on success.
+
+## Errors
+
+See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+
+Possible error codes for this endpoint:
+
+**Authentication Errors:**
+- `auth/missing-api-key` - No API key provided in Authorization header
+- `auth/invalid-api-key` - Invalid API key
+- `auth/revoked-api-key` - API key has been revoked
+- `auth/unauthorized` - You do not own this message
+
+**Request Validation Errors:**
+- `request/invalid-payload` - Request payload is invalid or missing required fields (message_id is required)
+
+**Resource Errors:**
+- `resource/not-found` - Message ID not found or business not found
+- `resource/invalidated` - Message already invalidated
+- `resource/already-completed` - Signature already collected, cannot invalidate
+
+**Internal Errors:**
+- `internal/server-error` - Failed to invalidate message or process request
+- `data/corrupt` - Corrupt key data detected
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Create Signature-Required Message">
+    Send a message via the [Message API](/api-reference/endpoint/message) with `signature_required: true`
+  </Step>
+
+  <Step title="Save Message ID">
+    Store the returned `message_id` in your database for tracking
+  </Step>
+
+  <Step title="Business Logic Triggers Cancellation">
+    When your business logic determines the signature request should be canceled (transaction canceled, wrong recipient, etc.)
+  </Step>
+
+  <Step title="Call Invalidate API">
+    Send the `message_id` to the Invalidate endpoint to prevent signing
+  </Step>
+
+  <Step title="Update Internal Records">
+    Mark the message as invalidated in your database
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Invalidate Promptly" icon="clock-rotate-left">
+    Invalidate messages as soon as you know they're no longer needed to prevent confusion
+  </Card>
+
+  <Card title="Track Invalidation Status" icon="database">
+    Store invalidation timestamps in your database for audit trails and compliance
+  </Card>
+
+  <Card title="Handle Errors Gracefully" icon="triangle-exclamation">
+    Check for already-signed or already-invalidated errors and handle them appropriately
+  </Card>
+
+  <Card title="User Communication" icon="comment">
+    Consider notifying users separately when you invalidate their pending signature requests
+  </Card>
+</CardGroup>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Transaction Canceled" icon="ban">
+    When a transaction or agreement is canceled, invalidate pending signature requests to prevent users from signing outdated documents.
+
+    ```javascript
+    // Transaction canceled, invalidate signature request
+    await fetch('https://api.uip.digital/v1/invalidate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${YOUR_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message_id: 'msg_abc123def456'
+      })
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Document Revision" icon="file-pen">
+    When documents are updated or revised, invalidate old signature requests and send new ones with the updated documents.
+
+    ```javascript
+    // Document revised, invalidate old request
+    await invalidateOldRequest('msg_old123');
+
+    // Send new signature request with updated document
+    const newMessage = await createNewSignatureRequest({
+      receiver_uip: 'user_abc123',
+      intent: 'Sign Updated Employment Contract',
+      signature_required: true,
+      attachments: ['updated_contract.pdf']
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Wrong Recipient" icon="user-xmark">
+    If a signature request was sent to the wrong user, invalidate it before they sign to prevent legal complications.
+
+    ```javascript
+    // Sent to wrong user, invalidate immediately
+    await fetch('https://api.uip.digital/v1/invalidate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${YOUR_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message_id: 'msg_wrong_user123'
+      })
+    });
+
+    // Send to correct user
+    await sendToCorrectUser({
+      receiver_uip: 'correct_user_xyz789',
+      // ... rest of message parameters
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Approval Workflow Changes" icon="sitemap">
+    When approval workflows or business requirements change, invalidate pending signatures that are no longer relevant.
+
+    ```javascript
+    // Workflow changed, invalidate all pending signatures
+    const pendingMessageIds = await getPendingSignatures();
+
+    for (const messageId of pendingMessageIds) {
+      try {
+        await fetch('https://api.uip.digital/v1/invalidate', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${YOUR_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message_id: messageId })
+        });
+      } catch (error) {
+        // Handle already-signed or not-found errors
+        console.error(`Failed to invalidate ${messageId}:`, error);
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
+    Send encrypted messages and signature requests
+  </Card>
+
+  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
+    Retrieve permanent audit records
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
+    Handle API errors properly
+  </Card>
+
+  <Card title="Webhooks" icon="webhook" href="/core-concepts/webhooks">
+    Handle webhook events for signed messages
+  </Card>
+</CardGroup>
