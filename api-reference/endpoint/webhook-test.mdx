@@ -1,8 +1,342 @@
 ---
 title: 'Test Webhook'
-openapi: 'POST /webhook/test'
+openapi: 'POST /webhook/ping'
 ---
 
-Test your webhook endpoint configuration before committing to production. This endpoint allows you to verify that your webhook URL is properly configured and can receive UIP notifications.
+Test your webhook endpoint configuration before committing to production. This endpoint sends a test notification to verify that your webhook URL is properly configured and can receive UIP events.
 
-Use this during development to ensure your webhook handler is working correctly.
+Use this during development to ensure your webhook handler is working correctly and can properly validate HMAC signatures.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+
+### Body Parameters
+
+This endpoint requires no body parameters. It will automatically send a test webhook to the webhook URL configured in your Business Dashboard.
+
+## Response
+
+### Success Response (200 OK)
+
+Returns HTTP status code 200 with no response body when the test webhook is successfully sent to your configured webhook URL.
+
+### Example Request
+
+```bash
+curl -X POST https://api.uip.digital/v1/webhook/ping \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Example Response
+
+```
+HTTP/1.1 200 OK
+```
+
+No response body is returned on success.
+
+## Test Webhook Payload
+
+When you call this endpoint, UIP sends a test notification to your configured webhook URL with the following structure:
+
+```json
+{
+  "event": "test",
+  "data": {
+    "pong": "Pong"
+  }
+}
+```
+
+**Headers sent to your webhook:**
+- `Content-Type: application/json`
+- `X-UIP-Signature: <hmac_sha256_signature>` - HMAC SHA-256 signature for verification
+
+## Webhook Signature Verification
+
+All webhook requests include an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook handler must verify this signature to ensure requests are from UIP.
+
+<CodeGroup>
+
+```javascript JavaScript/Node.js
+const crypto = require('crypto');
+
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-uip-signature'];
+  const webhookSecret = 'YOUR_WEBHOOK_SECRET'; // From Business Dashboard
+
+  // Calculate expected signature
+  const hmac = crypto.createHmac('sha256', webhookSecret);
+  hmac.update(JSON.stringify(req.body));
+  const expectedSignature = hmac.digest('hex');
+
+  // Verify signature
+  if (signature !== expectedSignature) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  // Handle webhook event
+  const { event, data } = req.body;
+
+  if (event === 'test') {
+    console.log('Test webhook received:', data.pong);
+    return res.status(200).send('OK');
+  }
+
+  // Handle other events (identify, sign, message)
+
+  res.status(200).send('OK');
+});
+```
+
+```python Python
+import hmac
+import hashlib
+import json
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-UIP-Signature')
+    webhook_secret = 'YOUR_WEBHOOK_SECRET'  # From Business Dashboard
+
+    # Calculate expected signature
+    body_bytes = request.get_data()
+    expected_signature = hmac.new(
+        webhook_secret.encode('utf-8'),
+        body_bytes,
+        hashlib.sha256
+    ).hexdigest()
+
+    # Verify signature
+    if signature != expected_signature:
+        return 'Invalid signature', 401
+
+    # Handle webhook event
+    data = request.get_json()
+    event = data.get('event')
+    event_data = data.get('data')
+
+    if event == 'test':
+        print(f"Test webhook received: {event_data.get('pong')}")
+        return 'OK', 200
+
+    # Handle other events (identify, sign, message)
+
+    return 'OK', 200
+```
+
+```go Go
+package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "io/ioutil"
+    "net/http"
+)
+
+type WebhookPayload struct {
+    Event string                 `json:"event"`
+    Data  map[string]interface{} `json:"data"`
+}
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+    signature := r.Header.Get("X-UIP-Signature")
+    webhookSecret := "YOUR_WEBHOOK_SECRET" // From Business Dashboard
+
+    // Read body
+    body, err := ioutil.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Failed to read body", http.StatusBadRequest)
+        return
+    }
+
+    // Calculate expected signature
+    h := hmac.New(sha256.New, []byte(webhookSecret))
+    h.Write(body)
+    expectedSignature := hex.EncodeToString(h.Sum(nil))
+
+    // Verify signature
+    if signature != expectedSignature {
+        http.Error(w, "Invalid signature", http.StatusUnauthorized)
+        return
+    }
+
+    // Parse webhook payload
+    var payload WebhookPayload
+    if err := json.Unmarshal(body, &payload); err != nil {
+        http.Error(w, "Invalid JSON", http.StatusBadRequest)
+        return
+    }
+
+    // Handle webhook event
+    if payload.Event == "test" {
+        println("Test webhook received:", payload.Data["pong"])
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+
+    // Handle other events (identify, sign, message)
+
+    w.WriteHeader(http.StatusOK)
+}
+```
+
+</CodeGroup>
+
+## Errors
+
+See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+
+Possible error codes for this endpoint:
+
+**Authentication Errors:**
+- `auth/missing-api-key` - No API key provided in Authorization header
+- `auth/invalid-api-key` - Invalid API key
+- `auth/revoked-api-key` - API key has been revoked
+- `auth/business-archived` - Business account has been archived
+
+**Request Validation Errors:**
+- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
+- `request/webhook-unreachable` - Webhook URL is not accessible or did not return 200 status code
+- `request/not-found` - No such registered route in API service
+
+**Resource Errors:**
+- `resource/not-found` - Business not found
+
+**Internal Errors:**
+- `internal/server-error` - Failed to send test webhook or process request
+- `data/corrupt` - Webhook URL is malformed (must start with `https://`)
+
+## Implementation Flow
+
+<Steps>
+  <Step title="Configure Webhook URL">
+    Add your webhook endpoint URL in the Business Dashboard. Must use HTTPS for production.
+  </Step>
+
+  <Step title="Implement Webhook Handler">
+    Create an endpoint that accepts POST requests and verifies HMAC signatures
+  </Step>
+
+  <Step title="Test Webhook Configuration">
+    Call the `/webhook/ping` endpoint to verify your webhook is reachable and working correctly
+  </Step>
+
+  <Step title="Verify Signature">
+    Ensure your webhook handler correctly validates the `X-UIP-Signature` header
+  </Step>
+
+  <Step title="Return 200 Status">
+    Your webhook must return HTTP 200 status code to acknowledge receipt
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Verify Signatures" icon="shield-check">
+    Validate the X-UIP-Signature header on every webhook request to prevent spoofing
+  </Card>
+
+  <Card title="Use HTTPS in Production" icon="lock">
+    Webhook URLs must use HTTPS. HTTP is not allowed for security reasons.
+  </Card>
+
+  <Card title="Return 200 Quickly" icon="bolt">
+    Process webhooks asynchronously and return 200 immediately to avoid timeouts
+  </Card>
+
+  <Card title="Test Before Production" icon="flask">
+    Use this endpoint during development to verify your webhook configuration works correctly
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Webhook unreachable error" icon="globe">
+    **Problem:** Test fails with `request/webhook-unreachable` error
+
+    **Causes:**
+    - Webhook URL is not publicly accessible
+    - Firewall blocking UIP servers
+    - Webhook handler not returning 200 status code
+    - HTTPS certificate issues
+
+    **Solutions:**
+    - Verify webhook URL is publicly accessible
+    - Check firewall rules allow UIP IP addresses
+    - Ensure webhook returns 200 status for test events
+    - Use valid HTTPS certificate
+  </Accordion>
+
+  <Accordion title="Invalid signature" icon="key">
+    **Problem:** Webhook receives requests but signature validation fails
+
+    **Causes:**
+    - Using wrong webhook secret
+    - Calculating signature on modified body
+    - Character encoding issues
+
+    **Solutions:**
+    - Get webhook secret from Business Dashboard
+    - Calculate signature on raw request body (before parsing)
+    - Use UTF-8 encoding for all strings
+  </Accordion>
+
+  <Accordion title="Webhook URL missing" icon="link-slash">
+    **Problem:** Test fails with `request/webhook-missing` error
+
+    **Causes:**
+    - No webhook URL configured in Business Dashboard
+    - Webhook URL field is empty
+
+    **Solutions:**
+    - Log into Business Dashboard
+    - Navigate to webhook settings
+    - Add your webhook endpoint URL
+  </Accordion>
+
+  <Accordion title="Malformed webhook URL" icon="triangle-exclamation">
+    **Problem:** Test fails with `data/corrupt` error
+
+    **Causes:**
+    - Webhook URL does not start with `https://`
+    - Invalid URL format
+
+    **Solutions:**
+    - Ensure URL starts with `https://`
+    - Use valid URL format: `https://yourdomain.com/webhook`
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Webhooks Guide" icon="webhook" href="/core-concepts/webhooks">
+    Learn about webhook events and best practices
+  </Card>
+
+  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
+    Authentication endpoint with webhook events
+  </Card>
+
+  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
+    Signature endpoint with webhook events
+  </Card>
+
+  <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
+    Messaging endpoint with webhook events
+  </Card>
+</CardGroup>

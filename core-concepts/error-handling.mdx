@@ -214,6 +214,20 @@ UIP uses standard HTTP status codes:
     - Verify parameter types match specification
   </Accordion>
 
+  <Accordion title="request/invalid-path" icon="route">
+    **HTTP 400** - The path parameter is invalid or missing
+
+    **Cause:**
+    - Missing required path parameter
+    - Empty path parameter value
+    - Invalid path parameter format
+
+    **Solution:**
+    - Verify path parameter is provided
+    - Check path parameter is not empty
+    - Ensure path parameter matches expected format
+  </Accordion>
+
   <Accordion title="request/invalid-file-type" icon="file-excel">
     **HTTP 400** - The uploaded file type is not allowed
 

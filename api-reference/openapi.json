@@ -257,7 +257,7 @@
         }
       }
     },
-    "/audit": {
+    "/audit/{auditID}": {
       "get": {
         "summary": "Get Audit Record",
         "description": "Retrieve the complete audit record for a completed action",
@@ -265,13 +265,14 @@
         "tags": ["Audit"],
         "parameters": [
           {
-            "name": "reference_id",
-            "in": "query",
+            "name": "auditID",
+            "in": "path",
             "required": true,
-            "description": "The reference ID of the action to retrieve",
+            "description": "The audit ID returned from webhook responses (audit_id field)",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "audit_9z8y7x6w5v4u"
           }
         ],
         "responses": {
@@ -283,35 +284,53 @@
                   "$ref": "#/components/schemas/AuditResponse"
                 },
                 "examples": {
-                  "signature": {
+                  "signed_message": {
+                    "summary": "Signed message with attachment",
                     "value": {
-                      "reference_id": "ref_abc123def456",
-                      "action_type": "signature",
-                      "status": "completed",
-                      "signatory": {
-                        "user_id": "user_abc123",
-                        "verified": true,
-                        "verification_level": "government_id"
+                      "audit": {
+                        "created_at": "2025-01-11T14:30:00Z",
+                        "requester_uip_id": "business_abc123",
+                        "requester_sign_intent": "Sign Employment Contract",
+                        "requester_sign_information": "Please review and sign your employment contract by January 31, 2025.",
+                        "signatoree_uip_id": "user_def456",
+                        "message_ref": "msg_xyz789abc123",
+                        "attachment_refs": ["audit_abc123___msg_xyz789___contract.pdf"],
+                        "audit_type": "message",
+                        "requester_name": "HR Manager",
+                        "signatoree_name": "John Doe",
+                        "requester_business_name": "Acme Corp",
+                        "signed_accepted": true
                       },
-                      "timestamp": "2025-01-10T12:00:00Z",
-                      "requester": {
-                        "organization_id": "org_xyz789",
-                        "organization_name": "Acme Corp"
+                      "attachments": [
+                        {
+                          "filename": "contract.pdf",
+                          "content_type": "application/pdf",
+                          "content": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFs...",
+                          "size": 245678
+                        }
+                      ]
+                    }
+                  },
+                  "declined_signature": {
+                    "summary": "Declined signature request",
+                    "value": {
+                      "audit": {
+                        "created_at": "2025-01-11T10:15:00Z",
+                        "requester_uip_id": "business_abc123",
+                        "requester_sign_intent": "Sign Terms of Service",
+                        "requester_sign_information": "I agree to the Terms of Service version 2.1",
+                        "signatoree_uip_id": "user_xyz789",
+                        "message_ref": null,
+                        "attachment_refs": null,
+                        "audit_type": "sign",
+                        "requester_name": "Platform Admin",
+                        "signatoree_name": "Jane Smith",
+                        "requester_business_name": "Tech Startup Inc",
+                        "signed_accepted": false
                       },
-                      "document_hash": "sha256:abc123...",
-                      "signature_proof": "0x123abc..."
+                      "attachments": []
                     }
                   }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Audit record not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -319,78 +338,18 @@
         }
       }
     },
-    "/webhook/test": {
+    "/webhook/ping": {
       "post": {
         "summary": "Test Webhook",
-        "description": "Test your webhook endpoint configuration by triggering a test notification",
+        "description": "Test your webhook endpoint configuration by sending a test notification to the webhook URL configured in your Business Dashboard",
         "operationId": "webhookTest",
         "tags": ["Webhooks"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebhookTestRequest"
-              },
-              "examples": {
-                "authentication": {
-                  "summary": "Test authentication webhook",
-                  "value": {
-                    "webhook_url": "https://myapp.com/webhooks/uip",
-                    "event_type": "authentication.completed"
-                  }
-                },
-                "signature": {
-                  "summary": "Test signature webhook",
-                  "value": {
-                    "webhook_url": "https://myapp.com/webhooks/uip",
-                    "event_type": "signature.completed"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Webhook test sent successfully",
+            "description": "Webhook test sent successfully. Returns HTTP 200 OK status with no response body.",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookTestResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "test_id": "test_abc123def456",
-                      "webhook_url": "https://myapp.com/webhooks/uip",
-                      "status": "sent",
-                      "response_code": 200,
-                      "response_time_ms": 145,
-                      "sent_at": "2025-01-10T12:00:00Z"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+              "text/plain": {
+                "example": "HTTP/1.1 200 OK"
               }
             }
           }
@@ -560,62 +519,90 @@
       "AuditResponse": {
         "type": "object",
         "properties": {
-          "reference_id": {
-            "type": "string",
-            "description": "Unique audit reference ID"
-          },
-          "action_type": {
-            "type": "string",
-            "enum": ["authentication", "signature", "message"],
-            "description": "Type of action"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["completed", "failed"],
-            "description": "Action status"
-          },
-          "signatory": {
+          "audit": {
             "type": "object",
             "properties": {
-              "user_id": {
+              "created_at": {
                 "type": "string",
-                "description": "UIP user ID"
+                "format": "date-time",
+                "description": "ISO 8601 timestamp when the action was completed"
               },
-              "verified": {
+              "requester_uip_id": {
+                "type": "string",
+                "description": "UIP ID of the business that requested the action"
+              },
+              "requester_sign_intent": {
+                "type": "string",
+                "description": "The intent message shown to the user (subject/title of the request)"
+              },
+              "requester_sign_information": {
+                "type": "string",
+                "description": "The signature information or message content"
+              },
+              "signatoree_uip_id": {
+                "type": "string",
+                "description": "UIP ID of the user who signed or declined"
+              },
+              "message_ref": {
+                "type": "string",
+                "nullable": true,
+                "description": "Message ID reference if this was a message-based signature. Null for lightweight signatures."
+              },
+              "attachment_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "description": "Array of attachment references if attachments were included. Null if no attachments."
+              },
+              "audit_type": {
+                "type": "string",
+                "enum": ["identify", "sign", "message"],
+                "description": "Type of action: identify (Identify API), sign (Sign API), message (Message API with signature)"
+              },
+              "requester_name": {
+                "type": "string",
+                "description": "Display name of the requester (business or admin)"
+              },
+              "signatoree_name": {
+                "type": "string",
+                "description": "Full name of the user who signed or declined"
+              },
+              "requester_business_name": {
+                "type": "string",
+                "description": "Business name of the requesting organization"
+              },
+              "signed_accepted": {
                 "type": "boolean",
-                "description": "Whether identity is government verified"
-              },
-              "verification_level": {
-                "type": "string",
-                "description": "Level of identity verification"
+                "description": "True if the user signed/accepted, false if declined"
               }
             }
           },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Action timestamp"
-          },
-          "requester": {
-            "type": "object",
-            "properties": {
-              "organization_id": {
-                "type": "string",
-                "description": "Requesting organization ID"
-              },
-              "organization_name": {
-                "type": "string",
-                "description": "Requesting organization name"
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "description": "Original filename of the attachment"
+                },
+                "content_type": {
+                  "type": "string",
+                  "description": "MIME type of the attachment (always application/pdf)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Base64-encoded file content"
+                },
+                "size": {
+                  "type": "integer",
+                  "description": "File size in bytes"
+                }
               }
-            }
-          },
-          "document_hash": {
-            "type": "string",
-            "description": "SHA-256 hash of signed document (for signatures)"
-          },
-          "signature_proof": {
-            "type": "string",
-            "description": "Cryptographic signature proof"
+            },
+            "description": "Array of PDF attachments. Empty array if no attachments."
           }
         }
       },
