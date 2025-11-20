@@ -32,29 +32,6 @@ The Sign API provides instant biometric signing for lightweight legal use cases.
 
 The Sign API provides instant biometric signing through a simple webhook-based flow. Users scan a QR code (desktop) or open the UIP app directly (mobile), review the document text, and sign with their biometric.
 
-## Endpoint
-
-<Card title="POST /v1/sign" icon="code">
-  **Base URL:**
-  - `https://api.uip.digital/v1/sign`
-
-  **Headers:**
-  - `Authorization: Bearer YOUR_API_KEY`
-  - `Content-Type: application/json`
-
-  **Request Body:**
-  - `webhook_url` - Your webhook endpoint URL
-  - `document_title` - Title of what user is signing
-  - `document_content` - Full text content to sign
-  - `metadata` - Optional tracking data
-
-  **Response:**
-  - `session_id` - Unique session identifier
-  - `qr_code` - Base64-encoded QR code image
-  - `deep_link` - Mobile app deep link
-  - `expires_in` - Session expiration (5 minutes)
-</Card>
-
 ## Request Parameters
 
 <AccordionGroup>
@@ -145,57 +122,6 @@ The Sign API provides instant biometric signing through a simple webhook-based f
 ## Response
 
 After creating a signature request, you'll receive a session ID and QR code (for desktop flows). The QR code expires after 5 minutes. Users scan the code with their UIP app, review the document, and sign with their biometric.
-
-## Webhook Response
-
-Your webhook endpoint receives the signing result when the user completes or declines.
-
-<Tabs>
-  <Tab title="Success">
-    **Event:** `signature_completed`
-
-    Sent when user successfully signs with their biometric.
-
-    **Payload includes:**
-    - `session_id`: Session identifier
-    - `status`: `success`
-    - `user_data`: User's UIP ID and verification status
-    - `signature_proof`: Cryptographic signature proof
-    - `audit_reference_id`: Permanent audit trail reference
-    - `document_hash`: Hash of signed document
-    - `metadata`: Your custom metadata from request
-    - `timestamp`: ISO 8601 timestamp of signature
-
-    **Use the `audit_reference_id` for permanent verification**
-  </Tab>
-
-  <Tab title="Declined">
-    **Event:** `signature_declined`
-
-    Sent when user declines to sign.
-
-    **Payload includes:**
-    - `session_id`: Session identifier
-    - `status`: `declined`
-    - `reason`: Why user declined (if provided)
-    - `timestamp`: ISO 8601 timestamp
-
-    **This is normal user behavior** - show friendly message and allow retry
-  </Tab>
-
-  <Tab title="Expired">
-    **Event:** `signature_expired`
-
-    Sent when session expires (5 minutes) without user action.
-
-    **Payload includes:**
-    - `session_id`: Session identifier
-    - `status`: `expired`
-    - `timestamp`: ISO 8601 timestamp
-
-    **Solution:** Generate new session
-  </Tab>
-</Tabs>
 
 ## Common Use Cases
 

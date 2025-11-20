@@ -30,6 +30,7 @@
             "pages": [
               "core-concepts/protocol-overview",
               "core-concepts/qr-integration",
+              "core-concepts/integration-patterns",
               "core-concepts/error-handling",
               "core-concepts/impersonation-protection",
               "core-concepts/resellers-admins"

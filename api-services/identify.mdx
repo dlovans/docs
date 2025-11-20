@@ -25,21 +25,6 @@ The Identify API authenticates users through their UIP identity and returns veri
   </Card>
 </CardGroup>
 
-## Endpoint
-
-<Card title="POST /v1/identify" icon="code">
-  **Base URL:**
-  - `https://api.uip.digital/v1/identify`
-
-  **Headers:**
-  - `Authorization: Bearer YOUR_API_KEY`
-  - `Content-Type: application/json`
-</Card>
-
-<Info>
-**Pricing:** $0.01 per successful authentication. Only charged when users complete authentication.
-</Info>
-
 ## Request Parameters
 
 <AccordionGroup>
@@ -57,12 +42,12 @@ The Identify API authenticates users through their UIP identity and returns veri
     Specific data fields to request from the user. If empty or omitted, requests all available data.
 
     **Available fields:**
-    - `full_name` - User's complete legal name
-    - `date_of_birth` - Date of birth in YYYY-MM-DD format
+    - `name` - User's complete legal name
+    - `date_of_birth` - Date of birth as Unix timestamp
     - `country_of_origin` - Country where identity was verified (ISO 3166-1 alpha-2)
-    - `personal_number` - Government-issued ID number (enterprise/government only)
+    - `expiry_date` - ID card expiration date as Unix timestamp (must be explicitly requested)
 
-    **Default:** All available data fields
+    **Default:** `name`, `date_of_birth`, and `country_of_origin` (unless specific fields requested)
   </Accordion>
 
   <Accordion title="device_type (optional)" icon="mobile-screen">
@@ -86,9 +71,9 @@ The Identify API authenticates users through their UIP identity and returns veri
   <Accordion title="min_age (optional)" icon="calendar">
     **Type:** integer
 
-    Minimum age requirement for authentication. User must be at least this age to proceed.
+    **Note:** This parameter is not currently supported. The API always returns `date_of_birth` as a Unix timestamp. Developers must calculate age from the timestamp in their application logic.
 
-    **Use case:** Age verification for restricted content without exposing date of birth.
+    **For age verification:** Request `date_of_birth`, convert the Unix timestamp to a date, calculate age, and apply restrictions in your backend.
   </Accordion>
 
   <Accordion title="metadata (optional)" icon="tags">
@@ -108,7 +93,7 @@ Control exactly what information you receive. Users will see your business name 
 
 <Tabs>
   <Tab title="Standard Fields">
-    ### full_name
+    ### name
 
     User's complete legal name as verified during identity verification (powered by Didit).
 
@@ -116,15 +101,19 @@ Control exactly what information you receive. Users will see your business name 
 
     **Privacy note:** Only request if you need the user's real name.
 
+    **Included by default:** Yes
+
     ---
 
     ### date_of_birth
 
-    User's date of birth in YYYY-MM-DD format.
+    User's date of birth as a Unix timestamp (seconds since epoch).
 
-    **Example:** `"1990-05-15"`
+    **Example:** `643852800` (represents May 15, 1990)
 
-    **Privacy note:** Consider using `min_age` parameter instead for age verification.
+    **Note:** Developers must convert Unix timestamp to desired date format. To verify age, calculate age from timestamp in your application logic.
+
+    **Included by default:** Yes
 
     ---
 
@@ -135,20 +124,28 @@ Control exactly what information you receive. Users will see your business name 
     **Example:** `"US"`, `"GB"`, `"CA"`
 
     **Use case:** Geographic restrictions, compliance requirements
+
+    **Included by default:** Yes
   </Tab>
 
-  <Tab title="Restricted Fields">
-    ### personal_number
+  <Tab title="Optional Fields">
+    ### expiry_date
 
-    Government-issued personal identification number (SSN, National ID, etc.).
+    Expiration date of the user's government-issued ID card as a Unix timestamp (seconds since epoch).
 
-    <Warning>
-    **Restricted Access:** Only available to verified enterprise and government accounts. Contact support@uip.digital to request access.
-    </Warning>
+    **Example:** `1861833600` (represents December 31, 2028)
 
-    **Example:** `"123-45-6789"` (format varies by country)
+    **Use cases:**
+    - Verify ID has not expired
+    - Schedule identity re-verification before expiration
+    - Compliance requirements for valid identification
+    - Prevent fraud with expired documents
 
-    **Compliance:** Subject to strict data handling requirements. Must demonstrate legitimate need and proper security measures.
+    <Info>
+    **Must be explicitly requested:** This field is NOT included by default. Add `"expiry_date"` to the `requested_data` array to receive it.
+    </Info>
+
+    **Privacy note:** Only request if you need to verify ID validity or have compliance requirements.
   </Tab>
 </Tabs>
 
@@ -161,15 +158,16 @@ Users can see exactly what you're requesting and are more likely to approve mini
 ## Request Examples
 
 <AccordionGroup>
-  <Accordion title="Request All Available Data" icon="database">
-    Omit the `requested_data` parameter or pass an empty array to request all available fields (respecting your account permissions).
+  <Accordion title="Request Default Fields" icon="database">
+    Omit the `requested_data` parameter or pass an empty array to request the standard fields.
 
-    This requests:
+    This returns:
     - `uip_id` (always included)
-    - `full_name`
+    - `name`
     - `date_of_birth`
     - `country_of_origin`
-    - `verified` status
+
+    **Note:** `expiry_date` is NOT included by default—must be explicitly requested.
 
     **Use case:** Initial user registration where you need complete profile information.
   </Accordion>
@@ -179,24 +177,57 @@ Users can see exactly what you're requesting and are more likely to approve mini
 
     **Example:** Only request name and date of birth.
 
-    This requests:
+    ```json
+    {
+      "requested_data": ["name", "date_of_birth"]
+    }
+    ```
+
+    This returns:
     - `uip_id` (always included)
-    - `full_name`
+    - `name`
     - `date_of_birth`
 
     **Use case:** Account verification, personalization
   </Accordion>
 
-  <Accordion title="Age Verification Only" icon="id-badge">
-    Use `min_age` parameter to verify age without exposing date of birth.
+  <Accordion title="Request ID Expiry Date" icon="calendar-check">
+    Include `expiry_date` to verify the user's government ID has not expired.
 
-    Pass `min_age: 21` to verify user is at least 21 years old.
+    ```json
+    {
+      "requested_data": ["name", "date_of_birth", "country_of_origin", "expiry_date"]
+    }
+    ```
 
-    Response includes:
+    This returns:
     - `uip_id` (always included)
-    - `age_verified: true/false`
+    - `name`
+    - `date_of_birth`
+    - `country_of_origin`
+    - `expiry_date` - ID card expiration date
 
-    **Use case:** Age-restricted content, alcohol sales, gambling
+    **Use case:** Compliance verification, fraud prevention, identity validity checks
+  </Accordion>
+
+  <Accordion title="Age Verification" icon="id-badge">
+    The Identify API always returns `date_of_birth` as a Unix timestamp. Developers must calculate age from this timestamp in their application.
+
+    **To verify age:**
+    1. Request `date_of_birth` field (included by default)
+    2. Receive Unix timestamp in webhook response
+    3. Convert timestamp to date and calculate age in your backend
+    4. Apply age restrictions based on your requirements
+
+    **Example calculation:**
+    ```
+    timestamp = 643852800
+    birth_date = new Date(timestamp * 1000)
+    age = calculate_age(birth_date, today)
+    if (age >= 21) { grant_access() }
+    ```
+
+    **Use case:** Age-restricted content, alcohol sales, gambling, mature content verification
   </Accordion>
 
   <Accordion title="Mobile Device Flow" icon="mobile">
@@ -207,85 +238,6 @@ Users can see exactly what you're requesting and are more likely to approve mini
     **Use case:** Mobile web apps, progressive web apps
   </Accordion>
 </AccordionGroup>
-
-## Webhook Response
-
-Your webhook endpoint receives authentication results when the user completes or cancels the request.
-
-<Tabs>
-  <Tab title="Success Response">
-    **Event:** `authentication_completed`
-
-    Sent when a user successfully authenticates with their biometric.
-
-    **Payload includes:**
-    - `event`: Event type (`authentication_completed`)
-    - `session_id`: Unique session identifier
-    - `status`: `success`
-    - `user_data`: Object containing requested identity data
-      - `uip_id`: User's unique UIP identifier (always included)
-      - `verified`: Boolean indicating government ID verification status
-      - Additional fields based on your request
-    - `timestamp`: ISO 8601 timestamp
-
-    **Example:**
-    ```json
-    {
-      "event": "authentication_completed",
-      "session_id": "sess_1234567890abcdef",
-      "status": "success",
-      "user_data": {
-        "uip_id": "uip_user_9876543210",
-        "full_name": "Alice Johnson",
-        "date_of_birth": "1990-05-15",
-        "verified": true
-      },
-      "timestamp": "2024-01-15T10:30:00Z"
-    }
-    ```
-  </Tab>
-
-  <Tab title="Failed/Cancelled">
-    **Event:** `authentication_failed`
-
-    Sent when authentication fails, is cancelled by the user, or expires.
-
-    **Payload includes:**
-    - `event`: Event type (`authentication_failed`)
-    - `session_id`: Unique session identifier
-    - `status`: `failed`, `cancelled`, or `expired`
-    - `reason`: Human-readable failure reason
-    - `timestamp`: ISO 8601 timestamp
-
-    **Common reasons:**
-    - User cancelled the request
-    - Session expired (5 minutes)
-    - User denied data sharing permission
-    - Biometric authentication failed
-    - User doesn't meet minimum age requirement
-  </Tab>
-</Tabs>
-
-## Webhook Security
-
-<Warning>
-**Always verify webhook authenticity** using the signature header before processing the data.
-</Warning>
-
-Every webhook includes an `X-UIP-Signature` header. Your webhook secret is a UUID v4 identifier (without any prefix).
-
-### Signature Verification
-
-Verify the webhook signature using HMAC SHA-256:
-
-1. Get the raw request body (as string)
-2. Compute HMAC SHA-256 using your webhook secret
-3. Compare with the `X-UIP-Signature` header
-4. Only process if signatures match
-
-<Info>
-Your webhook secret is available in the [Business Dashboard](https://business.uip.digital) under Settings → API Keys.
-</Info>
 
 ## Common Use Cases
 
@@ -308,20 +260,21 @@ Your webhook secret is available in the [Business Dashboard](https://business.ui
   </Tab>
 
   <Tab title="Age Verification">
-    **Goal:** Verify user meets minimum age without exposing birth date
+    **Goal:** Verify user meets minimum age requirement
 
     **Flow:**
     1. User attempts to access age-restricted content
-    2. Call Identify API with `min_age: 21` (or required age)
+    2. Call Identify API requesting `date_of_birth` field
     3. Display QR code or redirect to app
-    4. Receive webhook with `age_verified: true/false`
-    5. Grant or deny access
+    4. Receive webhook with `date_of_birth` as Unix timestamp
+    5. Convert timestamp to date and calculate age in your backend
+    6. Grant or deny access based on age calculation
 
     **Benefits:**
-    - Privacy-preserving (no DOB exposure)
+    - Government ID verified age
     - Instant verification
-    - Government ID verified
-    - No manual checking required
+    - No manual document checking
+    - Cryptographic proof of identity
   </Tab>
 
   <Tab title="KYC Compliance">
@@ -329,7 +282,7 @@ Your webhook secret is available in the [Business Dashboard](https://business.ui
 
     **Flow:**
     1. User initiates account opening
-    2. Call Identify API requesting `full_name`, `date_of_birth`, `country_of_origin`
+    2. Call Identify API requesting `name`, `date_of_birth`, `country_of_origin`
     3. Display QR code or redirect to app
     4. Receive webhook with verified identity data
     5. Store data for compliance records
@@ -379,48 +332,6 @@ Your webhook secret is available in the [Business Dashboard](https://business.ui
     Webhook sent immediately after user completes action
   </Card>
 </CardGroup>
-
-## Error Handling
-
-Common error responses and how to handle them:
-
-<AccordionGroup>
-  <Accordion title="401 Unauthorized" icon="lock">
-    **Cause:** Invalid or missing API key
-
-    **Solution:** Check that your API key is correct and included in the `Authorization` header
-  </Accordion>
-
-  <Accordion title="400 Bad Request" icon="circle-exclamation">
-    **Cause:** Invalid request parameters
-
-    **Common issues:**
-    - `webhook_url` is not a valid HTTPS URL
-    - `requested_data` contains invalid field names
-    - `device_type` is set to `mobile` but `redirect_url` is missing
-    - `min_age` is not a positive integer
-
-    **Solution:** Validate request parameters before sending
-  </Accordion>
-
-  <Accordion title="403 Forbidden" icon="ban">
-    **Cause:** Requesting restricted data without permission
-
-    **Example:** Requesting `personal_number` without enterprise account
-
-    **Solution:** Remove restricted fields or contact support to upgrade account
-  </Accordion>
-
-  <Accordion title="429 Rate Limit" icon="gauge-high">
-    **Cause:** Exceeded rate limits
-
-    **Limits:**
-    - Sandbox: 100 requests/minute
-    - Production: 1,000 requests/minute
-
-    **Solution:** Implement exponential backoff and retry logic
-  </Accordion>
-</AccordionGroup>
 
 ## Next Steps
 

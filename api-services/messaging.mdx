@@ -93,112 +93,19 @@ Control how urgently users are notified about your messages with four severity l
   </Accordion>
 </AccordionGroup>
 
-## Endpoint
-
-<Card title="POST /v1/message" icon="code">
-  **Base URL:**
-  - `https://api.uip.digital/v1/message`
-
-  **Headers:**
-  - `Authorization: Bearer YOUR_API_KEY`
-  - `Content-Type: application/json`
-
-  **Request Body:**
-  - `recipient_uip_id` - UIP ID of recipient
-  - `webhook_url` - Your webhook endpoint URL
-  - `subject` - Message subject/title
-  - `message` - Message content/body
-  - `severity` - Notification priority (optional)
-  - `attachment` - Document file (optional)
-  - `requires_signature` - Whether signature required (optional)
-
-  **Response:**
-  - `message_id` - Unique message identifier
-  - `status` - Delivery status
-  - `expires_at` - When message expires (3 months)
-</Card>
-
-## Request Parameters
-
-<AccordionGroup>
-  <Accordion title="recipient_uip_id (required)" icon="user">
-    **Type:** string
-
-    UIP ID of the message recipient. Must be a valid UIP user identifier.
-  </Accordion>
-
-  <Accordion title="webhook_url (required)" icon="webhook">
-    **Type:** string (URL format)
-
-    URL to receive message delivery and response events. Must be HTTPS in production.
-
-    Your webhook will receive notifications when the message is delivered, read, or signed.
-  </Accordion>
-
-  <Accordion title="subject (required)" icon="heading">
-    **Type:** string
-
-    Message subject or title. This appears in notifications and the message list.
-
-    **Best Practice:** Keep concise but descriptive (e.g., "Employment Contract - Please Review")
-  </Accordion>
-
-  <Accordion title="message (required)" icon="file-lines">
-    **Type:** string
-
-    Message content or body. Can include plain text or markdown formatting.
-
-    **Best Practice:** Provide context and clear next steps for the recipient
-  </Accordion>
-
-  <Accordion title="severity (optional)" icon="bell">
-    **Type:** string
-
-    Notification priority level: `low`, `medium`, `high`, `extreme`
-
-    **Default:** `medium`
-
-    Choose based on urgency and importance of the message.
-  </Accordion>
-
-  <Accordion title="attachment (optional)" icon="paperclip">
-    **Type:** object
-
-    Document attachment (up to 20MB). Required fields:
-    - `filename`: File name with extension
-    - `content_type`: MIME type
-    - `data`: Base64-encoded file data
-    - `size`: File size in bytes
-
-    **Supported formats:** PDF, Word, images, text, CSV
-  </Accordion>
-
-  <Accordion title="requires_signature (optional)" icon="signature">
-    **Type:** boolean
-
-    Whether the message or document requires a signature from the recipient.
-
-    **Default:** `false`
-
-    When `true`, recipient must sign before the message is considered complete.
-  </Accordion>
-</AccordionGroup>
-
 ## Use Cases
 
 <Tabs>
   <Tab title="Document Signing">
     **Scenario:** Send employment contract for signature
 
-    Send a PDF contract with `requires_signature: true`. When the recipient signs, you receive a webhook with the signature proof and audit reference ID.
+    Send a PDF contract with signature request. When the recipient signs, you receive a webhook with the signature proof and audit ID.
 
     **Benefits:**
     - Legally binding signatures
     - Permanent audit trail
     - No physical paperwork
     - Instant completion
-
-    **Webhook Response:** Includes `audit_reference_id` for permanent proof
   </Tab>
 
   <Tab title="Secure Notifications">
@@ -211,20 +118,18 @@ Control how urgently users are notified about your messages with four severity l
     - Verified recipient identity
     - Delivery confirmation
     - Read receipts
-
-    **Webhook Response:** Confirms delivery and read status
   </Tab>
 
   <Tab title="Multi-Party Agreements">
     **Scenario:** Collect signatures from multiple parties
 
-    Send the same contract document to multiple recipients with `requires_signature: true`. Track each signature independently using audit reference IDs.
+    Send the same contract document to multiple recipients. Track each signature independently using audit IDs.
 
     **Implementation approach:**
     1. Send message with attachment to Recipient 1
-    2. Save `audit_reference_id_1` from webhook response
+    2. Save audit ID from webhook response
     3. Send same document to Recipient 2
-    4. Save `audit_reference_id_2` from webhook response
+    4. Save audit ID from webhook response
     5. Continue for all parties
     6. Store all audit IDs together for complete agreement proof
 
@@ -244,15 +149,13 @@ Control how urgently users are notified about your messages with four severity l
   <Tab title="Policy Acknowledgment">
     **Scenario:** Require employees to acknowledge updated policies
 
-    Send policy document with `requires_signature: true` to all employees. Track completion with audit records.
+    Send policy document to all employees. Track completion with audit records.
 
     **Benefits:**
     - Proof of acknowledgment
     - Timestamp of acceptance
     - No manual tracking
     - Compliance ready
-
-    **Webhook Response:** Audit trail for compliance records
   </Tab>
 </Tabs>
 
@@ -268,7 +171,7 @@ If you send a message that requires a signature, you can invalidate it before th
 
 <Steps>
   <Step title="Send Message">
-    Send a message with `requires_signature: true` to a recipient
+    Send a message with signature request to a recipient
   </Step>
 
   <Step title="Recipient Hasn't Signed">
@@ -276,7 +179,7 @@ If you send a message that requires a signature, you can invalidate it before th
   </Step>
 
   <Step title="Call Invalidate API">
-    Use the [Invalidate Message API](/api-reference/endpoint/invalidate) with the message ID to cancel
+    Use the [Invalidate Message API](/api-reference/endpoint/invalidate) to cancel
   </Step>
 
   <Step title="Request Cancelled">
@@ -295,83 +198,13 @@ If you send a message that requires a signature, you can invalidate it before th
 Once a recipient signs a message, it **cannot be invalidated**. The signature is permanent and stored in the audit trail.
 </Note>
 
-## Webhook Response
-
-Your webhook endpoint receives message status updates:
-
-<Tabs>
-  <Tab title="Message Delivered">
-    **Event:** `message_delivered`
-
-    Sent when message successfully delivered to recipient's UIP app.
-
-    **Payload includes:**
-    - Message ID
-    - Status: `delivered`
-    - Timestamp
-  </Tab>
-
-  <Tab title="Message Read">
-    **Event:** `message_read`
-
-    Sent when recipient opens and views the message.
-
-    **Payload includes:**
-    - Message ID
-    - Status: `read`
-    - Timestamp
-  </Tab>
-
-  <Tab title="Message Signed">
-    **Event:** `message_signed`
-
-    Sent when recipient signs the message or document.
-
-    **Payload includes:**
-    - Message ID
-    - Status: `signed`
-    - Signature proof
-    - Audit reference ID (save this!)
-    - Timestamp
-  </Tab>
-
-  <Tab title="Signature Declined">
-    **Event:** `signature_declined`
-
-    Sent when recipient declines to sign.
-
-    **Payload includes:**
-    - Message ID
-    - Status: `declined`
-    - Reason (optional)
-    - Timestamp
-  </Tab>
-</Tabs>
-
 ## Supported File Types
 
-When including document attachments:
+<Card title="PDF Documents Only" icon="file-pdf">
+  Only PDF documents (`.pdf`) are supported for attachments.
 
-<CardGroup cols={2}>
-  <Card title="Documents" icon="file-pdf">
-    - PDF documents (`.pdf`)
-    - Word documents (`.docx`)
-    - Text files (`.txt`)
-    - CSV files (`.csv`)
-  </Card>
-
-  <Card title="Images" icon="image">
-    - JPEG images (`.jpg`, `.jpeg`)
-    - PNG images (`.png`)
-  </Card>
-</CardGroup>
-
-### File Limits
-
-<Check>Maximum file size: **20MB**</Check>
-<Check>One attachment per message</Check>
-<Check>Base64 encoding required</Check>
-<Check>File size must match encoded data</Check>
+  You can attach multiple PDFs per message, with a cumulative maximum size of **20MB** total.
+</Card>
 
 ## Pricing
 
@@ -407,7 +240,7 @@ When including document attachments:
   </Card>
 
   <Card title="Save Audit IDs" icon="database">
-    Always save `audit_reference_id` from signature webhooks for permanent proof and compliance.
+    Always save audit IDs from signature webhooks for permanent proof and compliance.
   </Card>
 
   <Card title="Test Webhooks" icon="webhook">
@@ -418,32 +251,10 @@ When including document attachments:
     Signature declines are normal. Provide clear follow-up actions or retry options.
   </Card>
 
-  <Card title="Compress Large Files" icon="compress">
-    Optimize PDFs and images before sending to stay under the 20MB limit.
+  <Card title="Optimize PDFs" icon="compress">
+    Compress PDFs before sending to stay under the 20MB cumulative limit.
   </Card>
 </CardGroup>
-
-## Message Security
-
-<AccordionGroup>
-  <Accordion title="End-to-End Encryption" icon="lock" defaultOpen>
-    All messages are encrypted client-to-client. UIP servers cannot read message content.
-
-    Encryption happens on sender's server → transmitted encrypted → decrypted only on recipient's device.
-  </Accordion>
-
-  <Accordion title="Verified Recipients" icon="user-check">
-    All UIP users are government-verified identities. You know exactly who you're communicating with.
-  </Accordion>
-
-  <Accordion title="Tamper-Proof Attachments" icon="shield-check">
-    Document attachments are hashed and stored immutably. Any modification is detectable.
-  </Accordion>
-
-  <Accordion title="Signature Proof" icon="signature">
-    Signatures include cryptographic proof, biometric authentication, and government-verified identity. Court-admissible evidence.
-  </Accordion>
-</AccordionGroup>
 
 ## Next Steps
 

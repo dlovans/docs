@@ -1,0 +1,568 @@
+---
+title: "Integration Patterns"
+description: "Real-world implementation patterns for integrating UIP into your existing systems and workflows."
+---
+
+## Overview
+
+UIP is designed to integrate seamlessly with your existing authentication and signing infrastructure. This guide presents proven integration patterns to help you choose the right approach for your specific use case.
+
+<CardGroup cols={2}>
+  <Card title="Hybrid Authentication" icon="lock">
+    Add UIP as enhanced security alongside existing email/password systems
+  </Card>
+
+  <Card title="Step-Up Authentication" icon="shield-check">
+    Start with basic auth, require UIP for sensitive operations
+  </Card>
+
+  <Card title="Multi-Factor Authentication" icon="fingerprint">
+    Use UIP as a second factor for high-security scenarios
+  </Card>
+
+  <Card title="Progressive Enhancement" icon="bolt">
+    Offer UIP as the primary option with traditional fallback
+  </Card>
+</CardGroup>
+
+---
+
+## Pattern 1: Hybrid Authentication
+
+**Use Case:** You have a B2C application and want to add UIP as enhanced security while keeping email/password as the primary authentication and recovery method.
+
+### Why B2C Needs Email/Password as Primary
+
+<Warning>
+**Critical for B2C:** UIP recovery requires users to save two unique recovery keys. B2C users are notoriously unreliable with credential management—they lose keys, forget to save them, or don't understand their importance.
+
+**Real-world scenarios where users need email/password:**
+- Lost phone or device replacement
+- Forgot to save UIP recovery keys
+- Need to cancel or update subscriptions without UIP access
+- Device stolen or damaged
+- Family member needs to manage account in emergency
+- User deleted UIP app accidentally
+</Warning>
+
+Without email/password fallback, you'll face:
+- Massive support overhead dealing with locked-out users
+- Subscription cancellation issues (legal requirement to allow this)
+- User frustration and churn
+- Inability to recover accounts for legitimate users
+
+**For B2C, email/password must remain the primary authentication method, with UIP as an optional security enhancement.**
+
+### When to Use This Pattern
+
+<Check>B2C applications with subscription management</Check>
+<Check>Users need guaranteed account recovery options</Check>
+<Check>Want to offer enhanced security without forcing adoption</Check>
+<Check>Need to support users who lose devices or credentials</Check>
+<Check>Regulatory or compliance requirements for multi-factor security</Check>
+
+### Architecture Overview
+
+<AccordionGroup>
+  <Accordion title="User Database Schema" icon="database">
+    Your user records store both traditional and UIP credentials:
+
+    **User Record:**
+    - `user_id` - Primary key
+    - `email` - Email address
+    - `password_hash` - Hashed password (existing)
+    - `uip_id` - UIP identity reference (new, nullable)
+    - `uip_enabled` - Boolean flag for UIP status
+    - `created_at` - Account creation timestamp
+    - `uip_linked_at` - When UIP was linked
+  </Accordion>
+
+  <Accordion title="Authentication Flow States" icon="diagram-project">
+    **State 1: Legacy User (email/password only)**
+    - User logs in with email and password
+    - After successful login, show prompt to link UIP
+    - User remains functional without UIP
+
+    **State 2: Hybrid User (email/password + UIP linked)**
+    - User logs in with email and password first
+    - System requires UIP biometric verification as second step
+    - Both factors must succeed for access
+
+    **State 3: UIP-Primary User (optional evolution)**
+    - User chooses to use UIP as primary authentication
+    - Email/password retained as recovery method
+    - Faster login experience with biometric-first flow
+  </Accordion>
+</AccordionGroup>
+
+### Implementation Workflow
+
+<Steps>
+  <Step title="Initial Login (Email/Password)">
+    User enters email and password as usual. Your system validates credentials against existing database.
+
+    **Success:** Proceed to Step 2
+    **Failure:** Show error and allow retry
+  </Step>
+
+  <Step title="Check UIP Status">
+    After password verification, check if user has linked UIP:
+
+    **If `uip_enabled = false`:**
+    - Grant access immediately
+    - Show optional prompt: "Enable UIP for enhanced security"
+    - Link to UIP setup flow
+
+    **If `uip_enabled = true`:**
+    - Do NOT grant access yet
+    - Proceed to Step 3 for biometric verification
+  </Step>
+
+  <Step title="Request UIP Verification">
+    Call the [Identify API](/api-reference/endpoint/identify) to request biometric authentication:
+
+    **API Call:**
+    - Include user's `uip_id` in request
+    - Specify device type (mobile or desktop)
+    - Provide webhook URL for receiving result
+    - Request minimal fields (only need verification confirmation)
+
+    **Response:**
+    - Mobile: App redirect URL
+    - Desktop: QR code for scanning
+  </Step>
+
+  <Step title="Display UIP Prompt">
+    Show appropriate UI based on device type:
+
+    **Mobile Flow:**
+    - Display "Open UIP App" button
+    - Show loading state: "Waiting for biometric verification..."
+
+    **Desktop Flow:**
+    - Display QR code prominently
+    - Show instructions: "Scan with UIP app to complete login"
+    - Add loading indicator
+  </Step>
+
+  <Step title="Receive Webhook Confirmation">
+    UIP sends authentication result to your webhook endpoint.
+
+    **On Success:**
+    - Verify webhook signature
+    - Extract `session_id` and `status`
+    - Grant user access to application
+    - Update frontend to show logged-in state
+
+    **On Failure/Cancel:**
+    - Show error message
+    - Allow user to retry UIP verification
+    - Optionally provide support contact
+  </Step>
+
+  <Step title="Complete Session">
+    Create authenticated session for user:
+
+    - Issue session token/cookie
+    - Log successful authentication (with both factors)
+    - Redirect to user's intended destination
+    - Store audit trail with both authentication methods used
+  </Step>
+</Steps>
+
+### UIP Linking Flow
+
+For users who don't have UIP enabled, provide an opt-in flow:
+
+<Steps>
+  <Step title="Present UIP Benefits">
+    After user logs in with email/password, show benefits:
+
+    - "Enable biometric login for enhanced security"
+    - "No more passwords—use your fingerprint or face"
+    - "Same security as government ID verification"
+  </Step>
+
+  <Step title="Initiate UIP Setup">
+    User clicks "Enable UIP" button. Call the [Identify API](/api-reference/endpoint/identify) to start the linking process.
+
+    Show QR code or app redirect depending on device type.
+  </Step>
+
+  <Step title="User Completes UIP Setup">
+    User opens UIP app and completes one-time verification:
+
+    - Scans government ID
+    - Takes biometric selfie
+    - Confirms identity
+  </Step>
+
+  <Step title="Link UIP to Account">
+    When webhook confirms successful verification:
+
+    - Extract `uip_id` from webhook payload
+    - Update user record: `uip_id = <received_id>`, `uip_enabled = true`
+    - Show success message: "UIP enabled! Next login will use biometric verification"
+  </Step>
+</Steps>
+
+### User Experience Considerations
+
+<CardGroup cols={2}>
+  <Card title="Keep UIP Optional" icon="toggle-off">
+    NEVER force UIP adoption. B2C users need the freedom to manage their accounts with email/password alone, especially for critical actions like subscription cancellation.
+  </Card>
+
+  <Card title="Clear Recovery Path" icon="life-ring">
+    Always provide obvious "Use email/password instead" options. When users lose UIP access, they need immediate recovery without contacting support.
+  </Card>
+
+  <Card title="Subscription Management" icon="credit-card">
+    Ensure users can cancel subscriptions, update payment methods, and manage billing with email/password alone. Legal requirements in many jurisdictions mandate easy cancellation.
+  </Card>
+
+  <Card title="Transparent About Keys" icon="key">
+    If promoting UIP, be honest about recovery key requirements. Many B2C users will ignore this step, so email/password fallback is essential.
+  </Card>
+</CardGroup>
+
+### Critical: Account Recovery Reality
+
+<AccordionGroup>
+  <Accordion title="UIP Recovery Keys: B2C Challenge" icon="triangle-exclamation" defaultOpen>
+    UIP uses two recovery keys for account restoration. In B2C contexts:
+
+    **What will happen:**
+    - 60-80% of users won't save their recovery keys properly
+    - Users will screenshot keys and lose them when upgrading phones
+    - Users will save keys in Notes app that doesn't sync
+    - Users won't understand the importance until it's too late
+
+    **Why email/password is mandatory:**
+    - Immediate account access without recovery key hunt
+    - Subscription cancellation always possible (legal requirement)
+    - Reduces support tickets by 90%+
+    - User can disable lost UIP and re-enable on new device
+  </Accordion>
+
+  <Accordion title="Support Scenarios You'll Face" icon="headset">
+    Real support tickets you'll receive if UIP is the only option:
+
+    - "I got a new phone and can't log in to cancel my subscription"
+    - "I deleted the UIP app by accident, now I'm locked out"
+    - "My phone was stolen and I need to update my credit card"
+    - "I never saved those keys you mentioned, can you help?"
+    - "My mom needs to manage my account but I'm in the hospital"
+
+    With email/password fallback, these become non-issues.
+  </Accordion>
+</AccordionGroup>
+
+### Security Benefits
+
+<AccordionGroup>
+  <Accordion title="Phishing Protection" icon="shield-halved">
+    Even if an attacker steals the user's email and password, they cannot complete authentication without the user's biometric verification on their registered device.
+  </Accordion>
+
+  <Accordion title="Account Takeover Prevention" icon="user-lock">
+    Credential stuffing and brute force attacks are ineffective because the second factor (biometric) cannot be remotely compromised.
+  </Accordion>
+
+  <Accordion title="Audit Trail" icon="clock-rotate-left">
+    Every UIP authentication includes government-verified identity, precise timestamp, and device information—creating a complete audit trail.
+  </Accordion>
+
+  <Accordion title="Compliance Ready" icon="check-double">
+    Meets requirements for multi-factor authentication in regulated industries like finance, healthcare, and government services.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Pattern 2: Step-Up Authentication
+
+**Use Case:** Allow basic login with email/password for low-risk operations, but require UIP verification when users attempt sensitive actions like large transfers, account changes, or data exports.
+
+### When to Use This Pattern
+
+<Check>Balance security with user convenience</Check>
+<Check>Different risk levels for different operations</Check>
+<Check>Compliance requirements for high-value transactions</Check>
+<Check>Reduce friction for routine, low-risk activities</Check>
+
+### How It Works
+
+<Steps>
+  <Step title="Standard Login">
+    User logs in with email/password for basic account access. Grant access to low-risk features immediately.
+  </Step>
+
+  <Step title="Trigger Point">
+    When user attempts sensitive operation (wire transfer, account settings change, data export), intercept the action.
+  </Step>
+
+  <Step title="Request Step-Up">
+    Call the [Identify API](/api-reference/endpoint/identify) to request biometric verification before allowing the sensitive action.
+  </Step>
+
+  <Step title="Verify and Proceed">
+    Only after successful UIP verification, allow the sensitive operation to complete. Log both the action and the verification for audit purposes.
+  </Step>
+</Steps>
+
+### Example Trigger Points
+
+<CardGroup cols={3}>
+  <Card title="Financial" icon="dollar-sign">
+    Wire transfers, cryptocurrency withdrawals, large purchases, payment method changes
+  </Card>
+
+  <Card title="Account Changes" icon="user-gear">
+    Email change, password reset, phone number update, security settings modification
+  </Card>
+
+  <Card title="Data Access" icon="file-export">
+    Export personal data, download records, delete account, access sensitive documents
+  </Card>
+</CardGroup>
+
+### Benefits
+
+<AccordionGroup>
+  <Accordion title="Reduced Friction" icon="gauge-high">
+    Users don't face biometric verification on every login—only when necessary for high-risk operations.
+  </Accordion>
+
+  <Accordion title="Risk-Based Security" icon="scale-balanced">
+    Apply appropriate security based on the sensitivity of the action, not a one-size-fits-all approach.
+  </Accordion>
+
+  <Accordion title="Regulatory Compliance" icon="gavel">
+    Meet requirements for transaction verification without over-securing low-risk activities.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Pattern 3: Multi-Factor Authentication (MFA)
+
+**Use Case:** Use UIP as the second factor in a traditional multi-factor authentication flow, replacing SMS codes or authenticator apps with government-verified biometric authentication.
+
+### When to Use This Pattern
+
+<Check>High-security applications (banking, healthcare, government)</Check>
+<Check>Replacing SMS-based 2FA with more secure alternative</Check>
+<Check>Need legally defensible proof of user identity</Check>
+<Check>Compliance with regulations requiring strong MFA</Check>
+
+### How UIP Improves Traditional MFA
+
+<CardGroup cols={2}>
+  <Card title="Stronger Than SMS" icon="mobile-screen">
+    SMS codes can be intercepted, phished, or SIM-swapped. UIP biometrics cannot be stolen remotely.
+  </Card>
+
+  <Card title="Better Than TOTP Apps" icon="key">
+    Time-based codes can be phished or stolen if device is compromised. UIP requires live biometric presence.
+  </Card>
+
+  <Card title="Government Verification" icon="id-card">
+    Unlike generic authenticator apps, UIP provides proof of government-verified identity.
+  </Card>
+
+  <Card title="Audit Trail Included" icon="folder-open">
+    Every authentication includes cryptographic proof, timestamp, and identity verification—no additional logging needed.
+  </Card>
+</CardGroup>
+
+### Implementation
+
+Replace SMS/TOTP verification step with UIP call. User authenticates with username/password, then completes second factor via UIP biometric scan instead of entering a code.
+
+---
+
+## Pattern 4: Progressive Enhancement
+
+**Use Case:** Offer UIP as the primary, recommended authentication method while maintaining traditional email/password as a fallback. **Best for B2B, enterprise, or high-security applications—not recommended for general B2C.**
+
+### When to Use This Pattern
+
+<Check>B2B applications with professional users</Check>
+<Check>Enterprise internal tools with IT support available</Check>
+<Check>High-security contexts where users understand credential management</Check>
+<Check>Users are incentivized to protect their accounts (financial, professional)</Check>
+
+<Warning>
+**Not recommended for B2C applications** where users manage subscriptions, make purchases, or need guaranteed account access. See Pattern 1 (Hybrid Authentication) for B2C best practices.
+</Warning>
+
+### Why This Works for B2B, Not B2C
+
+<AccordionGroup>
+  <Accordion title="B2B: Professional User Behavior" icon="building">
+    **B2B users typically:**
+    - Have IT support to help with account recovery
+    - Understand importance of backup credentials
+    - Work from managed devices with backup systems
+    - Face consequences for losing access (can't do their job)
+    - Are trained on security best practices
+
+    **Result:** Higher likelihood they'll properly save UIP recovery keys
+  </Accordion>
+
+  <Accordion title="B2C: Different Reality" icon="users">
+    **B2C users typically:**
+    - Have no IT support—only your customer service
+    - Don't save recovery keys or understand their importance
+    - Upgrade phones frequently and lose credentials
+    - Need to cancel subscriptions on a whim (legal requirement)
+    - Expect "forgot password" to solve everything
+
+    **Result:** Email/password must remain primary, UIP is enhancement only
+  </Accordion>
+</AccordionGroup>
+
+### User Flow (B2B Context)
+
+<Steps>
+  <Step title="Primary: UIP First">
+    Default signup and login options prominently feature UIP. Make it the easiest, most visible path.
+  </Step>
+
+  <Step title="Fallback Available">
+    Provide "Use email/password instead" link for users who need traditional authentication.
+  </Step>
+
+  <Step title="Recovery Key Education">
+    For B2B users choosing UIP, emphasize saving recovery keys to corporate password manager or secure storage.
+  </Step>
+
+  <Step title="IT Support Integration">
+    Provide tools for IT administrators to help users recover accounts when UIP access is lost.
+  </Step>
+</Steps>
+
+### Benefits (B2B/Enterprise)
+
+<AccordionGroup>
+  <Accordion title="Maximum Security" icon="shield-check">
+    Professional users get strongest authentication by default, with IT support available for edge cases.
+  </Accordion>
+
+  <Accordion title="Better User Experience" icon="face-smile">
+    B2B users who use UIP daily benefit from fastest authentication—no passwords to remember or type.
+  </Accordion>
+
+  <Accordion title="Reduced IT Costs" icon="dollar-sign">
+    Fewer password reset tickets for users who adopt UIP, as biometric is harder to "forget."
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Choosing the Right Pattern
+
+### By Application Type
+
+<Tabs>
+  <Tab title="B2C Applications">
+    **Recommended: Pattern 1 (Hybrid) or Pattern 2 (Step-Up)**
+
+    <CardGroup cols={2}>
+      <Card title="Pattern 1: Hybrid Auth" icon="lock">
+        **Email/password primary + UIP enhancement**
+
+        **Use when:**
+        - You have subscriptions or purchases
+        - Users need guaranteed account access
+        - Recovery key management is unreliable
+
+        **Result:** Security boost without support nightmares
+      </Card>
+
+      <Card title="Pattern 2: Step-Up Auth" icon="shield-check">
+        **Basic login + UIP for sensitive actions**
+
+        **Use when:**
+        - Most actions are low-risk
+        - Only financial/sensitive operations need extra security
+        - Want to balance convenience and protection
+
+        **Result:** Minimal friction, maximum security where it matters
+      </Card>
+    </CardGroup>
+
+    <Warning>
+    **Avoid Pattern 4 (Progressive Enhancement) for B2C.** Users will lose access, create support burden, and legal issues with subscription cancellation.
+    </Warning>
+  </Tab>
+
+  <Tab title="B2B / Enterprise">
+    **Recommended: Pattern 3 (MFA) or Pattern 4 (Progressive)**
+
+    <CardGroup cols={2}>
+      <Card title="Pattern 3: Multi-Factor" icon="fingerprint">
+        **Replace SMS/TOTP with UIP**
+
+        **Use when:**
+        - You already have MFA requirements
+        - Want government-verified second factor
+        - Need audit trails for compliance
+
+        **Result:** Stronger MFA with better user experience
+      </Card>
+
+      <Card title="Pattern 4: Progressive" icon="bolt">
+        **UIP-first with email/password fallback**
+
+        **Use when:**
+        - Professional users with IT support
+        - Users manage corporate credentials properly
+        - Recovery infrastructure in place
+
+        **Result:** Maximum security and speed for trained users
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+### Quick Decision Matrix
+
+| Your Context | Recommended Pattern | Why |
+|--------------|-------------------|-----|
+| B2C app with subscriptions | **Pattern 1: Hybrid** | Users need guaranteed access to cancel/manage |
+| B2C app with sensitive actions | **Pattern 2: Step-Up** | Security only when necessary, minimal friction |
+| B2B replacing SMS codes | **Pattern 3: MFA** | Stronger than SMS, same flow, better UX |
+| Enterprise internal tools | **Pattern 4: Progressive** | IT support + trained users = UIP-first works |
+| Banking/Financial (any) | **Pattern 3: MFA** | Compliance + audit trail + legal defensibility |
+
+---
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Get API Keys"
+    icon="key"
+    href="https://business.uip.digital/identify"
+  >
+    Start integrating UIP today
+  </Card>
+
+  <Card
+    title="QR Integration Guide"
+    icon="qrcode"
+    href="/core-concepts/qr-integration"
+  >
+    Learn how to implement device flows
+  </Card>
+
+  <Card
+    title="Identify API Reference"
+    icon="code"
+    href="/api-reference/endpoint/identify"
+  >
+    Full API documentation
+  </Card>
+</CardGroup>

@@ -111,128 +111,35 @@ UIP audit trails are designed to meet the highest standards for digital signatur
   </Card>
 </CardGroup>
 
-## How Task Hashes Work
+## How Audit IDs Work
 
-Every UIP action generates a unique task hash that serves as an immutable reference to the complete transaction. This hash can be used indefinitely to retrieve the full audit trail.
+Every UIP action generates a unique audit ID that serves as an immutable reference to the complete transaction. This ID can be used indefinitely to retrieve the full audit trail.
 
 <Steps>
   <Step title="User Completes Action">
     User authenticates via [Identify API](/api-services/identify), signs agreement via [Sign API](/api-services/sign), or signs message/document via [Messaging API](/api-services/messaging)
   </Step>
 
-  <Step title="Task Hash Generated">
-    Unique task hash created and returned in webhook response
+  <Step title="Audit ID Generated">
+    Unique audit ID created and returned in webhook response
   </Step>
 
-  <Step title="Store Task Hash">
-    Save the task hash in your database for future audit lookups
+  <Step title="Store Audit ID">
+    Save the audit ID in your database for future audit lookups
   </Step>
 
   <Step title="Audit Available Forever">
-    Use hash to retrieve full audit trail anytime—permanently available
+    Use audit ID to retrieve full audit trail anytime—permanently available
   </Step>
 </Steps>
 
 <Info>
-**Important:** Always save task hashes from webhooks. This is your permanent reference to retrieve audit records for authentications, signatures, and messages.
+**Important:** Always save audit IDs from webhooks. This is your permanent reference to retrieve audit records for authentications, signatures, and messages.
 </Info>
 
-## Endpoint
+## Getting Audit IDs
 
-<Card title="GET /v1/{audit_id}" icon="code">
-  **Base URL:**
-  - `https://audit.api.uip.id/v1/{audit_id}`
-
-  **Headers:**
-  - `Authorization: Bearer YOUR_API_KEY`
-
-  **Path Parameters:**
-  - `audit_id` - The unique audit ID from completion webhook
-</Card>
-
-## Getting Task Hashes
-
-Task hashes are provided in webhook responses when users complete actions. Store these hashes in your database to enable future audit lookups.
-
-<Tabs>
-  <Tab title="Identify API">
-    When a user authenticates via the Identify API, the `authentication_completed` webhook includes the task hash.
-
-    **Webhook payload includes:**
-    - `task_hash` - Save this for audit retrieval
-    - `user_data` - Verified identity information
-    - `status` - Always `success` for completed authentications
-
-    Store the task hash alongside user session records.
-  </Tab>
-
-  <Tab title="Sign API (Quick Agreements)">
-    When a user signs a quick agreement (TOS, job acceptance, policy acknowledgment), the `signature_completed` webhook includes the task hash.
-
-    **Webhook payload includes:**
-    - `task_hash` - Save this for audit retrieval
-    - `signature_proof` - Cryptographic signature
-    - `status` - Always `signed` for completed signatures
-
-    **Use for:** Instant agreements that need immediate confirmation
-  </Tab>
-
-  <Tab title="Messaging API (Long-term Documents)">
-    When a user signs a message or document via the Messaging API, the `message_signed` webhook includes the task hash.
-
-    **Webhook payload includes:**
-    - `task_hash` - Save this for audit retrieval
-    - `message_id` - Internal message reference
-    - `signature_proof` - Cryptographic signature
-
-    **Use for:** Documents with or without attachments, available for signing up to 3 months
-  </Tab>
-</Tabs>
-
-## Response Format
-
-The audit response contains the complete transaction record with all relevant details for legal verification.
-
-**Response includes:**
-
-<AccordionGroup>
-  <Accordion title="Task Identification" icon="fingerprint">
-    - `task_hash` - Unique identifier for this action
-    - `action_type` - Type of action (authentication, signature_quick, signature_document, message)
-    - `status` - Action status (completed, signed, declined, etc.)
-  </Accordion>
-
-  <Accordion title="Content Information" icon="file">
-    **For Identify API:**
-    - Authentication details and verified data
-
-    **For Sign API:**
-    - Agreement text content
-    - Title and intent
-
-    **For Messaging API:**
-    - Message subject and body
-    - Document attachment (base64-encoded if included)
-  </Accordion>
-
-  <Accordion title="Signature Details" icon="signature">
-    - `signed_at` - ISO 8601 timestamp of signature
-    - `signature` - Cryptographic signature value
-    - Biometric authentication confirmation
-  </Accordion>
-
-  <Accordion title="Identity Information" icon="users">
-    **Signer:**
-    - `uip_id` - Signer's UIP identifier
-    - `full_name` - Government-verified name
-
-    **Requester:**
-    - `uip_id` - Requester's UIP identifier
-    - `full_name` - Requester name
-    - `api_key_id` - API key used for request
-    - `requested_at` - When signature was requested
-  </Accordion>
-</AccordionGroup>
+All three APIs—[Identify](/api-services/identify), [Sign](/api-services/sign), and [Messaging](/api-services/messaging)—return an `audit_id` in their webhook payloads. Store this ID in your database for future audit lookups.
 
 ## Legal Use Cases
 
@@ -345,12 +252,12 @@ The audit response contains the complete transaction record with all relevant de
 ## Best Practices
 
 <CardGroup cols={2}>
-  <Card title="Always Save Task Hashes" icon="database">
-    Store task hashes immediately when received in webhooks. This is your only reference to retrieve audit records.
+  <Card title="Always Save Audit IDs" icon="database">
+    Store audit IDs immediately when received in webhooks. This is your only reference to retrieve audit records.
   </Card>
 
   <Card title="Link to Internal Records" icon="link">
-    Associate task hashes with your internal document/contract IDs for easy retrieval during audits.
+    Associate audit IDs with your internal document/contract IDs for easy retrieval during audits.
   </Card>
 
   <Card title="Document Storage Strategy" icon="folder">
@@ -394,37 +301,6 @@ The audit response contains the complete transaction record with all relevant de
   </Card>
 </CardGroup>
 
-## Error Handling
-
-<AccordionGroup>
-  <Accordion title="404 - Task Hash Not Found" icon="magnifying-glass-minus">
-    **Cause:** Task hash doesn't exist or is invalid
-
-    **Solution:**
-    - Verify task hash is correct (check for typos)
-    - Ensure signature was actually completed
-    - Confirm task hash came from a signature webhook
-  </Accordion>
-
-  <Accordion title="401 - Unauthorized" icon="lock">
-    **Cause:** Invalid or missing API key
-
-    **Solution:**
-    - Check API key is included in Authorization header
-    - Verify API key hasn't been revoked
-    - Ensure using correct API key for environment
-  </Accordion>
-
-  <Accordion title="403 - Forbidden" icon="ban">
-    **Cause:** API key doesn't have access to this audit record
-
-    **Solution:**
-    - Verify the signature was created by your organization
-    - Check API key permissions in dashboard
-    - Ensure not attempting to access other organizations' records
-  </Accordion>
-</AccordionGroup>
-
 ## Getting Started
 
 <Info>
@@ -440,12 +316,12 @@ The audit response contains the complete transaction record with all relevant de
     Use [Sign API](/api-services/sign) or [Messaging API](/api-services/messaging) to collect signatures
   </Step>
 
-  <Step title="Store Task Hashes">
-    Save task hashes from signature webhooks in your database
+  <Step title="Store Audit IDs">
+    Save audit IDs from signature webhooks in your database
   </Step>
 
   <Step title="Query Audit Records">
-    Retrieve audit records anytime using stored task hashes
+    Retrieve audit records anytime using stored audit IDs
   </Step>
 </Steps>
 
