@@ -90,7 +90,8 @@ When the user completes the authentication, UIP sends a POST request to your web
     "session_id": "sess_1a2b3c4d5e6f",
     "name": "John Doe",
     "date_of_birth": "1990-05-15",
-    "country_of_origin": "US"
+    "country_of_origin": "US",
+    "expires_at": 1735689600
   }
 }
 ```
@@ -103,6 +104,7 @@ When the user completes the authentication, UIP sends a POST request to your web
 - `data.name` - User's full name (if requested or all data requested)
 - `data.date_of_birth` - User's date of birth in YYYY-MM-DD format (if requested or all data requested)
 - `data.country_of_origin` - User's country code (if requested or all data requested)
+- `data.expires_at` - Unix timestamp when the UIP user identity expires and must renew verification with UIP
 
 <Info>
 Only the fields you requested in `requested_data` will be included in the response. If you omitted `requested_data` or passed an empty array, all three fields (`name`, `date_of_birth`, `country_of_origin`) will be included.
