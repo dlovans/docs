@@ -1,43 +1,54 @@
-# Mintlify Starter Kit
+# UIP Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+API documentation for the **Universal Identity Protocol** — biometric-first identity and digital signatures for developers.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+📖 **Live Docs:** [docs.uip.digital](https://docs.uip.digital)
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+---
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+## What is UIP?
+
+UIP is an identity protocol that replaces passwords with biometrics. Users verify once with government ID, then authenticate anywhere using their face or fingerprint.
+
+### Three APIs
+
+| API | Description | Price |
+|-----|-------------|-------|
+| **Identify** | Biometric authentication | $0.01/request |
+| **Sign** | Legally binding digital signatures | $0.03/signature |
+| **Message** | Encrypted user messaging | $0.05/message |
+
+---
+
+## Key Features
+
+- **Biometric-First** — Face or fingerprint replaces passwords
+- **One-Time Verification** — Verify identity once, use everywhere
+- **Government-Verified** — KYC/ID verification built-in
+- **Sub-500ms Auth** — Fast, frictionless authentication
+- **Modular Design** — Use only what you need
+- **Usage-Based Pricing** — No subscriptions, pay per request
+
+---
+
+## Quick Links
+
+- [Getting Started](https://docs.uip.digital/getting-started) — Set up in 5 minutes
+- [API Reference](https://docs.uip.digital/api-reference/introduction) — Complete API docs
+- [Pricing](https://docs.uip.digital/pricing) — Usage-based pricing
+- [Get API Keys](https://business.uip.digital) — $5 free credits to start
+
+---
 
 ## Development
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+This documentation is built with [Mintlify](https://mintlify.com).
 
-```
+```bash
+# Install Mintlify CLI
 npm i -g mint
-```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
+# Run local dev server
 mint dev
-```
 
-View your local preview at `http://localhost:3000`.
-
-## Publishing changes
-
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
-
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+# View at http://localhost:3000
