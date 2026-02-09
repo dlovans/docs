@@ -1,0 +1,78 @@
+---
+title: 'Poll Identify Session'
+openapi: 'GET /v1/identify/{id}'
+---
+
+Poll this endpoint every 2-3 seconds to check session status. When the user completes biometric verification, the response includes all requested identity data.
+
+### Response -- Pending
+
+```json
+{
+  "status": "pending",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+### Response -- Completed
+
+When the user completes biometric verification, all requested data is returned directly:
+
+```json
+{
+  "status": "completed",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "audit_id": "audit_9z8y7x6w5v4u",
+  "uip_id": "user_abc123def456",
+  "first_name": "John",
+  "last_name": "Doe",
+  "date_of_birth": "1990-05-15",
+  "country": "US",
+  "identity_expires_at": "2027-01-11T00:00:00Z"
+}
+```
+
+### Response -- Expired
+
+```json
+{
+  "status": "expired",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+<ResponseField name="status" type="string" required>
+  Session status: `pending`, `completed`, or `expired`
+</ResponseField>
+
+<ResponseField name="audit_id" type="string">
+  Permanent audit trail reference (only present when `completed`). Save this for compliance.
+</ResponseField>
+
+<ResponseField name="uip_id" type="string">
+  User's unique UIP identifier (only present when `completed`).
+</ResponseField>
+
+<ResponseField name="first_name" type="string">
+  Verified first name (if requested)
+</ResponseField>
+
+<ResponseField name="last_name" type="string">
+  Verified last name (if requested)
+</ResponseField>
+
+<ResponseField name="date_of_birth" type="string">
+  Verified date of birth in YYYY-MM-DD format (if requested)
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Verified country code (if requested)
+</ResponseField>
+
+<ResponseField name="identity_expires_at" type="string">
+  When the user's identity verification expires
+</ResponseField>
+
+<Info>
+**No webhooks needed.** The Identify API uses simple polling. No redirect URIs, no code exchange.
+</Info>

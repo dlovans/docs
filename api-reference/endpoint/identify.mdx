@@ -1,25 +1,14 @@
 ---
-title: 'Identify Identity'
-openapi: 'POST /identify'
+title: 'Create Identify Session'
+openapi: 'POST /v1/identify'
 ---
 
-Identify and verify a user's identity with biometric verification. Returns a QR code or deep link for the user to scan with their UIP app.
-
-Use this endpoint to authenticate users, verify age requirements, check location, or validate other identity attributes.
-
-## Request
-
-### Headers
-
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
-| `Content-Type` | Yes | Must be `application/json` |
+Create an identity verification session. Returns a QR code and session ID for the user to scan with their UIP app.
 
 ### Body Parameters
 
 <ParamField body="intent" type="string" required>
-  Description of why you're requesting identity verification. This is shown to the user in the UIP app.
+  Description of why you're requesting identity verification. Shown to the user in the UIP app.
 
   **Example:** `"Sign in to Example App"` or `"Verify age for content access"`
 </ParamField>
@@ -27,41 +16,64 @@ Use this endpoint to authenticate users, verify age requirements, check location
 <ParamField body="requested_data" type="array">
   Optional array specifying which identity attributes to request. If omitted or empty, all available data is returned.
 
-  **Valid values:** `name`, `birthdate`, `country`
+  **Valid values:** `first_name`, `last_name`, `date_of_birth`, `country`, `expires_at`
 
-  **Example:** `["name", "birthdate"]`
-
-  <Note>
-  Any values not in the list above will be ignored. The user will only be asked to share the requested attributes.
-  </Note>
+  **Example:** `["first_name", "last_name", "date_of_birth"]`
 </ParamField>
-
-## Response
-
-### Success Response (200 OK)
-
-<ResponseField name="session_id" type="string" required>
-  Unique identifier for this authentication session
-</ResponseField>
-
-<ResponseField name="expires_at" type="string" required>
-  ISO 8601 timestamp when the session expires (5 minutes from creation)
-</ResponseField>
-
-<ResponseField name="qr_code" type="string" required>
-  Base64-encoded PNG image of the QR code for users to scan
-</ResponseField>
 
 ### Example Request
 
-```json
-{
-  "intent": "Sign in to Example App",
-  "requested_data": ["name", "birthdate"]
-}
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.uip.digital/v1/identify \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": "Sign in to Example App",
+    "requested_data": ["first_name", "last_name", "date_of_birth"]
+  }'
 ```
 
-### Example Response
+```javascript Node.js
+const response = await fetch('https://api.uip.digital/v1/identify', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    intent: 'Sign in to Example App',
+    requested_data: ['first_name', 'last_name', 'date_of_birth']
+  })
+});
+
+const { session_id, qr_code, expires_at } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.uip.digital/v1/identify',
+    headers={
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'intent': 'Sign in to Example App',
+        'requested_data': ['first_name', 'last_name', 'date_of_birth']
+    }
+)
+
+data = response.json()
+session_id = data['session_id']
+qr_code = data['qr_code']
+```
+
+</CodeGroup>
+
+### Response (200 OK)
 
 ```json
 {
@@ -71,110 +83,63 @@ Use this endpoint to authenticate users, verify age requirements, check location
 }
 ```
 
-## Webhook Callback
+<ResponseField name="session_id" type="string" required>
+  Unique identifier for this session. Use this to poll for results.
+</ResponseField>
 
-When the user completes the authentication, UIP sends a POST request to your webhook URL with the result.
+<ResponseField name="expires_at" type="string" required>
+  ISO 8601 timestamp when the session expires (5 minutes from creation).
+</ResponseField>
 
-<Note>
-**Important:** Webhooks are only sent when the user completes authentication. If the user cancels or the session expires without completion, no webhook is sent. Your application should handle timeouts on your end (sessions expire after 5 minutes).
-</Note>
-
-### Successful Identification
-
-```json
-{
-  "event": "identify",
-  "data": {
-    "uip_id": "user_abc123def456",
-    "audit_id": "audit_9z8y7x6w5v4u",
-    "session_id": "sess_1a2b3c4d5e6f",
-    "name": "John Doe",
-    "date_of_birth": "1990-05-15",
-    "country_of_origin": "US",
-    "expires_at": 1735689600
-  }
-}
-```
-
-**Response fields:**
-- `event` - Always `"identify"` for successful identifications
-- `data.uip_id` - The user's unique UIP identifier
-- `data.audit_id` - Permanent audit trail reference ID (save this for compliance)
-- `data.session_id` - The session ID from your original request
-- `data.name` - User's full name (if requested or all data requested)
-- `data.date_of_birth` - User's date of birth in YYYY-MM-DD format (if requested or all data requested)
-- `data.country_of_origin` - User's country code (if requested or all data requested)
-- `data.expires_at` - Unix timestamp when the UIP user identity expires and must renew verification with UIP
-
-<Info>
-Only the fields you requested in `requested_data` will be included in the response. If you omitted `requested_data` or passed an empty array, all three fields (`name`, `date_of_birth`, `country_of_origin`) will be included.
-</Info>
+<ResponseField name="qr_code" type="string" required>
+  Base64-encoded PNG data URI of the QR code. Display this to desktop users. The QR code encodes `https://www.uip.id/{session_id}`.
+</ResponseField>
 
 ## Implementation Flow
 
 <Steps>
-  <Step title="Request Authentication">
-    Call the Identify endpoint with your intent and optional requested data fields
+  <Step title="Create Session">
+    Call `POST /v1/identify` with your intent and optional requested data fields
   </Step>
 
-  <Step title="Display QR Code">
-    Show the returned QR code to the user, or provide the deep link if they're on mobile
+  <Step title="Display QR Code or Deep Link">
+    Desktop: show the `qr_code` image. Mobile: show an "Open UIP" button linking to `https://www.uip.id/{session_id}`
   </Step>
 
-  <Step title="User Authenticates">
-    User scans the QR code with the UIP app and approves the request with biometric verification
+  <Step title="Poll for Result">
+    Call `GET /v1/identify/:id` every 2-3 seconds until status is `completed` or `expired`
   </Step>
 
-  <Step title="Receive Webhook">
-    Your webhook receives the authentication result with verified identity data
-  </Step>
-
-  <Step title="Complete Action">
-    Use the verified identity data to complete the user's action (sign in, verify age, etc.)
+  <Step title="Use Verified Data">
+    Extract identity fields and `audit_id` from the completed response. Save `audit_id` for compliance.
   </Step>
 </Steps>
 
-## Best Practices
-
-<CardGroup cols={2}>
-  <Card title="Clear Intent" icon="message">
-    Always provide a clear, user-friendly intent message explaining why you need their identity
-  </Card>
-
-  <Card title="Request Minimum Data" icon="shield-check">
-    Only request the data you actually need. Users are more likely to approve minimal requests
-  </Card>
-
-  <Card title="Handle Expiration" icon="clock">
-    Sessions expire after 5 minutes. Implement retry logic or allow users to generate a new code
-  </Card>
-
-  <Card title="Verify Webhooks" icon="webhook">
-    Always verify the HMAC signature on webhook requests to ensure they're from UIP
-  </Card>
-</CardGroup>
+<Info>
+**No webhooks needed.** The Identify API uses simple polling. No redirect URIs, no code exchange.
+</Info>
 
 ## Common Use Cases
 
 <AccordionGroup>
   <Accordion title="User Authentication" icon="user-check">
-    Request only the `name` field to authenticate users and create accounts
+    Request `first_name` and `last_name` to authenticate users and create accounts
 
     ```json
     {
       "intent": "Sign in to your account",
-      "requested_data": ["name"]
+      "requested_data": ["first_name", "last_name"]
     }
     ```
   </Accordion>
 
   <Accordion title="Age Verification" icon="calendar-check">
-    Request only the `birthdate` field to verify age without exposing other identity data
+    Request only the `date_of_birth` field to verify age without exposing other identity data
 
     ```json
     {
       "intent": "Verify you're 18+ to access content",
-      "requested_data": ["birthdate"]
+      "requested_data": ["date_of_birth"]
     }
     ```
   </Accordion>
@@ -205,17 +170,13 @@ Only the fields you requested in `requested_data` will be included in the respon
 
 See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
 
-Possible error codes for this endpoint:
+Possible error codes:
 
 - `auth/missing-api-key` - No API key provided in Authorization header
 - `auth/invalid-api-key` - Invalid API key
 - `auth/revoked-api-key` - API key has been revoked
 - `auth/business-archived` - Business account has been archived
-- `auth/verification-required` - UIP account must be verified before using this endpoint
 - `request/invalid-payload` - Request payload is invalid or missing required fields
-- `request/not-found` - No such registered route in API service
-- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
-- `payment/insufficient-funds` - Insufficient account balance to complete request
-- `resource/not-found` - Business or UIP not found
-- `internal/server-error` - Failed to create session record
-- `data/corrupt` - Corrupt key data detected
+- `payment/insufficient-funds` - Insufficient account balance
+- `resource/not-found` - Session not found (GET endpoint)
+- `internal/server-error` - Failed to create or retrieve session

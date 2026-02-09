@@ -34,7 +34,7 @@ UIP is designed to integrate seamlessly with your existing authentication and si
 ### Why B2C Needs Email/Password as Primary
 
 <Warning>
-**Critical for B2C:** UIP recovery requires users to save two unique recovery keys. B2C users are notoriously unreliable with credential management—they lose keys, forget to save them, or don't understand their importance.
+**Critical for B2C:** UIP recovery requires users to save two unique recovery keys. B2C users are notoriously unreliable with credential management -- they lose keys, forget to save them, or don't understand their importance.
 
 **Real-world scenarios where users need email/password:**
 - Lost phone or device replacement
@@ -122,42 +122,37 @@ Without email/password fallback, you'll face:
     Call the [Identify API](/api-reference/endpoint/identify) to request biometric authentication:
 
     **API Call:**
-    - Include user's `uip_id` in request
-    - Specify device type (mobile or desktop)
-    - Provide webhook URL for receiving result
+    - Include `intent` describing the verification
     - Request minimal fields (only need verification confirmation)
 
     **Response:**
-    - Mobile: App redirect URL
-    - Desktop: QR code for scanning
+    - `session_id`, `qr_code` (base64 PNG), `expires_at`
   </Step>
 
   <Step title="Display UIP Prompt">
     Show appropriate UI based on device type:
 
     **Mobile Flow:**
-    - Display "Open UIP App" button
+    - Display "Open UIP App" button linking to `https://www.uip.id/{session_id}`
     - Show loading state: "Waiting for biometric verification..."
 
     **Desktop Flow:**
-    - Display QR code prominently
+    - Display QR code prominently (from `qr_code` in API response)
     - Show instructions: "Scan with UIP app to complete login"
     - Add loading indicator
   </Step>
 
-  <Step title="Receive Webhook Confirmation">
-    UIP sends authentication result to your webhook endpoint.
+  <Step title="Poll for Completion">
+    Poll `GET /v1/identify/:id` every 2-3 seconds until status is `completed`.
 
     **On Success:**
-    - Verify webhook signature
-    - Extract `session_id` and `status`
+    - Extract `uip_id` and `audit_id` from the response
     - Grant user access to application
     - Update frontend to show logged-in state
 
-    **On Failure/Cancel:**
+    **On Failure/Expired:**
     - Show error message
     - Allow user to retry UIP verification
-    - Optionally provide support contact
   </Step>
 
   <Step title="Complete Session">
@@ -179,14 +174,14 @@ For users who don't have UIP enabled, provide an opt-in flow:
     After user logs in with email/password, show benefits:
 
     - "Enable biometric login for enhanced security"
-    - "No more passwords—use your fingerprint or face"
+    - "No more passwords -- use your fingerprint or face"
     - "Same security as government ID verification"
   </Step>
 
   <Step title="Initiate UIP Setup">
     User clicks "Enable UIP" button. Call the [Identify API](/api-reference/endpoint/identify) to start the linking process.
 
-    Show QR code or app redirect depending on device type.
+    Show QR code or "Open UIP" button depending on device type.
   </Step>
 
   <Step title="User Completes UIP Setup">
@@ -198,9 +193,9 @@ For users who don't have UIP enabled, provide an opt-in flow:
   </Step>
 
   <Step title="Link UIP to Account">
-    When webhook confirms successful verification:
+    When polling returns `completed`:
 
-    - Extract `uip_id` from webhook payload
+    - Extract `uip_id` from the completed response
     - Update user record: `uip_id = <received_id>`, `uip_enabled = true`
     - Show success message: "UIP enabled! Next login will use biometric verification"
   </Step>
@@ -270,7 +265,7 @@ For users who don't have UIP enabled, provide an opt-in flow:
   </Accordion>
 
   <Accordion title="Audit Trail" icon="clock-rotate-left">
-    Every UIP authentication includes government-verified identity, precise timestamp, and device information—creating a complete audit trail.
+    Every UIP authentication includes government-verified identity, precise timestamp, and device information -- creating a complete audit trail.
   </Accordion>
 
   <Accordion title="Compliance Ready" icon="check-double">
@@ -303,11 +298,11 @@ For users who don't have UIP enabled, provide an opt-in flow:
   </Step>
 
   <Step title="Request Step-Up">
-    Call the [Identify API](/api-reference/endpoint/identify) to request biometric verification before allowing the sensitive action.
+    Call the [Identify API](/api-reference/endpoint/identify) to request biometric verification. Show the QR code or deep link button depending on device.
   </Step>
 
-  <Step title="Verify and Proceed">
-    Only after successful UIP verification, allow the sensitive operation to complete. Log both the action and the verification for audit purposes.
+  <Step title="Poll and Verify">
+    Poll `GET /v1/identify/:id` until `completed`. Only after successful UIP verification, allow the sensitive operation to complete. Log both the action and the verification for audit purposes.
   </Step>
 </Steps>
 
@@ -331,7 +326,7 @@ For users who don't have UIP enabled, provide an opt-in flow:
 
 <AccordionGroup>
   <Accordion title="Reduced Friction" icon="gauge-high">
-    Users don't face biometric verification on every login—only when necessary for high-risk operations.
+    Users don't face biometric verification on every login -- only when necessary for high-risk operations.
   </Accordion>
 
   <Accordion title="Risk-Based Security" icon="scale-balanced">
@@ -372,19 +367,19 @@ For users who don't have UIP enabled, provide an opt-in flow:
   </Card>
 
   <Card title="Audit Trail Included" icon="folder-open">
-    Every authentication includes cryptographic proof, timestamp, and identity verification—no additional logging needed.
+    Every authentication includes cryptographic proof, timestamp, and identity verification -- no additional logging needed.
   </Card>
 </CardGroup>
 
 ### Implementation
 
-Replace SMS/TOTP verification step with UIP call. User authenticates with username/password, then completes second factor via UIP biometric scan instead of entering a code.
+Replace SMS/TOTP verification step with UIP call. User authenticates with username/password, then completes second factor via UIP biometric scan instead of entering a code. Poll `GET /v1/identify/:id` until completed.
 
 ---
 
 ## Pattern 4: Progressive Enhancement
 
-**Use Case:** Offer UIP as the primary, recommended authentication method while maintaining traditional email/password as a fallback. **Best for B2B, enterprise, or high-security applications—not recommended for general B2C.**
+**Use Case:** Offer UIP as the primary, recommended authentication method while maintaining traditional email/password as a fallback. **Best for B2B, enterprise, or high-security applications -- not recommended for general B2C.**
 
 ### When to Use This Pattern
 
@@ -413,7 +408,7 @@ Replace SMS/TOTP verification step with UIP call. User authenticates with userna
 
   <Accordion title="B2C: Different Reality" icon="users">
     **B2C users typically:**
-    - Have no IT support—only your customer service
+    - Have no IT support -- only your customer service
     - Don't save recovery keys or understand their importance
     - Upgrade phones frequently and lose credentials
     - Need to cancel subscriptions on a whim (legal requirement)
@@ -451,13 +446,57 @@ Replace SMS/TOTP verification step with UIP call. User authenticates with userna
   </Accordion>
 
   <Accordion title="Better User Experience" icon="face-smile">
-    B2B users who use UIP daily benefit from fastest authentication—no passwords to remember or type.
+    B2B users who use UIP daily benefit from fastest authentication -- no passwords to remember or type.
   </Accordion>
 
   <Accordion title="Reduced IT Costs" icon="dollar-sign">
     Fewer password reset tickets for users who adopt UIP, as biometric is harder to "forget."
   </Accordion>
 </AccordionGroup>
+
+---
+
+## Pattern 5: Platform Delegation
+
+**Use Case:** Build a platform that makes UIP API calls on behalf of multiple businesses. Instead of each business integrating UIP directly, your platform handles the integration once and serves all customers.
+
+### When to Use This Pattern
+
+<Check>SaaS platforms serving multiple businesses</Check>
+<Check>Payroll, HR, or compliance platforms needing signatures from employees</Check>
+<Check>Marketplace platforms managing identity verification for sellers</Check>
+<Check>White-label solutions where clients don't integrate UIP directly</Check>
+
+### How It Works
+
+<Steps>
+  <Step title="Request Authorization">
+    Call `POST /v1/authorize` with your platform's client credentials and the scopes you need (e.g., `identify:create`, `sign:create`).
+  </Step>
+
+  <Step title="Business Approves">
+    Display the QR code to the business owner. They scan it, review the requested permissions, and approve with biometric verification.
+  </Step>
+
+  <Step title="Poll for Token">
+    Poll `POST /v1/authorize/:id/status` with client credentials until `completed`. You receive a delegation token (`uip_at_` prefix) in the response.
+  </Step>
+
+  <Step title="Make API Calls on Behalf of Business">
+    Use the delegation token as a Bearer token to make API calls. Billing goes to the business, not the platform.
+
+    ```bash
+    curl -X POST https://api.uip.digital/v1/identify \
+      -H "Authorization: Bearer uip_at_abc123xyz789..." \
+      -H "Content-Type: application/json" \
+      -d '{"intent": "Verify employee", "requested_data": ["first_name", "last_name"]}'
+    ```
+  </Step>
+</Steps>
+
+<Info>
+See the [Platform Delegation Guide](/core-concepts/platform-delegation) for full details on scopes, token management, and security best practices.
+</Info>
 
 ---
 
@@ -536,6 +575,7 @@ Replace SMS/TOTP verification step with UIP call. User authenticates with userna
 | B2B replacing SMS codes | **Pattern 3: MFA** | Stronger than SMS, same flow, better UX |
 | Enterprise internal tools | **Pattern 4: Progressive** | IT support + trained users = UIP-first works |
 | Banking/Financial (any) | **Pattern 3: MFA** | Compliance + audit trail + legal defensibility |
+| Multi-business platform | **Pattern 5: Delegation** | Single integration serves all customers |
 
 ---
 
@@ -559,10 +599,10 @@ Replace SMS/TOTP verification step with UIP call. User authenticates with userna
   </Card>
 
   <Card
-    title="Identify API Reference"
-    icon="code"
-    href="/api-reference/endpoint/identify"
+    title="Platform Delegation"
+    icon="users-gear"
+    href="/core-concepts/platform-delegation"
   >
-    Full API documentation
+    Build platforms for multiple businesses
   </Card>
 </CardGroup>

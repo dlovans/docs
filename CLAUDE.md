@@ -172,7 +172,7 @@ Send secure, encrypted messages to users. Include documents, request signatures,
 - Priority notification levels
 
 **Pricing:**
-- $0.05 per message without attachment
+- $0.03 per message without attachment
 - $0.10 per message with attachment (both support signature)
 
 ### Use Cases
@@ -272,7 +272,7 @@ Pay only for what you use. No subscriptions, no hidden fees.
 |-----|-------|----------|
 | **Identify API** | $0.01 per successful authentication | Biometric authentication, verified identity, age verification, global compliance |
 | **Signature API** | $0.03 per successful signature | Instant biometric signing, legally binding documents, verified identity proof, cross-border compliance |
-| **Message API** | $0.05 without attachment<br>$0.10 with attachment | End-to-end encryption, document attachments (20MB), signature requests, priority notification levels |
+| **Message API** | $0.03 without attachment<br>$0.10 with attachment | End-to-end encryption, document attachments (20MB), signature requests, priority notification levels |
 
 ---
 
@@ -295,7 +295,8 @@ Pay only for what you use. No subscriptions, no hidden fees.
 ### Integration
 - RESTful API architecture
 - QR code authentication flow
-- Webhook support for async operations
+- Simple polling for Identify and Sign APIs
+- Webhook support for Message and Authorize APIs
 - Comprehensive API documentation
 - Quick integration (can integrate in hours)
 

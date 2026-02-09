@@ -50,7 +50,7 @@ UIP uses standard HTTP status codes:
 | **503** | Service Unavailable | Temporary service disruption |
 
 <Note>
-**Rate Limits:** Currently, no rate limits are enforced on UIP APIs. However, rate limiting may be added in the future to ensure fair usage and system stability.
+**Rate Limits:** UIP enforces rate limits of 500/min per IP, 300/min per API key, and 100/min for authorize endpoints. See the [API Introduction](/api-reference/introduction) for details.
 </Note>
 
 ## Error Codes Reference
@@ -295,6 +295,55 @@ UIP uses standard HTTP status codes:
     **Solution:**
     - Review error message for required data
     - Add suggested fields to request
+  </Accordion>
+</AccordionGroup>
+
+### Rate Limit Errors
+
+<AccordionGroup>
+  <Accordion title="rate-limit/exceeded" icon="gauge-high">
+    **HTTP 429** - Rate limit exceeded
+
+    **Cause:**
+    - Too many requests in the current time window
+    - Global limit: 500 requests per minute per IP
+    - Per API key: 300 requests per minute
+    - Authorize endpoint: 100 requests per minute
+
+    **Solution:**
+    - Check `Retry-After` header for seconds until window resets
+    - Check `X-RateLimit-Remaining` header to track remaining requests
+    - Implement exponential backoff
+    - Reduce request frequency
+  </Accordion>
+</AccordionGroup>
+
+### Delegation Errors
+
+<AccordionGroup>
+  <Accordion title="auth/insufficient-scope" icon="shield-halved">
+    **HTTP 403** - Insufficient scope for this operation
+
+    **Cause:**
+    - Delegation token does not have the required scope for this API call
+    - The business granted fewer scopes than needed
+
+    **Solution:**
+    - Check the scopes granted to your delegation token
+    - Request a new authorization with the needed scopes
+    - Use a direct API key instead if you have one
+  </Accordion>
+
+  <Accordion title="auth/scope-not-allowed" icon="ban">
+    **HTTP 400** - One or more requested scopes are not allowed
+
+    **Cause:**
+    - Invalid scope name in the authorize request
+    - Requesting a scope that doesn't exist
+
+    **Solution:**
+    - Valid scopes: `identify:create`, `sign:create`, `messages:create`, `messages:read`, `audits:read`, `business:read`
+    - Check for typos in scope names
   </Accordion>
 </AccordionGroup>
 

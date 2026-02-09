@@ -3,7 +3,7 @@ title: 'Get Audit Record'
 openapi: 'GET /audit/{auditID}'
 ---
 
-Retrieve the complete, permanent audit record for any completed action using the audit ID from webhook responses. Returns verified identity information, timestamps, action details, and any attached documents.
+Retrieve the complete, permanent audit record for any completed action using the audit ID from completed responses. Returns verified identity information, timestamps, action details, and any attached documents.
 
 Audit records are cryptographically secured, permanently stored, and can be queried at any time for legal verification, compliance, and dispute resolution.
 
@@ -22,7 +22,7 @@ Audit records are cryptographically secured, permanently stored, and can be quer
 
   **Example:** `"audit_9z8y7x6w5v4u"`
 
-  **Where to get this:** Webhook responses from Sign API, Message API (with signature), and Identify API all include an `audit_id` field. Save this ID to query the full audit record later.
+  **Where to get this:** Completed polling responses from Identify API and Sign API, and webhook responses from Message API (with signature), all include an `audit_id` field. Save this ID to query the full audit record later.
 </ParamField>
 
 ## Response
@@ -341,8 +341,8 @@ if auditResp.Audit.SignedAccepted {
     Use Sign API, Message API (with signature), or Identify API to request an action from a user
   </Step>
 
-  <Step title="Receive Webhook">
-    When the user completes the action, your webhook receives the event with an `audit_id` field
+  <Step title="Receive audit_id">
+    For Identify/Sign: extract `audit_id` from the completed polling response. For Message: extract `audit_id` from the webhook event.
   </Step>
 
   <Step title="Save Audit ID">

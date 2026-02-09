@@ -5,7 +5,7 @@ description: "Get up and running with UIP in minutes"
 
 ## Overview
 
-UIP provides biometric identity verification and signature capabilities through a simple API. This guide will walk you through everything you need to start integrating UIP into your application.
+UIP provides biometric identity verification and signature capabilities through a simple API. This guide walks you through everything you need to start integrating UIP into your application.
 
 <Info>
 **Two-step setup:** Create your UIP identity, then generate API keys. No complex registration or approval process required.
@@ -122,7 +122,7 @@ To ensure security and compliance, identity verification requires:
 
 ## Step 2: Get API Keys
 
-Once you have your UIP identity, you can create API keys. No separate developer registration needed—authenticate with your UIP identity and you're in.
+Once you have your UIP identity, you can create API keys. No separate developer registration needed -- authenticate with your UIP identity and you're in.
 
 ### Access Developer Console
 
@@ -158,7 +158,7 @@ Once you have your UIP identity, you can create API keys. No separate developer 
 
 <Steps>
   <Step title="Navigate to API Keys">
-    In the developer console, go to **Settings** → **API Keys**
+    In the developer console, go to **Settings** > **API Keys**
   </Step>
 
   <Step title="Create new key">
@@ -172,10 +172,6 @@ Once you have your UIP identity, you can create API keys. No separate developer 
     - Use environment variables
     - Never commit to version control
     - Store in secrets management system
-  </Step>
-
-  <Step title="Configure webhooks (optional)">
-    Set up webhook endpoints to receive real-time notifications when users complete actions
   </Step>
 </Steps>
 
@@ -198,7 +194,7 @@ UIP provides a production API environment:
 Before you start building, review this checklist:
 
 <AccordionGroup>
-  <Accordion title="Prerequisites ✓" icon="list-check" defaultOpen>
+  <Accordion title="Prerequisites" icon="list-check" defaultOpen>
     - [ ] UIP identity created and verified
     - [ ] API keys generated
     - [ ] API keys stored securely in environment variables
@@ -208,16 +204,16 @@ Before you start building, review this checklist:
 
   <Accordion title="Architecture Planning" icon="diagram-project">
     - [ ] Decided which UIP APIs to use (Identify, Sign, Message)
-    - [ ] Planned user flow (QR code vs. deep link)
+    - [ ] Planned user flow (QR code vs. deep link based on device)
     - [ ] Designed authentication/signature UX
-    - [ ] Determined webhook vs. polling approach
+    - [ ] Planned polling strategy (2-3 second intervals)
     - [ ] Planned error handling strategy
   </Accordion>
 
   <Accordion title="Security Planning" icon="shield-halved">
     - [ ] API keys stored as environment variables (never in code)
     - [ ] HTTPS enforced for all API calls
-    - [ ] Webhook signature verification implemented
+    - [ ] Webhook signature verification implemented (for message/authorize flows)
     - [ ] User data handling complies with GDPR/privacy laws
     - [ ] Audit trail storage planned for signatures
   </Accordion>
@@ -226,64 +222,10 @@ Before you start building, review this checklist:
     - [ ] Use $5 signup credit for initial testing
     - [ ] Your own UIP identity created for testing
     - [ ] Error scenarios covered in tests
-    - [ ] Webhook endpoints testable locally
     - [ ] QR code expiration handling tested
+    - [ ] Device detection for mobile/desktop tested
   </Accordion>
 </AccordionGroup>
-
-## Quick Start Guides
-
-Choose your integration path based on your use case:
-
-<CardGroup cols={3}>
-  <Card
-    title="Passwordless Login"
-    icon="fingerprint"
-    href="/api-services/identify"
-  >
-    Replace username/password with biometric authentication
-  </Card>
-
-  <Card
-    title="Document Signing"
-    icon="file-signature"
-    href="/api-services/sign"
-  >
-    Get legally binding signatures with biometric proof
-  </Card>
-
-  <Card
-    title="Age Verification"
-    icon="id-badge"
-    href="/api-services/identify"
-  >
-    Verify user age without exposing birth date
-  </Card>
-
-  <Card
-    title="Secure Messaging"
-    icon="message-check"
-    href="/api-services/messaging"
-  >
-    Send encrypted messages to verified users
-  </Card>
-
-  <Card
-    title="Transaction Approval"
-    icon="circle-check"
-    href="/api-services/sign"
-  >
-    Confirm high-value actions with biometric signature
-  </Card>
-
-  <Card
-    title="Identity Verification"
-    icon="user-shield"
-    href="/api-services/identify"
-  >
-    Government-verified identity for KYC/AML compliance
-  </Card>
-</CardGroup>
 
 ## Understanding the Integration Flow
 
@@ -296,24 +238,24 @@ Here's how a typical UIP integration works:
     User clicks "Login with UIP" in your application
   </Step>
 
-  <Step title="Request QR code">
-    Your backend calls the Identify API and receives a session ID and QR code data
+  <Step title="Create session">
+    Your backend calls `POST /v1/identify` and receives a `session_id`, `qr_code`, and `expires_at`
   </Step>
 
-  <Step title="Display QR code">
-    Your frontend displays the QR code to the user
+  <Step title="Display QR code or deep link">
+    Desktop: display the QR code image. Mobile: show an "Open UIP" button linking to `https://www.uip.id/{session_id}`
   </Step>
 
-  <Step title="User scans">
-    User opens UIP app and scans the QR code
+  <Step title="User scans and authenticates">
+    User opens UIP app, scans the QR code (or taps the deep link), and authenticates with their biometric
   </Step>
 
-  <Step title="User authenticates">
-    User reviews the request and authenticates with their biometric
+  <Step title="Poll for result">
+    Your backend polls `GET /v1/identify/:id` every 2-3 seconds until status is `completed`
   </Step>
 
-  <Step title="Receive confirmation">
-    Your backend receives notification via webhook or polling, with verified identity data
+  <Step title="Receive verified data">
+    When completed, the poll response includes all requested identity data (name, DOB, etc.) and an `audit_id`
   </Step>
 
   <Step title="Create session">
@@ -328,28 +270,24 @@ Here's how a typical UIP integration works:
     User completes a form, agreement, or transaction requiring signature
   </Step>
 
-  <Step title="Request signature">
-    Your backend calls the Sign API with document details
+  <Step title="Create sign session">
+    Your backend calls `POST /v1/sign` with intent and signature information
   </Step>
 
-  <Step title="User receives notification">
-    User gets push notification on their UIP app
+  <Step title="Display QR or deep link">
+    Show QR code on desktop or "Open UIP" button on mobile
   </Step>
 
-  <Step title="User reviews document">
-    User opens notification, reviews document details in the app
+  <Step title="User reviews and signs">
+    User opens UIP app, reviews the signing request, and signs with biometric verification
   </Step>
 
-  <Step title="User signs">
-    User signs with their biometric (fingerprint or face)
-  </Step>
-
-  <Step title="Receive confirmation">
-    Your backend receives signature confirmation with audit reference ID
+  <Step title="Poll for result">
+    Poll `GET /v1/sign/:id` until status is `completed`
   </Step>
 
   <Step title="Store proof">
-    Your application stores the reference ID for permanent audit trail access
+    Save the `audit_id` and `uip_id` from the completed response for permanent audit trail access
   </Step>
 </Steps>
 
@@ -381,48 +319,47 @@ Here's how a typical UIP integration works:
     - **Signup bonus:** $5 in credits when you join UIP
     - **Identify API:** $0.01 per identification
     - **Sign API:** $0.03 per signature
-    - **Message API:** $0.03-$0.10 per message
+    - **Message API:** $0.03 without attachment, $0.10 with attachment
+    - **Audit API:** Always free
 
     See [full pricing details](/pricing) for more information.
   </Accordion>
 
   <Accordion title="How long do sessions last?" icon="clock">
-    - **QR codes:** Expire after 5 minutes
-    - **Signature requests:** Expire after 24 hours (configurable)
+    - **Identify/Sign sessions:** Expire after 5 minutes
     - **API keys:** Never expire (but can be revoked)
     - **Audit records:** Permanent, never expire
   </Accordion>
 
-  <Accordion title="Can I customize the user experience?" icon="palette">
-    **Yes.** You control the UX in your application:
-    - Customize QR code display
-    - Add your branding and messaging
-    - Choose when to trigger authentication/signature
-    - Control error messages and retry flows
+  <Accordion title="Do I need webhooks?" icon="webhook">
+    **Not for Identify or Sign.** These use a simple poll-based flow -- just poll `GET /v1/identify/:id` or `GET /v1/sign/:id` until completed.
 
-    The UIP app experience is standardized to ensure security.
+    **Webhooks are used for:**
+    - Message signature events (user signs or declines a message)
+    - Authorize completion events (delegation token granted)
+    - Delegation revocation events
+
+    See the [Webhooks guide](/api-reference/webhooks) for details.
   </Accordion>
 </AccordionGroup>
 
 ## Best Practices
-
-Follow these recommendations for a successful integration:
 
 <CardGroup cols={2}>
   <Card title="Use Your Signup Credit" icon="gift">
     Use your $5 signup credit to test your integration with real UIP infrastructure
   </Card>
 
-  <Card title="Implement Webhooks" icon="webhook">
-    Use webhooks instead of polling for better performance and user experience
+  <Card title="Device Detection" icon="mobile-screen">
+    Detect mobile vs desktop and show the appropriate UX -- QR code for desktop, deep link button for mobile
   </Card>
 
   <Card title="Handle Errors Gracefully" icon="triangle-exclamation">
-    User cancellations and timeouts are normal—provide clear retry options
+    User cancellations and timeouts are normal -- provide clear retry options
   </Card>
 
-  <Card title="Store Reference IDs" icon="database">
-    Always save signature reference IDs for audit trail access later
+  <Card title="Store Audit IDs" icon="database">
+    Always save audit IDs from completed sessions for audit trail access later
   </Card>
 
   <Card title="Test Edge Cases" icon="list-check">
@@ -438,19 +375,11 @@ Follow these recommendations for a successful integration:
 
 <CardGroup cols={2}>
   <Card
-    title="API Reference"
-    icon="book"
-    href="/api-reference/introduction"
+    title="Quickstart"
+    icon="rocket"
+    href="/quickstart"
   >
-    Complete API documentation with request/response examples
-  </Card>
-
-  <Card
-    title="Core Concepts"
-    icon="lightbulb"
-    href="/core-concepts/protocol-overview"
-  >
-    Understand how UIP works under the hood
+    Build your first integration with working code examples
   </Card>
 
   <Card
@@ -458,7 +387,15 @@ Follow these recommendations for a successful integration:
     icon="qrcode"
     href="/core-concepts/qr-integration"
   >
-    Learn how to implement the QR code authentication flow
+    Device detection, QR display, and deep linking best practices
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Complete API documentation with request/response examples
   </Card>
 
   <Card

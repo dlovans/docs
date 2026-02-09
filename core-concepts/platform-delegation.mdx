@@ -1,0 +1,196 @@
+---
+title: "Platform Delegation"
+description: "Build platforms that act on behalf of businesses using the Authorize API"
+---
+
+## What is Platform Delegation?
+
+Platform delegation allows third-party platforms to make UIP API calls on behalf of businesses. Instead of each business integrating UIP directly, a platform can handle the integration once and serve multiple businesses.
+
+<Info>
+**Example:** A payroll platform can collect employee signatures for contracts on behalf of its business customers, without each business needing their own UIP integration.
+</Info>
+
+## How It Works
+
+<Steps>
+  <Step title="Platform Requests Authorization">
+    The platform calls `POST /v1/authorize` with its client credentials and the scopes it needs
+  </Step>
+
+  <Step title="Business Owner Reviews">
+    A QR code is displayed. The business owner scans it with their UIP app and reviews the requested permissions.
+  </Step>
+
+  <Step title="Business Approves">
+    The business owner approves with biometric verification, granting the platform specific scopes
+  </Step>
+
+  <Step title="Platform Polls for Token">
+    The platform polls `POST /v1/authorize/:id/status` with client credentials until status is `completed`. The completed response includes the delegation token (`uip_at_` prefix).
+  </Step>
+
+  <Step title="Platform Makes API Calls">
+    The platform uses the delegation token as a Bearer token to make API calls on behalf of the business
+  </Step>
+</Steps>
+
+## Available Scopes
+
+Delegation tokens are scoped -- they can only access APIs that the business explicitly granted:
+
+| Scope | Permission | API Access |
+|-------|-----------|------------|
+| `identify:create` | Create identify sessions | `POST /v1/identify` |
+| `sign:create` | Create sign sessions | `POST /v1/sign` |
+| `messages:create` | Send messages | `POST /v1/message` |
+| `messages:read` | Read message status | Message-related GET endpoints |
+| `audits:read` | Query audit records | `GET /v1/audit/:id` |
+| `business:read` | Read business info | Business profile endpoints |
+
+<Warning>
+**Principle of least privilege:** Only request the scopes your platform actually needs. Businesses are more likely to approve minimal scope requests.
+</Warning>
+
+## Using Delegation Tokens
+
+Once you have a delegation token, use it exactly like an API key in the Authorization header:
+
+```bash
+curl -X POST https://api.uip.digital/v1/identify \
+  -H "Authorization: Bearer uip_at_abc123xyz789..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": "Verify employee identity",
+    "requested_data": ["first_name", "last_name"]
+  }'
+```
+
+<Info>
+**Billing:** API usage via delegation tokens is billed to the business that granted the delegation, not to the platform.
+</Info>
+
+## Authorization Flow Details
+
+### Creating an Authorization Session
+
+```bash
+curl -X POST https://api.uip.digital/v1/authorize \
+  -H "Authorization: Bearer YOUR_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "platform_abc123",
+    "client_secret": "secret_xyz789",
+    "scopes": ["identify:create", "sign:create"]
+  }'
+```
+
+### Polling Authorization Status
+
+```bash
+curl -X POST "https://api.uip.digital/v1/authorize/sess_auth_1a2b3c4d/status" \
+  -H "Authorization: Bearer YOUR_PLATFORM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "platform_abc123",
+    "client_secret": "secret_xyz789"
+  }'
+```
+
+<Info>
+**Why POST for status?** The authorize status endpoint uses POST (not GET) because client credentials must be verified on every status check.
+</Info>
+
+### Completed Response
+
+When the business owner approves, the status response includes the delegation token:
+
+```json
+{
+  "status": "completed",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "access_token": "uip_at_abc123xyz789..."
+}
+```
+
+### Webhook Notification
+
+In addition to polling, UIP sends an `authorize.completed` webhook when the business owner approves. You can also receive `delegation.revoked` webhooks when a business revokes your access.
+
+## Scope-Based Error Handling
+
+When a delegation token is used for an operation outside its granted scopes, the API returns:
+
+```json
+{
+  "error": "Insufficient scope for this operation",
+  "code": "auth/insufficient-scope"
+}
+```
+
+If an invalid scope is requested during authorization:
+
+```json
+{
+  "error": "One or more requested scopes are not allowed",
+  "code": "auth/scope-not-allowed"
+}
+```
+
+## Rate Limits
+
+The authorize endpoint has a stricter rate limit than other endpoints:
+
+| Endpoint | Limit |
+|----------|-------|
+| `POST /v1/authorize` | 100 requests/min per API key |
+| `POST /v1/authorize/:id/status` | 100 requests/min per API key |
+| All other endpoints | 300 requests/min per API key |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Minimal Scopes" icon="shield-check">
+    Request only the scopes your platform needs. You can always request additional scopes later with a new authorization.
+  </Card>
+
+  <Card title="Secure Token Storage" icon="vault">
+    Store delegation tokens as securely as API keys. They grant access to another business's UIP capabilities.
+  </Card>
+
+  <Card title="Handle Revocation" icon="clock">
+    Delegation tokens can be revoked by the business at any time. Handle `auth/invalid-api-key` errors gracefully and listen for `delegation.revoked` webhooks.
+  </Card>
+
+  <Card title="Poll with Backoff" icon="rotate">
+    Poll the status endpoint every 2-3 seconds with reasonable timeout. The business owner needs time to review and approve.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Authorize API"
+    icon="code"
+    href="/api-reference/endpoint/authorize"
+  >
+    Full API reference for creating authorization sessions
+  </Card>
+
+  <Card
+    title="Authorization Status"
+    icon="chart-simple"
+    href="/api-reference/endpoint/authorize-status"
+  >
+    Check authorization session status
+  </Card>
+
+  <Card
+    title="Security"
+    icon="shield-halved"
+    href="/core-concepts/security"
+  >
+    Learn about UIP's security architecture
+  </Card>
+</CardGroup>

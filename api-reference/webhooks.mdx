@@ -1,14 +1,20 @@
 ---
 title: 'Webhooks'
-description: 'Receive real-time notifications when users complete actions'
+description: 'Receive real-time notifications for message signatures and authorization events'
 ---
 
 ## Overview
 
-Webhooks allow your application to receive real-time notifications when users complete authentication, signatures, or message actions. UIP sends POST requests to your configured webhook URL with cryptographically signed payloads.
+Webhooks allow your application to receive real-time notifications for specific UIP events. UIP sends POST requests to your configured webhook URL with cryptographically signed payloads.
 
 <Note>
-**Required Setup:** You must configure your webhook URL in the Business Dashboard settings before using any UIP API endpoints. All API requests will fail with `request/webhook-missing` error if no webhook URL is configured.
+**Webhooks are only used for:**
+- **Message API** -- when a user signs or declines a signature-required message
+- **Authorize API** -- when a business owner approves delegation (`authorize.completed`)
+- **Delegation revocation** -- when a business revokes platform access (`delegation.revoked`)
+- **Webhook testing** -- when you call the test endpoint
+
+**Identify and Sign APIs do NOT use webhooks.** Use polling with `GET /v1/identify/:id` or `GET /v1/sign/:id` instead.
 </Note>
 
 ## Setting Up Webhooks
@@ -153,63 +159,6 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Webhook Events
 
-UIP sends different event types depending on which API was used. All webhooks follow the same structure:
-
-```json
-{
-  "event": "event_type",
-  "data": {
-    // Event-specific data
-  }
-}
-```
-
-### Event: `identify`
-
-Sent when a user completes authentication via the [Identify API](/api-reference/endpoint/identify).
-
-```json
-{
-  "event": "identify",
-  "data": {
-    "uip_id": "user_abc123def456",
-    "audit_id": "audit_9z8y7x6w5v4u",
-    "session_id": "sess_1a2b3c4d5e6f",
-    "name": "John Doe",
-    "date_of_birth": "1990-05-15",
-    "country_of_origin": "US"
-  }
-}
-```
-
-**Fields:**
-- `uip_id` - User's unique UIP identifier
-- `audit_id` - Permanent audit trail reference (save for compliance)
-- `session_id` - Session ID from your original request
-- `name` - User's full name (if requested)
-- `date_of_birth` - User's date of birth in YYYY-MM-DD format (if requested)
-- `country_of_origin` - User's country code (if requested)
-
-### Event: `sign`
-
-Sent when a user signs via the [Sign API](/api-reference/endpoint/sign).
-
-```json
-{
-  "event": "sign",
-  "data": {
-    "uip_id": "user_abc123def456",
-    "session_id": "sess_1a2b3c4d5e6f",
-    "audit_id": "audit_9z8y7x6w5v4u"
-  }
-}
-```
-
-**Fields:**
-- `uip_id` - User's unique UIP identifier
-- `session_id` - Session ID from your original request
-- `audit_id` - Permanent audit trail reference (save for compliance)
-
 ### Event: `message`
 
 Sent when a user signs or declines a signature-required message via the [Message API](/api-reference/endpoint/message).
@@ -234,6 +183,35 @@ Sent when a user signs or declines a signature-required message via the [Message
 **Determining Action:** The webhook structure is identical for both signed and declined messages. Query the [Audit API](/api-reference/endpoint/audit) using the `audit_id` to determine if the user signed or declined.
 </Info>
 
+### Event: `authorize.completed`
+
+Sent when a business owner approves a platform delegation request via the [Authorize API](/api-reference/endpoint/authorize).
+
+```json
+{
+  "event": "authorize.completed",
+  "session_id": "sess_auth_1a2b3c4d",
+  "timestamp": "2025-01-11T12:31:00Z",
+  "data": {
+    "access_token": "uip_at_abc123xyz789..."
+  }
+}
+```
+
+### Event: `delegation.revoked`
+
+Sent when a business revokes a platform's delegation access.
+
+```json
+{
+  "event": "delegation.revoked",
+  "timestamp": "2025-01-11T12:31:00Z",
+  "data": {
+    "business_uip_id": "business_abc123"
+  }
+}
+```
+
 ### Event: `test`
 
 Sent when you test your webhook configuration via the [Test Webhook endpoint](/api-reference/endpoint/webhook-test).
@@ -241,9 +219,8 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
 ```json
 {
   "event": "test",
-  "data": {
-    "pong": "Pong"
-  }
+  "timestamp": "2025-01-11T12:30:00Z",
+  "test": true
 }
 ```
 
@@ -252,18 +229,6 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
 ## When Webhooks Are Sent
 
 <AccordionGroup>
-  <Accordion title="Identify API" icon="fingerprint">
-    **Webhook sent when:** User completes biometric authentication
-
-    **No webhook sent when:** User cancels or session expires (5 minutes)
-  </Accordion>
-
-  <Accordion title="Sign API" icon="signature">
-    **Webhook sent when:** User signs with biometric verification
-
-    **No webhook sent when:** User declines or session expires (5 minutes)
-  </Accordion>
-
   <Accordion title="Message API" icon="envelope">
     **Webhook sent when:** User signs or declines a signature-required message (`signature_required: true`)
 
@@ -271,6 +236,16 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
     - Message does not require signature (`signature_required: false`)
     - User doesn't respond and message expires
     - Message is invalidated before user responds
+  </Accordion>
+
+  <Accordion title="Authorize API" icon="users-gear">
+    **Webhook sent when:** Business owner approves a delegation request
+
+    **No webhook sent when:** Authorization session expires without approval
+  </Accordion>
+
+  <Accordion title="Delegation Revocation" icon="ban">
+    **Webhook sent when:** A business revokes your platform's delegation access
   </Accordion>
 
   <Accordion title="Test Webhook" icon="flask">
@@ -296,7 +271,7 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
   </Card>
 
   <Card title="Handle Idempotency" icon="rotate">
-    UIP may send the same webhook multiple times. Use audit_id or session_id to detect duplicates
+    UIP may send the same webhook multiple times. Use audit_id or message_id to detect duplicates
   </Card>
 
   <Card title="Use HTTPS" icon="lock">
@@ -313,16 +288,13 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
 If your webhook endpoint returns an error (non-200 status code) or times out, UIP will retry the webhook with exponential backoff.
 
 **Retry Schedule:**
-- Immediate retry
-- Retry after 5 seconds
-- Retry after 30 seconds
-- Retry after 2 minutes
-- Retry after 10 minutes
+UIP retries webhook delivery once after a short delay. If both attempts fail, the webhook is marked as failed.
 
-After all retries fail, the webhook is marked as failed and will not be retried again.
+- Attempt 1: Immediate
+- Attempt 2: After a short delay
 
 <Warning>
-**Handle Retries:** Design your webhook handler to be idempotent. Use `audit_id` or `session_id` to detect duplicate webhook deliveries.
+**Handle Retries:** Design your webhook handler to be idempotent. Use `audit_id` or `message_id` to detect duplicate webhook deliveries.
 </Warning>
 
 ## Webhook Handler Template
@@ -355,14 +327,14 @@ app.post('/webhook', async (req, res) => {
 
   try {
     switch (event) {
-      case 'identify':
-        await handleIdentify(data);
-        break;
-      case 'sign':
-        await handleSign(data);
-        break;
       case 'message':
         await handleMessage(data);
+        break;
+      case 'authorize.completed':
+        await handleAuthorizeCompleted(data);
+        break;
+      case 'delegation.revoked':
+        await handleDelegationRevoked(data);
         break;
       case 'test':
         console.log('Test webhook received');
@@ -374,53 +346,6 @@ app.post('/webhook', async (req, res) => {
     console.error('Webhook processing error:', error);
   }
 });
-
-async function handleIdentify(data) {
-  const { uip_id, audit_id, session_id, name, date_of_birth, country_of_origin } = data;
-
-  // Check for duplicate
-  const existing = await db.identifications.findOne({ audit_id });
-  if (existing) {
-    console.log('Duplicate webhook, skipping');
-    return;
-  }
-
-  // Save to database
-  await db.identifications.create({
-    uip_id,
-    audit_id,
-    session_id,
-    name,
-    date_of_birth,
-    country_of_origin,
-    received_at: new Date()
-  });
-
-  // Complete user's action
-  await completeUserLogin(session_id);
-}
-
-async function handleSign(data) {
-  const { uip_id, session_id, audit_id } = data;
-
-  // Check for duplicate
-  const existing = await db.signatures.findOne({ audit_id });
-  if (existing) {
-    console.log('Duplicate webhook, skipping');
-    return;
-  }
-
-  // Save to database
-  await db.signatures.create({
-    uip_id,
-    audit_id,
-    session_id,
-    received_at: new Date()
-  });
-
-  // Complete signature flow
-  await completeSignature(session_id);
-}
 
 async function handleMessage(data) {
   const { signing_uip_id, message_id, audit_id } = data;
@@ -458,6 +383,21 @@ async function handleMessage(data) {
   } else {
     await handleMessageDeclined(message_id);
   }
+}
+
+async function handleAuthorizeCompleted(data) {
+  const { access_token } = data;
+  // Store delegation token securely
+  await db.delegations.create({
+    access_token,
+    received_at: new Date()
+  });
+}
+
+async function handleDelegationRevoked(data) {
+  const { business_uip_id } = data;
+  // Remove stored delegation token
+  await db.delegations.delete({ business_uip_id });
 }
 
 app.listen(3000, () => {
@@ -519,7 +459,7 @@ app.listen(3000, () => {
     - Network issues causing automatic retries
 
     **Solutions:**
-    - Use `audit_id` or `session_id` to detect duplicates
+    - Use `audit_id` or `message_id` to detect duplicates
     - Make webhook handler idempotent (safe to process multiple times)
     - Store processed webhook IDs in database to skip duplicates
   </Accordion>
@@ -532,16 +472,12 @@ app.listen(3000, () => {
     Test your webhook configuration
   </Card>
 
-  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
-    Authentication with webhooks
-  </Card>
-
-  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
-    Signatures with webhooks
-  </Card>
-
   <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
-    Messages with webhooks
+    Messages with webhook signature events
+  </Card>
+
+  <Card title="Authorize API" icon="users-gear" href="/api-reference/endpoint/authorize">
+    Authorization with webhook completion events
   </Card>
 
   <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
@@ -550,5 +486,9 @@ app.listen(3000, () => {
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
     Handle API and webhook errors
+  </Card>
+
+  <Card title="Platform Delegation" icon="users-gear" href="/core-concepts/platform-delegation">
+    Build platforms for multiple businesses
   </Card>
 </CardGroup>

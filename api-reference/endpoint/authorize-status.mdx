@@ -1,0 +1,158 @@
+---
+title: 'Authorization Status'
+openapi: 'POST /authorize/{id}/status'
+---
+
+Check the status of an authorization session. This endpoint uses POST instead of GET because it requires client credentials in the request body for platform authentication.
+
+Poll this endpoint every 2-3 seconds until the status is `completed` or `expired`.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | Must be `application/json` |
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The session ID returned when creating the authorization session.
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="client_id" type="string" required>
+  The platform's client ID.
+</ParamField>
+
+<ParamField body="client_secret" type="string" required>
+  The platform's client secret.
+</ParamField>
+
+## Response
+
+### Pending
+
+```json
+{
+  "status": "pending",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+### Completed
+
+When the business owner approves, the response includes the delegation token:
+
+```json
+{
+  "status": "completed",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "access_token": "uip_at_abc123xyz789..."
+}
+```
+
+### Expired
+
+```json
+{
+  "status": "expired",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+<ResponseField name="status" type="string" required>
+  Current authorization session status: `pending`, `completed`, or `expired`
+</ResponseField>
+
+<ResponseField name="expires_at" type="string" required>
+  ISO 8601 timestamp when the session expires.
+</ResponseField>
+
+<ResponseField name="access_token" type="string">
+  Delegation token with `uip_at_` prefix (only present when `completed`). Use this as a Bearer token to make API calls on behalf of the business.
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.uip.digital/v1/authorize/sess_auth_1a2b3c4d/status" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "platform_abc123",
+    "client_secret": "secret_xyz789"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch(
+  `https://api.uip.digital/v1/authorize/${sessionId}/status`,
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      client_id: 'platform_abc123',
+      client_secret: 'secret_xyz789'
+    })
+  }
+);
+
+const data = await response.json();
+
+if (data.status === 'completed') {
+  const delegationToken = data.access_token;
+  // Store delegation token securely
+}
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    f'https://api.uip.digital/v1/authorize/{session_id}/status',
+    headers={
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'client_id': 'platform_abc123',
+        'client_secret': 'secret_xyz789'
+    }
+)
+
+data = response.json()
+
+if data['status'] == 'completed':
+    delegation_token = data['access_token']
+    # Store delegation token securely
+```
+
+</CodeGroup>
+
+<Info>
+**Why POST?** Unlike other status endpoints, this uses POST because platform credentials must be verified on every status check for security.
+</Info>
+
+<Info>
+**Webhook alternative:** In addition to polling, UIP sends an `authorize.completed` webhook when the business owner approves. See [Webhooks](/api-reference/webhooks) for details.
+</Info>
+
+## Errors
+
+Possible error codes for this endpoint:
+
+- `auth/missing-api-key` - No API key provided
+- `auth/invalid-api-key` - Invalid API key
+- `request/invalid-payload` - Missing client credentials
+- `resource/not-found` - Authorization session not found
+- `rate-limit/exceeded` - Rate limit exceeded (100/min for authorize)
+- `internal/server-error` - Failed to retrieve session status

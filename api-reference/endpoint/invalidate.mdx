@@ -1,6 +1,6 @@
 ---
 title: 'Invalidate Message'
-openapi: 'POST /invalidate'
+openapi: 'POST /v1/message/invalidate'
 ---
 
 Invalidate a signature-required message that hasn't been signed yet. Use this endpoint to cancel pending signature requests when they're no longer needed.
@@ -85,7 +85,7 @@ Returns HTTP status code 200 with no response body on successful invalidation.
 ### Example Request
 
 ```bash
-curl -X POST https://api.uip.digital/v1/invalidate \
+curl -X POST https://api.uip.digital/v1/message/invalidate \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -178,7 +178,7 @@ Possible error codes for this endpoint:
 
     ```javascript
     // Transaction canceled, invalidate signature request
-    await fetch('https://api.uip.digital/v1/invalidate', {
+    await fetch('https://api.uip.digital/v1/message/invalidate', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YOUR_API_KEY}`,
@@ -213,7 +213,7 @@ Possible error codes for this endpoint:
 
     ```javascript
     // Sent to wrong user, invalidate immediately
-    await fetch('https://api.uip.digital/v1/invalidate', {
+    await fetch('https://api.uip.digital/v1/message/invalidate', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YOUR_API_KEY}`,
@@ -241,7 +241,7 @@ Possible error codes for this endpoint:
 
     for (const messageId of pendingMessageIds) {
       try {
-        await fetch('https://api.uip.digital/v1/invalidate', {
+        await fetch('https://api.uip.digital/v1/message/invalidate', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${YOUR_API_KEY}`,
@@ -273,7 +273,7 @@ Possible error codes for this endpoint:
     Handle API errors properly
   </Card>
 
-  <Card title="Webhooks" icon="webhook" href="/core-concepts/webhooks">
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Handle webhook events for signed messages
   </Card>
 </CardGroup>

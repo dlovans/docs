@@ -24,9 +24,9 @@
   "paths": {
     "/identify": {
       "post": {
-        "summary": "Identify Identity",
-        "description": "Identify and verify a user's identity with biometric verification. Returns a QR code or deep link for the user to scan.",
-        "operationId": "identify",
+        "summary": "Create Identify Session",
+        "description": "Create an identity verification session. Returns a QR code and session ID for the user to scan with their UIP app.",
+        "operationId": "identifyCreate",
         "tags": ["Identity"],
         "requestBody": {
           "required": true,
@@ -40,14 +40,14 @@
                   "summary": "Basic authentication",
                   "value": {
                     "intent": "Sign in to Example App",
-                    "requested_data": ["name", "birthdate"]
+                    "requested_data": ["first_name", "last_name", "date_of_birth"]
                   }
                 },
                 "age_verification": {
                   "summary": "Age verification only",
                   "value": {
                     "intent": "Verify you're 18+ to access content",
-                    "requested_data": ["birthdate"]
+                    "requested_data": ["date_of_birth"]
                   }
                 },
                 "full_profile": {
@@ -62,11 +62,11 @@
         },
         "responses": {
           "200": {
-            "description": "Authentication session created",
+            "description": "Identity verification session created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IdentifyResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 },
                 "examples": {
                   "success": {
@@ -83,11 +83,73 @@
         }
       }
     },
+    "/identify/{id}": {
+      "get": {
+        "summary": "Poll Identify Session",
+        "description": "Poll for identity verification session status and result. When completed, returns all requested identity data.",
+        "operationId": "identifyPoll",
+        "tags": ["Identity"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The session_id returned from the POST request",
+            "schema": {
+              "type": "string"
+            },
+            "example": "sess_abc123def456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session status and result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifyPollResponse"
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "Session pending",
+                    "value": {
+                      "status": "pending",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  },
+                  "completed": {
+                    "summary": "Session completed with identity data",
+                    "value": {
+                      "status": "completed",
+                      "expires_at": "2025-01-11T12:35:00Z",
+                      "audit_id": "audit_9z8y7x6w5v4u",
+                      "uip_id": "user_abc123def456",
+                      "first_name": "John",
+                      "last_name": "Doe",
+                      "date_of_birth": "1990-05-15",
+                      "country": "US",
+                      "identity_expires_at": "2027-01-11T00:00:00Z"
+                    }
+                  },
+                  "expired": {
+                    "summary": "Session expired",
+                    "value": {
+                      "status": "expired",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sign": {
       "post": {
-        "summary": "Request Signature",
-        "description": "Request a legally binding biometric signature from a user",
-        "operationId": "sign",
+        "summary": "Create Sign Session",
+        "description": "Create a signature session. Returns a QR code and session ID for the user to scan with their UIP app.",
+        "operationId": "signCreate",
         "tags": ["Signatures"],
         "requestBody": {
           "required": true,
@@ -117,11 +179,11 @@
         },
         "responses": {
           "200": {
-            "description": "Signature request created",
+            "description": "Signature session created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SignResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 },
                 "examples": {
                   "success": {
@@ -129,6 +191,179 @@
                       "session_id": "sess_abc123def456",
                       "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
                       "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign/{id}": {
+      "get": {
+        "summary": "Poll Sign Session",
+        "description": "Poll for signature session status and result. When completed, returns audit trail reference.",
+        "operationId": "signPoll",
+        "tags": ["Signatures"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The session_id returned from the POST request",
+            "schema": {
+              "type": "string"
+            },
+            "example": "sess_abc123def456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session status and result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignPollResponse"
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "Session pending",
+                    "value": {
+                      "status": "pending",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  },
+                  "completed": {
+                    "summary": "Session completed with audit trail",
+                    "value": {
+                      "status": "completed",
+                      "expires_at": "2025-01-11T12:35:00Z",
+                      "audit_id": "audit_9z8y7x6w5v4u",
+                      "uip_id": "user_abc123def456"
+                    }
+                  },
+                  "expired": {
+                    "summary": "Session expired",
+                    "value": {
+                      "status": "expired",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorize": {
+      "post": {
+        "summary": "Create Authorization Session",
+        "description": "Create an authorization session for platform delegation. Returns a QR code for the business owner to scan.",
+        "operationId": "authorizeCreate",
+        "tags": ["Authorization"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Request identify and sign scopes",
+                  "value": {
+                    "client_id": "platform_abc123",
+                    "client_secret": "secret_xyz789",
+                    "scopes": ["identify:create", "sign:create"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorization session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "session_id": "sess_auth_1a2b3c4d",
+                      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorize/{id}/status": {
+      "post": {
+        "summary": "Check Authorization Status",
+        "description": "Check the status of an authorization session. Uses POST because client credentials must be verified on every status check.",
+        "operationId": "authorizeStatus",
+        "tags": ["Authorization"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The session_id returned when creating the authorization session",
+            "schema": {
+              "type": "string"
+            },
+            "example": "sess_auth_1a2b3c4d"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeStatusRequest"
+              },
+              "examples": {
+                "basic": {
+                  "value": {
+                    "client_id": "platform_abc123",
+                    "client_secret": "secret_xyz789"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorization session status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizeStatusResponse"
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "Pending approval",
+                    "value": {
+                      "status": "pending",
+                      "expires_at": "2025-01-11T12:35:00Z"
+                    }
+                  },
+                  "completed": {
+                    "summary": "Approved with delegation token",
+                    "value": {
+                      "status": "completed",
+                      "expires_at": "2025-01-11T12:35:00Z",
+                      "access_token": "uip_at_abc123xyz789..."
                     }
                   }
                 }
@@ -172,29 +407,6 @@
                     "signature_required": true,
                     "signature_expiry": "2025-01-31T23:59:59Z"
                   }
-                },
-                "attachments": {
-                  "summary": "PDF attachments",
-                  "value": {
-                    "intent": "Review Contract Package",
-                    "message": "Please review the attached contract, terms, and addendum documents.",
-                    "priority": "MEDIUM",
-                    "receiver_uip": "user_abc123def456",
-                    "signature_required": false,
-                    "attachments": ["@/path/to/contract.pdf", "@/path/to/terms.pdf", "@/path/to/addendum.pdf"]
-                  }
-                },
-                "attachments_with_signature": {
-                  "summary": "PDF attachments with signature",
-                  "value": {
-                    "intent": "Review Contract Package",
-                    "message": "Please review the attached contract, terms, and addendum documents.",
-                    "priority": "MEDIUM",
-                    "receiver_uip": "user_abc123def456",
-                    "signature_required": true,
-                    "signature_expiry": "2025-02-15T17:00:00Z",
-                    "attachments": ["@/path/to/contract.pdf", "@/path/to/terms.pdf", "@/path/to/addendum.pdf"]
-                  }
                 }
               }
             }
@@ -221,12 +433,12 @@
         }
       }
     },
-    "/invalidate": {
+    "/message/invalidate": {
       "post": {
         "summary": "Invalidate Message",
         "description": "Invalidate a signature-required message that hasn't been signed yet. The message will remain visible to the user but cannot be signed after invalidation.",
         "operationId": "invalidate",
-        "tags": ["Messages"],
+        "tags": ["Messaging"],
         "requestBody": {
           "required": true,
           "content": {
@@ -268,7 +480,7 @@
             "name": "auditID",
             "in": "path",
             "required": true,
-            "description": "The audit ID returned from webhook responses (audit_id field)",
+            "description": "The audit ID from completed polling responses or webhook events",
             "schema": {
               "type": "string"
             },
@@ -310,26 +522,6 @@
                         }
                       ]
                     }
-                  },
-                  "declined_signature": {
-                    "summary": "Declined signature request",
-                    "value": {
-                      "audit": {
-                        "created_at": "2025-01-11T10:15:00Z",
-                        "requester_uip_id": "business_abc123",
-                        "requester_sign_intent": "Sign Terms of Service",
-                        "requester_sign_information": "I agree to the Terms of Service version 2.1",
-                        "signatoree_uip_id": "user_xyz789",
-                        "message_ref": null,
-                        "attachment_refs": null,
-                        "audit_type": "sign",
-                        "requester_name": "Platform Admin",
-                        "signatoree_name": "Jane Smith",
-                        "requester_business_name": "Tech Startup Inc",
-                        "signed_accepted": false
-                      },
-                      "attachments": []
-                    }
                   }
                 }
               }
@@ -338,7 +530,7 @@
         }
       }
     },
-    "/webhook/ping": {
+    "/webhook/test": {
       "post": {
         "summary": "Test Webhook",
         "description": "Test your webhook endpoint configuration by sending a test notification to the webhook URL configured in your Business Dashboard",
@@ -371,27 +563,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["name", "birthdate", "country"]
+              "enum": ["first_name", "last_name", "date_of_birth", "country", "expires_at"]
             },
-            "description": "Optional array of identity attributes to request. If omitted or empty, all data is returned. Valid values: name, birthdate, country"
-          }
-        }
-      },
-      "IdentifyResponse": {
-        "type": "object",
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "description": "Unique identifier for this authentication session"
-          },
-          "qr_code": {
-            "type": "string",
-            "description": "Base64-encoded PNG image of the QR code for users to scan"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "ISO 8601 timestamp when the session expires (5 minutes from creation)"
+            "description": "Optional array of identity attributes to request. If omitted or empty, all data is returned. Valid values: first_name, last_name, date_of_birth, country, expires_at"
           }
         }
       },
@@ -409,53 +583,143 @@
           }
         }
       },
-      "SignResponse": {
+      "AuthorizeRequest": {
+        "type": "object",
+        "required": ["client_id", "client_secret", "scopes"],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "The platform's client ID, issued during platform registration."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The platform's client secret, issued during platform registration."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["identify:create", "sign:create", "messages:create", "messages:read", "audits:read", "business:read"]
+            },
+            "description": "Array of permission scopes to request from the business."
+          }
+        }
+      },
+      "AuthorizeStatusRequest": {
+        "type": "object",
+        "required": ["client_id", "client_secret"],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "The platform's client ID."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The platform's client secret."
+          }
+        }
+      },
+      "SessionResponse": {
         "type": "object",
         "properties": {
           "session_id": {
             "type": "string",
-            "description": "Unique identifier for this signature session"
+            "description": "Unique identifier for this session"
           },
           "qr_code": {
             "type": "string",
-            "description": "Base64-encoded PNG image of the QR code for users to scan"
+            "description": "Base64-encoded PNG data URI of the QR code. The QR code encodes https://www.uip.id/{session_id}"
           },
           "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "ISO 8601 timestamp when the session expires (5 minutes from creation)"
+            "description": "ISO 8601 timestamp when the session expires"
           }
         }
       },
-      "MessageRequest": {
+      "IdentifyPollResponse": {
         "type": "object",
-        "required": ["intent", "message", "priority", "receiver_uip", "signature_required"],
         "properties": {
-          "intent": {
+          "status": {
             "type": "string",
-            "description": "Description of why you're sending the message. Shown to the user in the UIP app as the message subject/title."
+            "enum": ["pending", "completed", "expired"],
+            "description": "Session status"
           },
-          "message": {
-            "type": "string",
-            "description": "The message content/body. This is the actual message text the recipient will read."
-          },
-          "priority": {
-            "type": "string",
-            "enum": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
-            "description": "Notification priority level that controls how the message appears to the user."
-          },
-          "receiver_uip": {
-            "type": "string",
-            "description": "The UIP ID of the message recipient. Must be a valid UIP user identifier."
-          },
-          "signature_required": {
-            "type": "boolean",
-            "description": "Flag indicating whether the recipient must sign the message."
-          },
-          "signature_expiry": {
+          "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Expiry date for signature requests in RFC3339 format. Only applies when signature_required is true. Defaults to 7 days from message creation. Maximum allowed: 3 months."
+            "description": "ISO 8601 timestamp when the session expires"
+          },
+          "audit_id": {
+            "type": "string",
+            "description": "Permanent audit trail reference (only present when completed)"
+          },
+          "uip_id": {
+            "type": "string",
+            "description": "User's unique UIP identifier (only present when completed)"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "Verified first name (if requested, only present when completed)"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "Verified last name (if requested, only present when completed)"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "description": "Verified date of birth in YYYY-MM-DD format (if requested, only present when completed)"
+          },
+          "country": {
+            "type": "string",
+            "description": "Verified country code (if requested, only present when completed)"
+          },
+          "identity_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user's identity verification expires (only present when completed)"
+          }
+        }
+      },
+      "SignPollResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "expired"],
+            "description": "Session status"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the session expires"
+          },
+          "audit_id": {
+            "type": "string",
+            "description": "Permanent audit trail reference (only present when completed)"
+          },
+          "uip_id": {
+            "type": "string",
+            "description": "User's unique UIP identifier (only present when completed)"
+          }
+        }
+      },
+      "AuthorizeStatusResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "expired"],
+            "description": "Authorization session status"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the session expires"
+          },
+          "access_token": {
+            "type": "string",
+            "description": "Delegation token with uip_at_ prefix (only present when completed)"
           }
         }
       },
@@ -603,64 +867,6 @@
               }
             },
             "description": "Array of PDF attachments. Empty array if no attachments."
-          }
-        }
-      },
-      "WebhookTestRequest": {
-        "type": "object",
-        "required": ["webhook_url", "event_type"],
-        "properties": {
-          "webhook_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Your webhook endpoint URL to test"
-          },
-          "event_type": {
-            "type": "string",
-            "enum": [
-              "authentication.completed",
-              "authentication.failed",
-              "signature.completed",
-              "signature.declined",
-              "message.delivered",
-              "message.read"
-            ],
-            "description": "Type of webhook event to simulate"
-          }
-        }
-      },
-      "WebhookTestResponse": {
-        "type": "object",
-        "properties": {
-          "test_id": {
-            "type": "string",
-            "description": "Unique test identifier"
-          },
-          "webhook_url": {
-            "type": "string",
-            "description": "The webhook URL that was tested"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["sent", "failed"],
-            "description": "Test delivery status"
-          },
-          "response_code": {
-            "type": "integer",
-            "description": "HTTP response code from your webhook"
-          },
-          "response_time_ms": {
-            "type": "integer",
-            "description": "Response time in milliseconds"
-          },
-          "sent_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Test sent timestamp"
-          },
-          "error_message": {
-            "type": "string",
-            "description": "Error message if test failed"
           }
         }
       },

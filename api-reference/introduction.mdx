@@ -62,6 +62,12 @@ UIP provides three primary APIs that work together to deliver complete identity 
 ## Supporting APIs
 
 <CardGroup cols={2}>
+  <Card title="Authorize API" icon="users-gear" href="/api-reference/endpoint/authorize">
+    Platform delegation -- request scoped access to act on behalf of businesses.
+
+    **Always Free**
+  </Card>
+
   <Card title="Invalidate API" icon="ban" href="/api-reference/endpoint/invalidate">
     Cancel pending signature requests before recipients sign. Only works for unsigned messages.
 
@@ -84,6 +90,18 @@ All UIP API endpoints require authentication using Bearer tokens. Include your A
 Authorization: Bearer YOUR_API_KEY
 ```
 
+UIP supports two types of Bearer tokens:
+
+<CardGroup cols={2}>
+  <Card title="Direct API Keys" icon="key">
+    Standard UUID-format API keys for businesses making direct API calls. Full access to all endpoints.
+  </Card>
+
+  <Card title="Delegation Tokens" icon="users-gear">
+    Platform delegation tokens (`uip_at_` prefix) generated via the Authorize API. Scoped access based on granted permissions.
+  </Card>
+</CardGroup>
+
 <Warning>
 **Keep your API keys secure.** Never expose them in client-side code, public repositories, or logs. Treat them like passwords.
 </Warning>
@@ -96,7 +114,7 @@ Authorization: Bearer YOUR_API_KEY
   </Step>
 
   <Step title="Receive $5 Credit">
-    New accounts automatically receive $5 in credits—enough for testing and initial implementation
+    New accounts automatically receive $5 in credits -- enough for testing and initial implementation
   </Step>
 
   <Step title="Generate API Key">
@@ -112,27 +130,50 @@ All requests and responses use JSON format with UTF-8 encoding.
 - `Authorization: Bearer YOUR_API_KEY`
 - `Content-Type: application/json`
 
-## Webhook Integration
+## Session Flow
 
-Most UIP APIs work asynchronously using webhooks. Instead of polling for results, UIP sends POST requests to your webhook URL when actions complete.
+The Identify and Sign APIs use a simple create-poll-complete flow. No redirect URIs, no code exchange, no webhooks needed.
+
+**Implementation flow:**
+
+<Steps>
+  <Step title="Create Session">
+    Call `POST /v1/identify` (or `POST /v1/sign`) with your intent. You receive a `session_id`, `qr_code` (base64 PNG), and `expires_at`.
+  </Step>
+
+  <Step title="Display QR Code or Deep Link">
+    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button linking to `https://www.uip.id/{session_id}`.
+  </Step>
+
+  <Step title="User Scans & Authenticates">
+    User opens UIP app, scans code (or taps deep link), and authenticates with biometric
+  </Step>
+
+  <Step title="Poll for Result">
+    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2-3 seconds until status is `completed`. The completed response includes all verified data directly -- no separate code exchange needed.
+  </Step>
+</Steps>
 
 <Info>
-**Setup Required:** Configure your webhook URL in the [Business Dashboard](https://business.uip.digital) before using UIP APIs. This is where UIP will send all webhook events.
+**Device detection:** Detect mobile vs desktop and show the appropriate UX. QR code for desktop, deep link button for mobile. See the [QR Integration Guide](/core-concepts/qr-integration) for details.
 </Info>
 
+## Webhook Integration
+
+Webhooks are used for the **Message API** and **Authorize API** only. The Identify and Sign APIs use polling instead.
+
 <AccordionGroup>
+  <Accordion title="When Webhooks Are Used" icon="bolt">
+    - **Message API:** `message` event when a user signs or declines a signature-required message
+    - **Authorize API:** `authorize.completed` event when a business owner approves delegation
+    - **Delegation revocation:** `delegation.revoked` event when a business revokes platform access
+    - **Test:** `test` event from the webhook test endpoint
+  </Accordion>
+
   <Accordion title="Webhook Security" icon="shield-check">
     Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook secret is a UUID v4 identifier provided when you create your API key.
 
     **Verify all webhook requests** to ensure they're from UIP and haven't been tampered with.
-  </Accordion>
-
-  <Accordion title="Webhook Events" icon="bolt">
-    Different APIs send different webhook events:
-
-    - **Identify API:** `identify`
-    - **Sign API:** `sign`
-    - **Message API:** `message_delivered`, `message_signed`, `message_declined`
   </Accordion>
 
   <Accordion title="Testing Webhooks" icon="flask">
@@ -140,33 +181,9 @@ Most UIP APIs work asynchronously using webhooks. Instead of polling for results
   </Accordion>
 </AccordionGroup>
 
-## QR Code Flow
-
-The Identify and Sign APIs return QR codes for user authentication. Users scan these codes with the UIP mobile app to complete actions.
-
-**Implementation flow:**
-
-<Steps>
-  <Step title="Request Session">
-    Call the appropriate endpoint (Identify or Sign) with your webhook URL
-  </Step>
-
-  <Step title="Display QR Code">
-    Show the returned QR code to users (desktop) or provide app deep link (mobile)
-  </Step>
-
-  <Step title="User Scans & Authenticates">
-    User opens UIP app, scans code, and authenticates with biometric
-  </Step>
-
-  <Step title="Receive Webhook">
-    UIP sends result to your webhook URL with verified identity or signature proof
-  </Step>
-</Steps>
-
-<Info>
-**Best Practice:** Always ask users if they're on mobile or desktop first. Mobile users can open the UIP app directly without scanning a QR code.
-</Info>
+<Note>
+**Identify and Sign do NOT use webhooks.** Use simple polling with `GET /v1/identify/:id` or `GET /v1/sign/:id` until the status is `completed`.
+</Note>
 
 ## Error Handling
 
@@ -189,9 +206,18 @@ See the [Error Handling Guide](/core-concepts/error-handling) for complete error
 
 ## Rate Limits
 
-<Note>
-**No rate limits currently enforced.** UIP may add rate limiting in the future to ensure fair usage and system stability. You'll be notified before any limits are implemented.
-</Note>
+UIP enforces rate limits to ensure fair usage and system stability:
+
+| Scope | Limit | Window |
+|-------|-------|--------|
+| Global (per IP) | 500 requests | 1 minute |
+| Per API Key | 300 requests | 1 minute |
+| Authorize endpoint | 100 requests | 1 minute |
+
+When you exceed a rate limit, the API returns HTTP 429 with:
+- `X-RateLimit-Limit` -- Maximum requests allowed
+- `X-RateLimit-Remaining` -- Requests remaining in the current window
+- `Retry-After` -- Seconds until the window resets
 
 ## Audit Trail
 
@@ -203,7 +229,7 @@ Every UIP action generates a permanent audit record accessible via the Audit API
 - Precise timestamps
 - Tamper-evident storage
 
-**Audit queries are always free and unlimited.** Store audit IDs from webhook responses to retrieve records anytime.
+**Audit queries are always free and unlimited.** Store audit IDs from completed sessions and webhook responses to retrieve records anytime.
 
 ## Getting Started
 
@@ -213,11 +239,11 @@ Every UIP action generates a permanent audit record accessible via the Audit API
   </Card>
 
   <Card title="QR Integration Guide" icon="qrcode" href="/core-concepts/qr-integration">
-    Learn how to implement the QR code authentication flow
+    Learn how to implement the QR code and deep link flow
   </Card>
 
-  <Card title="API Services Overview" icon="layer-group" href="/api-services/identify">
-    Understand what each API does and when to use it
+  <Card title="Platform Delegation" icon="users-gear" href="/core-concepts/platform-delegation">
+    Build platforms that act on behalf of businesses
   </Card>
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
@@ -232,7 +258,7 @@ Every UIP action generates a permanent audit record accessible via the Audit API
     Questions about implementation or integration? We're here to help.
   </Card>
 
-  <Card title="View Protocol Overview" icon="book" href="/core-concepts/protocol-overview">
-    Learn about UIP's vision and technical architecture
+  <Card title="Security Architecture" icon="shield-halved" href="/core-concepts/security">
+    Learn about UIP's security architecture and encryption
   </Card>
 </CardGroup>

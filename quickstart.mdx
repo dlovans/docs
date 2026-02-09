@@ -1,80 +1,341 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Integrate UIP identity verification in 5 minutes"
 ---
 
-## Get started in three steps
+Get up and running with UIP's Identify API in minutes. This guide walks you through creating your first identity verification session with working code examples.
 
-Get your documentation site running locally and make your first customization.
+<Info>
+**Prerequisites:** You need an API key from [business.uip.digital](https://business.uip.digital). New accounts get $5 in credits to test with.
+</Info>
 
-### Step 1: Set up your local environment
+## 1. Get Your API Key
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Sign up">
+    Visit [business.uip.digital](https://business.uip.digital) and create your account with UIP identity verification
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Create API Key">
+    Navigate to **Settings** > **API Keys** and create a new key
+  </Step>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+  <Step title="Save it securely">
+    Copy the key immediately and store it in an environment variable. It is only shown once.
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## 2. Create an Identify Session
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Make your first API call to create an identity verification session:
 
-### Step 3: Go live
+<CodeGroup>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+```bash cURL
+curl -X POST https://api.uip.digital/v1/identify \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": "Sign in to My App",
+    "requested_data": ["first_name", "last_name", "date_of_birth"]
+  }'
+```
 
-## Next steps
+```javascript Node.js
+const response = await fetch('https://api.uip.digital/v1/identify', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.UIP_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    intent: 'Sign in to My App',
+    requested_data: ['first_name', 'last_name', 'date_of_birth']
+  })
+});
 
-Now that you have your docs running, explore these key features:
+const { session_id, qr_code, expires_at } = await response.json();
+```
 
-<CardGroup cols={2}>
+```python Python
+import requests
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+response = requests.post(
+    'https://api.uip.digital/v1/identify',
+    headers={
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'intent': 'Sign in to My App',
+        'requested_data': ['first_name', 'last_name', 'date_of_birth']
+    }
+)
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+data = response.json()
+session_id = data['session_id']
+qr_code = data['qr_code']
+```
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+</CodeGroup>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+**Response:**
 
-</CardGroup>
+```json
+{
+  "session_id": "sess_1a2b3c4d5e6f",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+## 3. Display the QR Code or Deep Link
+
+The QR code is returned as a base64 PNG data URI. Use device detection to show the right UX:
+
+- **Desktop users** -- display the QR code image for scanning
+- **Mobile users** -- display an "Open UIP" button that links to `https://www.uip.id/{session_id}`
+
+```html
+<!-- Device detection: show QR on desktop, deep link on mobile -->
+<div id="uip-desktop">
+  <img id="uip-qr" alt="Scan with UIP app to verify identity" />
+  <p>Scan with UIP app</p>
+</div>
+
+<div id="uip-mobile" style="display: none;">
+  <a id="uip-link" class="button">Open UIP</a>
+</div>
+
+<script>
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    document.getElementById('uip-desktop').style.display = 'none';
+    document.getElementById('uip-mobile').style.display = 'block';
+    document.getElementById('uip-link').href =
+      `https://www.uip.id/${sessionId}`;
+  } else {
+    // qr_code from API response is a base64-encoded PNG data URI
+    document.getElementById('uip-qr').src = qrCode;
+  }
+</script>
+```
+
+<Info>
+**Session lifetime:** Sessions expire after 5 minutes. Show a timer and offer to generate a new session if it expires.
+</Info>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+**Future SDK:** A client-side SDK is planned that will handle device detection, QR rendering, and polling automatically. For now, implement this logic in your application.
 </Note>
+
+## 4. Poll for Completion
+
+Poll `GET /v1/identify/:id` every 2-3 seconds. When the status changes to `completed`, the response includes all the verified identity data in the same response.
+
+<CodeGroup>
+
+```javascript Node.js
+async function pollIdentify(sessionId, apiKey) {
+  while (true) {
+    const res = await fetch(
+      `https://api.uip.digital/v1/identify/${sessionId}`,
+      { headers: { 'Authorization': `Bearer ${apiKey}` } }
+    );
+    const data = await res.json();
+
+    if (data.status === 'completed') {
+      // All verified data is right here
+      console.log(`Verified: ${data.first_name} ${data.last_name}`);
+      console.log(`Audit ID: ${data.audit_id}`);
+      return data;
+    }
+
+    if (data.status === 'expired') {
+      throw new Error('Session expired');
+    }
+
+    // Still pending -- wait and poll again
+    await new Promise(r => setTimeout(r, 2500));
+  }
+}
+```
+
+```python Python
+import time
+
+def poll_identify(session_id, api_key):
+    while True:
+        response = requests.get(
+            f'https://api.uip.digital/v1/identify/{session_id}',
+            headers={'Authorization': f'Bearer {api_key}'}
+        )
+        data = response.json()
+
+        if data['status'] == 'completed':
+            print(f"Verified: {data['first_name']} {data['last_name']}")
+            print(f"Audit ID: {data['audit_id']}")
+            return data
+
+        if data['status'] == 'expired':
+            raise Exception('Session expired')
+
+        time.sleep(2.5)
+```
+
+```bash cURL
+# Poll until completed
+curl -X GET "https://api.uip.digital/v1/identify/sess_1a2b3c4d5e6f" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+</CodeGroup>
+
+**Response when pending:**
+
+```json
+{
+  "status": "pending",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+**Response when completed:**
+
+```json
+{
+  "status": "completed",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "audit_id": "audit_9z8y7x6w5v4u",
+  "uip_id": "user_abc123def456",
+  "first_name": "John",
+  "last_name": "Doe",
+  "date_of_birth": "1990-05-15",
+  "country": "US",
+  "identity_expires_at": "2027-01-11T00:00:00Z"
+}
+```
+
+That's it. No webhooks, no redirect URIs, no code exchange. Your API key proves ownership of the session, so the verified data is returned directly.
+
+## Complete Example
+
+Here is the full flow in one script:
+
+<CodeGroup>
+
+```javascript Node.js
+const API_KEY = process.env.UIP_API_KEY;
+const BASE = 'https://api.uip.digital/v1';
+
+// Step 1: Create session
+const session = await fetch(`${BASE}/identify`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    intent: 'Sign in to My App',
+    requested_data: ['first_name', 'last_name', 'date_of_birth']
+  })
+}).then(r => r.json());
+
+console.log('Session created:', session.session_id);
+console.log('Show QR code to user:', session.qr_code.substring(0, 50) + '...');
+
+// Step 2: Poll for completion
+let result;
+while (true) {
+  const poll = await fetch(`${BASE}/identify/${session.session_id}`, {
+    headers: { 'Authorization': `Bearer ${API_KEY}` }
+  }).then(r => r.json());
+
+  if (poll.status === 'completed') {
+    result = poll;
+    break;
+  }
+  if (poll.status === 'expired') {
+    throw new Error('Session expired -- create a new one');
+  }
+  await new Promise(r => setTimeout(r, 2500));
+}
+
+// Step 3: Use the verified identity
+console.log(`Welcome, ${result.first_name} ${result.last_name}!`);
+console.log(`Audit trail: ${result.audit_id}`);
+```
+
+```python Python
+import requests
+import time
+import os
+
+API_KEY = os.environ['UIP_API_KEY']
+BASE = 'https://api.uip.digital/v1'
+
+# Step 1: Create session
+session = requests.post(
+    f'{BASE}/identify',
+    headers={
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'intent': 'Sign in to My App',
+        'requested_data': ['first_name', 'last_name', 'date_of_birth']
+    }
+).json()
+
+print(f"Session created: {session['session_id']}")
+print(f"Show QR code to user (base64 PNG data URI)")
+
+# Step 2: Poll for completion
+while True:
+    poll = requests.get(
+        f"{BASE}/identify/{session['session_id']}",
+        headers={'Authorization': f'Bearer {API_KEY}'}
+    ).json()
+
+    if poll['status'] == 'completed':
+        result = poll
+        break
+    if poll['status'] == 'expired':
+        raise Exception('Session expired -- create a new one')
+    time.sleep(2.5)
+
+# Step 3: Use the verified identity
+print(f"Welcome, {result['first_name']} {result['last_name']}!")
+print(f"Audit trail: {result['audit_id']}")
+```
+
+</CodeGroup>
+
+## What's Next?
+
+<CardGroup cols={3}>
+  <Card
+    title="Sign API"
+    icon="file-signature"
+    href="/api-reference/endpoint/sign"
+  >
+    Request legally binding biometric signatures
+  </Card>
+
+  <Card
+    title="Message API"
+    icon="message"
+    href="/api-reference/endpoint/message"
+  >
+    Send encrypted messages with document attachments
+  </Card>
+
+  <Card
+    title="QR Integration Guide"
+    icon="qrcode"
+    href="/core-concepts/qr-integration"
+  >
+    Device detection, QR display best practices, and deep linking
+  </Card>
+</CardGroup>

@@ -48,12 +48,12 @@ Traditional signing processes are inefficient:
     Your fingerprint or face becomes your password. Cryptographic keys are generated and stored securely on your device.
   </Step>
 
-  <Step title="Universal Access">
-    Use UIP to authenticate to any service, sign any document, or verify your identity—all with a simple biometric scan.
+  <Step title="QR Code or Deep Link">
+    Businesses create a session via the API and get back a QR code. Desktop users scan it; mobile users tap a deep link. The UIP app opens with the request details.
   </Step>
 
-  <Step title="Permanent Audit Trail">
-    Every action generates a unique reference ID with immutable proof of who did what, when.
+  <Step title="Approve and Done">
+    The user reviews the request in the UIP app and approves with their biometric. The business polls the API and receives the verified result instantly.
   </Step>
 </Steps>
 
@@ -132,10 +132,10 @@ Traditional signing processes are inefficient:
   </Accordion>
 
   <Accordion title="For Developers" icon="code">
-    - **Simple integration** - Get started in minutes with clear APIs
+    - **Simple integration** - Create session, show QR, poll for result
+    - **No webhooks needed** - Identify and Sign use simple polling
     - **Modular design** - Use only what you need (auth, sign, messaging)
     - **Usage-based pricing** - Pay only for what you use, no subscriptions
-    - **Enterprise reliability** - 99.9% uptime SLA
     - **Comprehensive docs** - Complete API reference and integration guides
   </Accordion>
 
@@ -218,9 +218,9 @@ Ready to integrate UIP into your application?
 
 <CardGroup cols={2}>
   <Card
-    title="Quick Start Guide"
+    title="Quickstart"
     icon="rocket"
-    href="/getting-started"
+    href="/quickstart"
   >
     Build your first integration in 5 minutes
   </Card>
@@ -231,5 +231,21 @@ Ready to integrate UIP into your application?
     href="/api-reference/introduction"
   >
     Explore the complete API reference
+  </Card>
+
+  <Card
+    title="Security Architecture"
+    icon="shield-halved"
+    href="/core-concepts/security"
+  >
+    Deep dive into UIP's security model
+  </Card>
+
+  <Card
+    title="Platform Delegation"
+    icon="users-gear"
+    href="/core-concepts/platform-delegation"
+  >
+    Build platforms that act on behalf of businesses
   </Card>
 </CardGroup>

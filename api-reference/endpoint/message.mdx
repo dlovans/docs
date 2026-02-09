@@ -1,6 +1,6 @@
 ---
 title: 'Send Message'
-openapi: 'POST /message'
+openapi: 'POST /v1/message'
 ---
 
 Send an encrypted message to a UIP user. Optionally include document attachments (up to 20MB) and request signatures directly from the message.
@@ -84,7 +84,7 @@ Messages are end-to-end encrypted and support priority notification levels.
   - **Multiple files:** Supported, but total size cannot exceed 20MB
 
   **Pricing:**
-  - Message without attachment: $0.05
+  - Message without attachment: $0.03
   - Message with attachment: $0.10 (regardless of number of PDFs, as long as total ≤ 20MB)
 
   <Note>
@@ -197,8 +197,6 @@ Possible error codes for this endpoint:
 - `request/invalid-file-type` - Only PDF files are allowed
 - `request/file-too-large` - Combined file size exceeds 20MB limit
 - `request/not-found` - No such registered route in API service
-- `request/webhook-missing` - Webhook URL not configured in Business Dashboard
-
 **Payment Errors:**
 - `payment/insufficient-funds` - Insufficient account balance to complete request
 

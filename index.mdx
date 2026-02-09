@@ -50,31 +50,65 @@ Modular APIs that work together seamlessly. Pick what you need.
   <Card
     title="Identify API"
     icon="fingerprint"
-    href="/api-services/identify"
+    href="/api-reference/endpoint/identify"
   >
-    Authenticate users with biometrics
+    Authenticate users with biometrics and get verified identity data
 
     **$0.01** per identification
   </Card>
   <Card
     title="Sign API"
     icon="file-signature"
-    href="/api-services/sign"
+    href="/api-reference/endpoint/sign"
   >
-    Request legally binding signatures
+    Request legally binding biometric signatures
 
     **$0.03** per signature
   </Card>
   <Card
     title="Message API"
     icon="message-check"
-    href="/api-services/messaging"
+    href="/api-reference/endpoint/message"
   >
     Send encrypted messages to users
 
-    **$0.05** per message
+    **$0.03** per message
   </Card>
 </CardGroup>
+
+<CardGroup cols={1}>
+  <Card
+    title="Audit API"
+    icon="list-check"
+    href="/api-reference/endpoint/audit"
+  >
+    Retrieve permanent, court-admissible audit trails for all actions
+
+    **Always free**
+  </Card>
+</CardGroup>
+
+## How it works
+
+A simple flow for every integration: create a session, display a QR code, poll for completion, and receive verified data.
+
+<Steps>
+  <Step title="Create a session">
+    Call the API with your intent. You get back a `session_id`, `qr_code`, and `expires_at`.
+  </Step>
+
+  <Step title="Display QR code or deep link">
+    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button that deep links into the app.
+  </Step>
+
+  <Step title="User authenticates biometrically">
+    The user opens the UIP app, reviews the request, and approves with their fingerprint or face.
+  </Step>
+
+  <Step title="Poll and get the result">
+    Poll `GET /v1/identify/:id` until the status is `completed`. The response includes all verified data -- no separate code exchange needed.
+  </Step>
+</Steps>
 
 ## Why UIP?
 

@@ -1,0 +1,57 @@
+---
+title: 'Poll Sign Session'
+openapi: 'GET /v1/sign/{id}'
+---
+
+Poll this endpoint every 2-3 seconds to check session status. When the user completes biometric signature, the response includes the audit trail reference.
+
+### Response -- Pending
+
+```json
+{
+  "status": "pending",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+### Response -- Completed
+
+When the user completes biometric signature:
+
+```json
+{
+  "status": "completed",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "audit_id": "audit_9z8y7x6w5v4u",
+  "uip_id": "user_abc123def456"
+}
+```
+
+### Response -- Expired
+
+```json
+{
+  "status": "expired",
+  "expires_at": "2025-01-11T12:35:00Z"
+}
+```
+
+<ResponseField name="status" type="string" required>
+  Session status: `pending`, `completed`, or `expired`
+</ResponseField>
+
+<ResponseField name="audit_id" type="string">
+  Permanent audit trail reference (only present when `completed`). Save this for compliance.
+</ResponseField>
+
+<ResponseField name="uip_id" type="string">
+  User's unique UIP identifier (only present when `completed`).
+</ResponseField>
+
+<Warning>
+**Save the audit_id:** This is your permanent proof of signature. Store it in your database for compliance and verification purposes.
+</Warning>
+
+<Info>
+**No webhooks needed.** The Sign API uses simple polling. No redirect URIs, no code exchange.
+</Info>

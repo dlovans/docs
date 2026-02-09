@@ -1,0 +1,169 @@
+---
+title: 'Create Authorization'
+openapi: 'POST /authorize'
+---
+
+Create an authorization session for platform delegation. Platforms use this endpoint to request delegated access to a business's UIP capabilities.
+
+The business owner scans the QR code with their UIP app to grant the platform specific scopes of access. Upon approval, the platform receives a delegation token (`uip_at_` prefix) that can be used in place of an API key for the granted scopes.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | Must be `application/json` |
+
+### Body Parameters
+
+<ParamField body="client_id" type="string" required>
+  The platform's client ID, issued during platform registration.
+</ParamField>
+
+<ParamField body="client_secret" type="string" required>
+  The platform's client secret, issued during platform registration.
+</ParamField>
+
+<ParamField body="scopes" type="array" required>
+  Array of permission scopes to request from the business.
+
+  **Valid scopes:**
+  - `identify:create` — Create identify sessions on behalf of the business
+  - `sign:create` — Create sign sessions on behalf of the business
+  - `messages:create` — Send messages on behalf of the business
+  - `messages:read` — Read message status on behalf of the business
+  - `audits:read` — Query audit records on behalf of the business
+  - `business:read` — Read business profile information
+
+  **Example:** `["identify:create", "sign:create"]`
+</ParamField>
+
+## Response
+
+### Success Response (200 OK)
+
+<ResponseField name="session_id" type="string" required>
+  Unique identifier for this authorization session.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string" required>
+  ISO 8601 timestamp when the session expires.
+</ResponseField>
+
+<ResponseField name="qr_code" type="string" required>
+  Base64-encoded PNG data URI of the QR code for the business owner to scan. The QR code encodes `https://www.uip.id/{session_id}`.
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.uip.digital/v1/authorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "platform_abc123",
+    "client_secret": "secret_xyz789",
+    "scopes": ["identify:create", "sign:create"]
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.uip.digital/v1/authorize', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    client_id: 'platform_abc123',
+    client_secret: 'secret_xyz789',
+    scopes: ['identify:create', 'sign:create']
+  })
+});
+
+const { session_id, qr_code, expires_at } = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.uip.digital/v1/authorize',
+    headers={
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'client_id': 'platform_abc123',
+        'client_secret': 'secret_xyz789',
+        'scopes': ['identify:create', 'sign:create']
+    }
+)
+
+data = response.json()
+session_id = data['session_id']
+qr_code = data['qr_code']
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "session_id": "sess_auth_1a2b3c4d",
+  "expires_at": "2025-01-11T12:35:00Z",
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+## Authorization Flow
+
+<Steps>
+  <Step title="Platform Requests Authorization">
+    Platform calls this endpoint with client credentials and requested scopes
+  </Step>
+
+  <Step title="Display QR Code">
+    Platform displays the QR code to the business owner. On mobile, show an "Open UIP" button linking to `https://www.uip.id/{session_id}`
+  </Step>
+
+  <Step title="Business Owner Scans">
+    Business owner scans QR code with their UIP app and reviews the requested scopes
+  </Step>
+
+  <Step title="Business Owner Approves">
+    Business owner approves with biometric verification, granting the requested scopes
+  </Step>
+
+  <Step title="Platform Polls for Token">
+    Platform polls `POST /v1/authorize/:id/status` with client credentials until status is `completed`. The completed response includes the delegation token.
+  </Step>
+
+  <Step title="Platform Uses Token">
+    Platform uses the delegation token (`uip_at_` prefix) as a Bearer token to make API calls on behalf of the business
+  </Step>
+</Steps>
+
+<Info>
+**Webhook notification:** In addition to polling, UIP sends an `authorize.completed` webhook when the business owner approves. See [Webhooks](/api-reference/webhooks) for details.
+</Info>
+
+<Info>
+**Rate limit:** The authorize endpoint has a stricter rate limit of 100 requests per minute per API key (vs. 300/min for other endpoints).
+</Info>
+
+## Errors
+
+Possible error codes for this endpoint:
+
+- `auth/missing-api-key` - No API key provided
+- `auth/invalid-api-key` - Invalid API key
+- `auth/scope-not-allowed` - One or more requested scopes are not valid
+- `request/invalid-payload` - Missing required fields or invalid format
+- `rate-limit/exceeded` - Rate limit exceeded (100/min for authorize)
+- `internal/server-error` - Failed to create authorization session

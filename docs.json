@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "UIP Documentation",
   "colors": {
-    "primary": "#0070F3",
+    "primary": "#1E3A8A",
     "light": "#3B82F6",
-    "dark": "#1E40AF"
+    "dark": "#60A5FA"
   },
   "favicon": {
     "light": "/favicon.png",
@@ -14,35 +14,26 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Overview",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Introduction",
+            "group": "Getting Started",
             "pages": [
               "index",
               "what-is-uip",
+              "quickstart",
               "getting-started",
               "pricing"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "Guides",
             "pages": [
-              "core-concepts/protocol-overview",
               "core-concepts/qr-integration",
               "core-concepts/integration-patterns",
-              "core-concepts/error-handling",
-              "core-concepts/impersonation-protection",
-              "core-concepts/resellers-admins"
-            ]
-          },
-          {
-            "group": "API Services",
-            "pages": [
-              "api-services/identify",
-              "api-services/sign",
-              "api-services/messaging",
-              "api-services/audit"
+              "core-concepts/platform-delegation",
+              "core-concepts/security",
+              "core-concepts/error-handling"
             ]
           }
         ]
@@ -51,26 +42,50 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "Endpoints",
+            "group": "Overview",
             "pages": [
               "api-reference/introduction"
             ]
           },
           {
-            "group": "API Endpoints",
+            "group": "Identify",
             "pages": [
               "api-reference/endpoint/identify",
+              "api-reference/endpoint/identify-session"
+            ]
+          },
+          {
+            "group": "Sign",
+            "pages": [
               "api-reference/endpoint/sign",
+              "api-reference/endpoint/sign-session"
+            ]
+          },
+          {
+            "group": "Message",
+            "pages": [
               "api-reference/endpoint/message",
-              "api-reference/endpoint/invalidate",
-              "api-reference/endpoint/audit",
-              "api-reference/endpoint/webhook-test"
+              "api-reference/endpoint/invalidate"
+            ]
+          },
+          {
+            "group": "Audit",
+            "pages": [
+              "api-reference/endpoint/audit"
+            ]
+          },
+          {
+            "group": "Authorize",
+            "pages": [
+              "api-reference/endpoint/authorize",
+              "api-reference/endpoint/authorize-status"
             ]
           },
           {
             "group": "Webhooks",
             "pages": [
-              "api-reference/webhooks"
+              "api-reference/webhooks",
+              "api-reference/endpoint/webhook-test"
             ]
           }
         ]
