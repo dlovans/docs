@@ -94,14 +94,9 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Consumer App",
+          "anchor": "UIP Platform",
           "href": "https://uip.digital",
-          "icon": "mobile"
-        },
-        {
-          "anchor": "Business Portal",
-          "href": "https://business.uip.digital",
-          "icon": "building"
+          "icon": "globe"
         },
         {
           "anchor": "Support",
@@ -119,13 +114,13 @@
     "links": [
       {
         "label": "Get API Keys",
-        "href": "https://business.uip.digital/identify"
+        "href": "https://uip.digital/identify"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Business Dashboard",
-      "href": "https://business.uip.digital"
+      "label": "Dashboard",
+      "href": "https://uip.digital"
     }
   },
   "contextual": {
