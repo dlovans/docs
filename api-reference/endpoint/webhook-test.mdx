@@ -87,7 +87,7 @@ app.post('/webhook', (req, res) => {
     return res.status(200).send('OK');
   }
 
-  // Handle other events (message, authorize.completed, delegation.revoked)
+  // Handle other events (message)
 
   res.status(200).send('OK');
 });
@@ -127,7 +127,7 @@ def webhook():
         print(f"Test webhook received: {data.get('test')}")
         return 'OK', 200
 
-    # Handle other events (message, authorize.completed, delegation.revoked)
+    # Handle other events (message)
 
     return 'OK', 200
 ```
@@ -185,7 +185,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Handle other events (message, authorize.completed, delegation.revoked)
+    // Handle other events (message)
 
     w.WriteHeader(http.StatusOK)
 }
@@ -329,10 +329,6 @@ Possible error codes for this endpoint:
 
   <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
     Messaging endpoint with signature webhook events
-  </Card>
-
-  <Card title="Authorize API" icon="users-gear" href="/api-reference/endpoint/authorize">
-    Authorization endpoint with completion webhook events
   </Card>
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">

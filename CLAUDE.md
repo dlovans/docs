@@ -1,146 +1,76 @@
-# UIP (Universal Identity Protocol) - Business Context
+# UIP (Universal Identity Protocol) — Business Context
 
 ## Overview
-UIP is a universal identity protocol for authentication, verification, and signing. It provides a biometric-first, self-sovereign identity solution that replaces fragmented logins with one cryptographically secure, government-verified identity.
+UIP is a biometric identity and signature protocol for authentication, verification, and signing. It replaces fragmented logins and DocuSign-style workflows with one cryptographically secure, government-verified identity that users carry on their phone.
 
 ## Branding
 
-### Official Colors
+### Official colors
 - **Primary:** Black (#000000)
 - **Secondary:** White (#FFFFFF)
-- **Accent:** Midnight Blue (#1E3A8A)
+- **Accent:** Midnight blue (#1E3A8A)
 
 The black and white color scheme represents simplicity and clarity, while midnight blue serves as the accent color for highlights and interactive elements.
 
-## Core Value Proposition
+## Core value proposition
 **One identity. Verified everywhere.**
 Replace passwords, DocuSign, and fragmented identity systems with biometric authentication and legally binding signatures.
 
 ---
 
-## Consumer UIP App
+## Consumer UIP app
 
-### Main Features
+### Main features
 
-#### Government-Verified Identity
+#### Government-verified identity
 - ID verification via official documents and biometric checks (powered by Didit)
 - Government-grade verification process
 - One-time verification, works globally
 
-#### Biometric Authentication
+#### Biometric authentication
 - Fingerprint or face replaces all passwords
-- 100% biometric recognition accuracy
 - Liveness detection to prevent fraud
-- Local device processing for privacy
+- Local device processing
 
-#### Cross-Border Functionality
+#### Cross-border functionality
 - One identity for authentication and signing, globally
 - Works across borders, governments, and businesses
 - Instant proof of identity worldwide
 
-### Quick Setup (60 Seconds)
-1. **Get the app** - Download from App Store or Google Play (10 seconds)
-2. **Quick verification** - Scan ID and take a selfie (verified in seconds)
-3. **Done** - Start using UIP everywhere, no more passwords
+### Quick setup (60 seconds)
+1. **Get the app** — download from App Store or Google Play
+2. **Quick verification** — scan ID and take a selfie
+3. **Done** — start using UIP everywhere, no more passwords
 
-### What UIP Enables
+### What UIP enables
 
-#### Cross-Border Identity Verification
-- Opening bank accounts with one tap
-- Border crossings with instant proof
-- Government-verified, globally trusted
-- Keep data private
+- **Cross-border identity verification** — opening bank accounts with one tap, border crossings with instant proof
+- **Sign legal documents** — tap to sign with biometric, legally valid and binding
+- **Universal authentication** — one identity, no passwords
+- **Age verification without exposing data** — returns yes/no only
+- **Encrypted messaging** — important communications from banks or government, no spam
 
-#### Sign Legal Documents
-- Replace DocuSign with cryptographic signatures
-- No printing, scanning, or emailing PDFs
-- Tap to sign with fingerprint
-- Legally valid and binding
-- Track what you signed
+### Security features
 
-#### Universal Authentication
-- One identity that works everywhere
-- Scan with phone for instant authentication
-- No passwords needed
-- No password managers required
-
-#### Age Verification Without Exposing Data
-- Prove age without showing ID
-- Returns yes/no only
-- Privacy-preserving verification
-- Secure and instant
-
-#### Encrypted Messaging
-- Important communications from banks or government
-- No spam or marketing
-- Government notices and business updates
-- Emergency alerts
-
-#### Transaction Approval and Delegation
-- Approve purchases/transfers with fingerprint
-- No SMS codes
-- Temporary delegation capabilities
-- Cancel anytime
-
-### Security Features
-
-#### Biometric Authentication
-- Your fingerprint or face is your password
-- Impossible to hack, steal, or forget
-- Fingerprint recognition
-- Face ID technology
-- Liveness detection
-- Local device processing
-
-#### Self-Sovereign Identity
-- 100% user control
-- You own your identity
-- Data stays on device, encrypted
-- Privacy-first design
-- Zero-knowledge architecture
-
-#### End-to-End Encryption
-- AES-256 encryption (strongest available)
-- Every message, login, and signature encrypted
-- Zero-knowledge design
-- Secure connections
-- Future-proof security
-
-#### Government Verification
-- Official document verification
-- Live selfie matching
-- Anti-fraud detection
-- Compliance ready
-
-### Key Metrics
-- **256-bit encryption** - Strongest encryption available
-- **100% accuracy** - Biometric recognition rate
-- **24/7 availability** - Always-on identity verification
-
-### UIP vs Traditional Systems
-
-| Feature | Traditional | With UIP |
-|---------|------------|----------|
-| Security | Password123 gets hacked | Your face can't be stolen |
-| Identity verification | Different process every time | Government-verified once, works everywhere |
-| Privacy | Companies sell your data | You own your identity |
-| Global use | New country, new account | One identity, anywhere |
-| Document signing | Print, scan, email back | Tap to sign, legally binding |
-| Recovery | Forgot password? Start over | Biometric verification + done |
+- **Biometric authentication** — fingerprint or face, liveness detection, local device processing
+- **End-to-end HTTPS** — all API calls and webhooks use TLS
+- **AES-256-GCM encryption** — every PII field encrypted at rest
+- **ECDSA P-256 signatures** — every critical user action is signed on-device
+- **Government verification** — official document verification with live selfie matching
 
 ---
 
-## Business UIP Web App
+## Business UIP web app
 
-### Value Proposition
-Biometric-first, self-sovereign identity and signature protocol. Enable your business to authenticate and sign any digital action without passwords or centralized control.
+### Value proposition
+Biometric-first identity and signature protocol. Enable your business to authenticate users, sign documents, and send encrypted messages without building your own identity stack.
 
-### Core Features
-- **Biometric Security** - Mobile-only authentication with fingerprint and face recognition
-- **Global Compliance** - Government ID verification and legally binding signatures
-- **Simple Integration** - Easy API integration with QR code authentication flow
+### Core features
+- **Biometric security** — mobile-only authentication with fingerprint and face recognition
+- **Global compliance** — government ID verification and legally binding signatures
+- **Simple integration** — REST APIs with a QR code authentication flow
 
-### Three Powerful APIs
+### Three powerful APIs
 
 #### 1. Identify API
 Authenticate users with biometric verification. Get verified identity information and age verification.
@@ -175,117 +105,99 @@ Send secure, encrypted messages to users. Include documents, request signatures,
 - $0.03 per message without attachment
 - $0.10 per message with attachment (both support signature)
 
-### Use Cases
+### Use cases
 
-#### Consumer Applications
-- **Passwordless Registration** - Replace email/password flows with biometric UIP accounts
-- **Age & Location Verification** - Verify age for digital platforms, clubs, events, gambling sites
-- **High-Value Transactions** - Secure crypto exchanges, stock trades, property purchases
-- **Healthcare Consent** - Medical procedures, organ donation, clinical trial participation
-- **Travel & Immigration** - Visa applications, border crossings, hotel check-ins
+#### Consumer applications
+- **Passwordless registration** — replace email/password flows with biometric UIP accounts
+- **Age and location verification** — verify age for digital platforms, clubs, events
+- **High-value transactions** — secure crypto exchanges, stock trades, property purchases
+- **Healthcare consent** — medical procedures, organ donation, clinical trial participation
+- **Travel and immigration** — visa applications, border crossings, hotel check-ins
 
-#### Business Applications
-- **Employee Authentication** - Save $70 per employee on password resets
-- **Contract Signing** - Instant NDAs, employment contracts, vendor agreements
-- **Compliance & Auditing** - SOX compliance, financial audits, regulatory reporting
-- **Financial Services** - Loan applications, account openings, wire transfers, KYC compliance
-- **Client Communication** - Secure messaging for sensitive project updates
+#### Business applications
+- **Employee authentication** — save the recurring cost of password resets
+- **Contract signing** — instant NDAs, employment contracts, vendor agreements
+- **Compliance and auditing** — SOX compliance, financial audits, regulatory reporting
+- **Financial services** — loan applications, account openings, wire transfers, KYC compliance
+- **Client communication** — secure messaging for sensitive project updates
 
-#### B2B & Cross-Border
-- **International Trade** - Cross-border contracts, import/export agreements
-- **Partnership Verification** - Verify business owner identities for joint ventures, acquisitions
-- **Supply Chain Authentication** - Verify supplier identities, authenticate certifications
-- **Payment Authorization** - Large B2B payments, invoice approvals, multi-signature operations
-- **Legal Documentation** - Cross-border litigation, international arbitration
+#### B2B and cross-border
+- **International trade** — cross-border contracts, import/export agreements
+- **Partnership verification** — verify business owner identities for joint ventures
+- **Supply chain authentication** — verify supplier identities, authenticate certifications
+- **Payment authorization** — large B2B payments, invoice approvals
+- **Legal documentation** — cross-border litigation, international arbitration
 
-### Why Choose UIP
+### Why UIP
 
-- **Composable** - Mix and match APIs to create custom workflows
-- **Self-Managing** - We handle renewals, verification, and identity lifecycle management
-- **Cost Effective** - Eliminate password management costs and reduce support overhead
-
----
-
-## Permanent Audit Trail System
-
-Every action returns a unique reference ID for permanent verification and compliance.
-
-### How It Works
-
-1. **Action Returns ID** - Every authentication, signature, or message returns a unique reference ID
-2. **Store ID Safely** - Save reference ID in database, contracts, or compliance systems
-3. **Query for Verification** - Use reference ID to retrieve timestamp, signatory, requester, and action details
-
-### Audit Trail Features
-
-#### Unique Reference Generation
-- One ID per action
-- Impossible to forge or guess
-- Permanent record retention
-
-#### Legal Verification
-- Government ID verified signatories
-- Precise UTC timestamps
-- Court-admissible evidence
-
-#### Audit Query System
-- Instant ID verification
-- Signatory identity details
-- Requester organization info
-- Tamper-proof storage
-
-### What Each Reference ID Reveals
-
-- **Signatory Details** - Full name, government ID verification status, biometric authentication time, UIP public key
-- **Precise Timestamp** - Exact UTC timestamp, timezone info, duration of signature process, session details
-- **Requester Context** - Business organization, authorized representative, document type, action category, IP geolocation
-
-### Business Applications
-
-#### Contract Verification
-Store signature reference IDs in contracts for authenticity verification
-
-#### Financial Audit Trails
-Save transaction approval reference IDs for verified signatory and timestamp data
-
-#### Employee Authentication Logs
-Store login reference IDs for verified access details
-
-#### Compliance Documentation
-Store audit reference IDs for compliance systems
-
-### Legal & Evidence
-
-- **Court Evidence** - Present verified signature details as court-admissible evidence
-- **Dispute Resolution** - Resolve "who signed when" disputes instantly
-- **Regulatory Investigations** - Provide investigators with verified documentation
-- **Insurance Claims** - Include signature reference IDs in insurance documentation
+- **Composable** — mix and match APIs to create custom workflows
+- **Self-managing** — UIP handles renewals, verification, and identity lifecycle management
+- **Cost effective** — eliminate password management costs and reduce support overhead
 
 ---
 
-## Pricing Model
+## Permanent audit trail system
 
-### Simple, Usage-Based Pricing
+Every action returns a unique audit ID for permanent verification and compliance.
+
+### How it works
+
+1. **Action returns ID** — every authentication, signature, or message action returns an audit ID
+2. **Store ID safely** — save the ID in your database, contracts, or compliance systems
+3. **Query for verification** — use the ID to retrieve timestamp, signatory, requester, and action details
+
+### Audit trail features
+
+- **Unique reference generation** — one ID per action, impossible to forge, permanent record retention
+- **Legal verification** — government ID verified signatories, precise UTC timestamps
+- **Audit query system** — instant ID verification with signatory and requester details
+
+### What each audit ID reveals
+
+- **Signatory details** — full name, government ID verification status, biometric authentication time, UIP public key
+- **Precise timestamp** — exact UTC timestamp, timezone info, session duration
+- **Requester context** — business name, API key owner, action type
+
+### Business applications
+
+- **Contract verification** — store signature audit IDs in contracts for authenticity verification
+- **Financial audit trails** — save transaction approval audit IDs for verified signatory and timestamp data
+- **Employee authentication logs** — store login audit IDs for verified access details
+- **Compliance documentation** — store audit IDs in compliance systems
+
+### Legal and evidence
+
+- **Court evidence** — present verified signature details as court-admissible evidence
+- **Dispute resolution** — resolve "who signed when" disputes instantly
+- **Regulatory investigations** — provide investigators with verified documentation
+
+---
+
+## Pricing model
+
+### Simple, usage-based pricing
 Pay only for what you use. No subscriptions, no hidden fees.
 
 | API | Price | Features |
 |-----|-------|----------|
 | **Identify API** | $0.01 per successful authentication | Biometric authentication, verified identity, age verification, global compliance |
-| **Signature API** | $0.03 per successful signature | Instant biometric signing, legally binding documents, verified identity proof, cross-border compliance |
-| **Message API** | $0.03 without attachment<br>$0.10 with attachment | End-to-end encryption, document attachments (20MB), signature requests, priority notification levels |
+| **Sign API** | $0.03 per successful signature | Instant biometric signing, legally binding documents, verified identity proof, cross-border compliance |
+| **Message API** | $0.03 without attachment<br/>$0.10 with attachment | End-to-end encryption, document attachments (20MB), signature requests, priority notification levels |
+
+**Signup bonus:** $20 in credits on your first business.
 
 ---
 
-## Technical Specifications
+## Technical specifications
 
 ### Security
-- AES-256 encryption
-- End-to-end encryption for all communications
-- Zero-knowledge architecture
-- Local biometric processing
-- Tamper-proof audit records
+- AES-256-GCM encryption for PII at rest
+- ECDSA P-256 signatures signed on-device for every critical action
+- Local biometric processing — biometric templates never leave the device
+- Tamper-evident audit records (append-only with invalidation, never deletion)
+- TLS 1.2+ for all API and webhook traffic
 
-### Identity Verification
+### Identity verification
 - Government-issued document verification
 - Live biometric matching
 - Liveness detection
@@ -296,9 +208,9 @@ Pay only for what you use. No subscriptions, no hidden fees.
 - RESTful API architecture
 - QR code authentication flow
 - Simple polling for Identify and Sign APIs
-- Webhook support for Message and Authorize APIs
+- Webhook support for the Message API
 - Comprehensive API documentation
-- Quick integration (can integrate in hours)
+- Quick integration (hours, not weeks)
 
 ### Compliance
 - GDPR compliant
@@ -309,11 +221,15 @@ Pay only for what you use. No subscriptions, no hidden fees.
 
 ---
 
-## Documentation Notes
+## Documentation notes
 
-This is a Mintlify documentation project that should:
+This is a Mintlify documentation project. **Docs are strictly external-API-facing** — they document `uip-api-external` endpoints that businesses call. Never mention internal routes (`/v1/identity`, `/v1/business`, `/v1/sessions/*`, `/v1/tokens/*`, `/v1/keys`, `/v1/audits`, `/v1/messages` under the JWT-protected group, etc.); those belong to the mobile app and dashboard, not to the public API.
+
+Features like webhook-secret rotation, API key management, and business creation are described in terms of the dashboard UI, not the endpoints that back them.
+
+Style guidelines:
 - Use built-in Mintlify components extensively (Card, CardGroup, CodeGroup, Accordion, etc.)
 - Provide clear, actionable developer documentation
 - Include code examples and integration guides
 - Follow Mintlify best practices for navigation and structure
-- Make the documentation beautiful and user-friendly
+- **Never use:** "self-sovereign", "zero-knowledge", "platform delegation", or "authorize API" — these concepts are not part of the v1 surface.

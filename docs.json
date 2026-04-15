@@ -8,8 +8,8 @@
     "dark": "#60A5FA"
   },
   "favicon": {
-    "light": "/favicon.png",
-    "dark": "/favicon-dark.png"
+    "light": "/favicon.svg",
+    "dark": "/favicon.svg"
   },
   "navigation": {
     "tabs": [
@@ -31,7 +31,6 @@
             "pages": [
               "core-concepts/qr-integration",
               "core-concepts/integration-patterns",
-              "core-concepts/platform-delegation",
               "core-concepts/security",
               "core-concepts/error-handling"
             ]
@@ -72,13 +71,6 @@
             "group": "Audit",
             "pages": [
               "api-reference/endpoint/audit"
-            ]
-          },
-          {
-            "group": "Authorize",
-            "pages": [
-              "api-reference/endpoint/authorize",
-              "api-reference/endpoint/authorize-status"
             ]
           },
           {

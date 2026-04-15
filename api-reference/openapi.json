@@ -257,122 +257,6 @@
         }
       }
     },
-    "/authorize": {
-      "post": {
-        "summary": "Create Authorization Session",
-        "description": "Create an authorization session for platform delegation. Returns a QR code for the business owner to scan.",
-        "operationId": "authorizeCreate",
-        "tags": ["Authorization"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthorizeRequest"
-              },
-              "examples": {
-                "basic": {
-                  "summary": "Request identify and sign scopes",
-                  "value": {
-                    "client_id": "platform_abc123",
-                    "client_secret": "secret_xyz789",
-                    "scopes": ["identify:create", "sign:create"]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authorization session created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "session_id": "sess_auth_1a2b3c4d",
-                      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-                      "expires_at": "2025-01-11T12:35:00Z"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/authorize/{id}/status": {
-      "post": {
-        "summary": "Check Authorization Status",
-        "description": "Check the status of an authorization session. Uses POST because client credentials must be verified on every status check.",
-        "operationId": "authorizeStatus",
-        "tags": ["Authorization"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "The session_id returned when creating the authorization session",
-            "schema": {
-              "type": "string"
-            },
-            "example": "sess_auth_1a2b3c4d"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthorizeStatusRequest"
-              },
-              "examples": {
-                "basic": {
-                  "value": {
-                    "client_id": "platform_abc123",
-                    "client_secret": "secret_xyz789"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authorization session status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthorizeStatusResponse"
-                },
-                "examples": {
-                  "pending": {
-                    "summary": "Pending approval",
-                    "value": {
-                      "status": "pending",
-                      "expires_at": "2025-01-11T12:35:00Z"
-                    }
-                  },
-                  "completed": {
-                    "summary": "Approved with delegation token",
-                    "value": {
-                      "status": "completed",
-                      "expires_at": "2025-01-11T12:35:00Z",
-                      "access_token": "uip_at_abc123xyz789..."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/message": {
       "post": {
         "summary": "Send Message",
@@ -583,42 +467,6 @@
           }
         }
       },
-      "AuthorizeRequest": {
-        "type": "object",
-        "required": ["client_id", "client_secret", "scopes"],
-        "properties": {
-          "client_id": {
-            "type": "string",
-            "description": "The platform's client ID, issued during platform registration."
-          },
-          "client_secret": {
-            "type": "string",
-            "description": "The platform's client secret, issued during platform registration."
-          },
-          "scopes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["identify:create", "sign:create", "messages:create", "messages:read", "audits:read", "business:read"]
-            },
-            "description": "Array of permission scopes to request from the business."
-          }
-        }
-      },
-      "AuthorizeStatusRequest": {
-        "type": "object",
-        "required": ["client_id", "client_secret"],
-        "properties": {
-          "client_id": {
-            "type": "string",
-            "description": "The platform's client ID."
-          },
-          "client_secret": {
-            "type": "string",
-            "description": "The platform's client secret."
-          }
-        }
-      },
       "SessionResponse": {
         "type": "object",
         "properties": {
@@ -701,25 +549,6 @@
           "uip_id": {
             "type": "string",
             "description": "User's unique UIP identifier (only present when completed)"
-          }
-        }
-      },
-      "AuthorizeStatusResponse": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["pending", "completed", "expired"],
-            "description": "Authorization session status"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "ISO 8601 timestamp when the session expires"
-          },
-          "access_token": {
-            "type": "string",
-            "description": "Delegation token with uip_at_ prefix (only present when completed)"
           }
         }
       },

@@ -5,15 +5,15 @@ description: "Understanding the Universal Identity Protocol and how it works"
 
 ## Overview
 
-UIP (Universal Identity Protocol) is a biometric-first, self-sovereign identity and signature protocol that replaces passwords, fragmented logins, and traditional document signing with one cryptographically secure, government-verified identity.
+UIP (Universal Identity Protocol) is a biometric-first identity and signature protocol that replaces passwords, fragmented logins, and traditional document signing with one cryptographically secure, government-verified identity.
 
 <Info>
 **One identity. Verified everywhere.** Your fingerprint or face becomes your universal authentication method across all digital services.
 </Info>
 
-## The Problem UIP Solves
+## The problem UIP solves
 
-### Identity Fragmentation
+### Identity fragmentation
 
 Traditional systems require users to:
 - Create dozens of username/password combinations
@@ -21,7 +21,7 @@ Traditional systems require users to:
 - Go through different verification processes for each service
 - Repeat identity verification for every new account
 
-### Security Vulnerabilities
+### Security vulnerabilities
 
 Password-based systems are inherently insecure:
 - Passwords can be stolen, guessed, or phished
@@ -29,7 +29,7 @@ Password-based systems are inherently insecure:
 - Password reuse creates cascading security risks
 - Two-factor authentication adds friction without solving the core problem
 
-### Document Signing Complexity
+### Document signing complexity
 
 Traditional signing processes are inefficient:
 - Print, sign, scan, and email documents
@@ -37,182 +37,170 @@ Traditional signing processes are inefficient:
 - Unclear legal validity across jurisdictions
 - No permanent audit trail
 
-## How UIP Works
+## How UIP works
 
 <Steps>
-  <Step title="One-Time Enrollment">
+  <Step title="One-time enrollment">
     Users download the UIP app and complete government ID verification with a live biometric check. This happens once and works everywhere.
   </Step>
 
-  <Step title="Biometric Authentication">
+  <Step title="Biometric authentication">
     Your fingerprint or face becomes your password. Cryptographic keys are generated and stored securely on your device.
   </Step>
 
-  <Step title="QR Code or Deep Link">
+  <Step title="QR code or deep link">
     Businesses create a session via the API and get back a QR code. Desktop users scan it; mobile users tap a deep link. The UIP app opens with the request details.
   </Step>
 
-  <Step title="Approve and Done">
+  <Step title="Approve and done">
     The user reviews the request in the UIP app and approves with their biometric. The business polls the API and receives the verified result instantly.
   </Step>
 </Steps>
 
-## Core Principles
+## Core principles
 
 <CardGroup cols={2}>
-  <Card title="Self-Sovereign" icon="crown">
-    You own your identity. Your data stays on your device, encrypted and under your control.
+  <Card title="Biometric-first" icon="fingerprint">
+    Your face and fingerprint can't be stolen, forgotten, or shared. No passwords, no phishable secrets.
   </Card>
 
-  <Card title="Privacy-First" icon="user-shield">
-    Zero-knowledge architecture. We can verify your identity without storing your personal data.
-  </Card>
-
-  <Card title="Biometric Security" icon="fingerprint">
-    Your face and fingerprint can't be stolen, forgotten, or shared. Ultimate security.
-  </Card>
-
-  <Card title="Government-Verified" icon="stamp">
+  <Card title="Government-verified" icon="stamp">
     Official document verification with live biometric matching ensures real identity.
   </Card>
 
-  <Card title="Global Interoperability" icon="earth-americas">
+  <Card title="Global interoperability" icon="earth-americas">
     One identity that works across borders, governments, and businesses worldwide.
   </Card>
 
-  <Card title="Legally Binding" icon="gavel">
-    Signatures are cryptographically provable and court-admissible in any jurisdiction.
+  <Card title="Legally binding" icon="gavel">
+    Signatures are cryptographically provable and court-admissible in supported jurisdictions.
   </Card>
 </CardGroup>
 
-## UIP vs Traditional Systems
+## UIP vs traditional systems
 
 <Tabs>
   <Tab title="Authentication">
-    | Feature | Traditional Passwords | UIP |
+    | Feature | Traditional passwords | UIP |
     |---------|----------------------|-----|
-    | Security | Can be stolen or guessed | Biometric - impossible to steal |
-    | User Experience | Remember complex passwords | Just use your face/fingerprint |
+    | Security | Can be stolen or guessed | Biometric — impossible to phish |
+    | User experience | Remember complex passwords | Just use your face/fingerprint |
     | Recovery | Reset via email/phone | Biometric verification |
-    | Multi-Factor | Additional friction | Built into biometric scan |
-    | Cross-Platform | Different credentials everywhere | One identity for everything |
+    | Multi-factor | Additional friction | Built into the biometric scan |
+    | Cross-platform | Different credentials everywhere | One identity for everything |
   </Tab>
 
-  <Tab title="Document Signing">
-    | Feature | DocuSign/Traditional | UIP |
+  <Tab title="Document signing">
+    | Feature | DocuSign / traditional | UIP |
     |---------|---------------------|-----|
-    | Speed | Minutes to hours | Instant (< 500ms) |
+    | Speed | Minutes to hours | Sub-second |
     | Process | Email, click, type signature | Scan QR, use fingerprint |
-    | Legal Validity | Varies by jurisdiction | Globally recognized |
-    | Identity Verification | Email verification only | Government ID verified |
-    | Audit Trail | Platform-dependent | Permanent, immutable records |
+    | Legal validity | Varies by jurisdiction | Cryptographically verifiable |
+    | Identity verification | Email verification only | Government ID verified |
+    | Audit trail | Platform-dependent | Permanent, immutable records |
     | Cost | Per document/user fees | $0.03 per signature |
   </Tab>
 
-  <Tab title="Identity Verification">
+  <Tab title="Identity verification">
     | Feature | Traditional KYC | UIP |
     |---------|----------------|-----|
     | Frequency | Every new service | Once, works everywhere |
-    | Time Required | Days to weeks | Seconds |
-    | Privacy | Share full documents | Selective disclosure |
-    | Cross-Border | Repeat for each country | Global recognition |
-    | Security Level | Document scans | Live biometric matching |
+    | Time required | Days to weeks | Seconds |
+    | Cross-border | Repeat for each country | Global recognition |
+    | Security level | Document scans | Live biometric matching |
   </Tab>
 </Tabs>
 
-## Key Benefits
+## Key benefits
 
 <AccordionGroup>
-  <Accordion title="For Users" icon="user">
-    - **No more passwords** - Your face or fingerprint is your password
-    - **One-time verification** - Verify once, use everywhere
-    - **Instant authentication** - Sub-500ms authentication flows
-    - **Complete privacy** - You own your data, zero-knowledge architecture
-    - **Works globally** - Cross-border identity that works anywhere
+  <Accordion title="For users" icon="user">
+    - **No more passwords** — your face or fingerprint is your password
+    - **One-time verification** — verify once, use everywhere
+    - **Instant authentication** — sub-second flows
+    - **Works globally** — cross-border identity that works anywhere
   </Accordion>
 
-  <Accordion title="For Developers" icon="code">
-    - **Simple integration** - Create session, show QR, poll for result
-    - **No webhooks needed** - Identify and Sign use simple polling
-    - **Modular design** - Use only what you need (auth, sign, messaging)
-    - **Usage-based pricing** - Pay only for what you use, no subscriptions
-    - **Comprehensive docs** - Complete API reference and integration guides
+  <Accordion title="For developers" icon="code">
+    - **Simple integration** — create session, show QR, poll for result
+    - **No webhooks required** — identify and sign use simple polling
+    - **Modular design** — use only what you need (identify, sign, message, audit)
+    - **Usage-based pricing** — pay only for what you use, no subscriptions
+    - **REST + JSON** — plain HTTPS, no SDK lock-in
   </Accordion>
 
-  <Accordion title="For Businesses" icon="building">
-    - **Reduce costs** - Save $70 per employee on password resets
-    - **Increase security** - Eliminate password-related breaches
-    - **Improve UX** - Frictionless authentication users love
-    - **Ensure compliance** - GDPR, SOX, and regulatory compliance built-in
-    - **Permanent audit trails** - Immutable proof for any business action
+  <Accordion title="For businesses" icon="building">
+    - **Reduce costs** — eliminate password-reset support overhead
+    - **Increase security** — remove the entire password attack surface
+    - **Improve UX** — frictionless authentication users love
+    - **Permanent audit trails** — immutable proof for any business action
   </Accordion>
 </AccordionGroup>
 
-## Technology Stack
+## Technology stack
 
 <Note>
-UIP uses cutting-edge cryptography and biometric technology to ensure maximum security while maintaining user privacy.
+UIP combines modern cryptography, biometric authentication, and government-grade identity verification.
 </Note>
 
-### Security Features
+### Security features
 
-- **AES-256 Encryption** - Military-grade encryption for all data
-- **Zero-Knowledge Architecture** - We never see your personal data
-- **Local Biometric Processing** - Biometrics never leave your device
-- **End-to-End Encryption** - All messages and signatures fully encrypted
-- **Tamper-Proof Records** - Immutable audit trail for all actions
+- **AES-256-GCM encryption** — all PII is encrypted at rest
+- **ECDSA P-256 signatures** — every critical action is signed on-device with the user's private key
+- **Local biometric processing** — biometric templates never leave the device
+- **Tamper-evident audit records** — append-only audit table with invalidation (never deletion)
 
-### Biometric Technology
+### Biometric technology
 
-- **Fingerprint Recognition** - 100% accuracy with liveness detection
-- **Face ID Technology** - Advanced facial recognition with anti-spoofing
-- **Multi-Factor** - Biometric + device possession inherently multi-factor
-- **Anti-Fraud** - Liveness detection prevents photo/video attacks
+- **Fingerprint recognition** — with liveness detection
+- **Face ID** — advanced facial recognition with anti-spoofing
+- **Multi-factor by construction** — biometric + device possession
+- **Anti-fraud** — liveness detection prevents photo/video replay attacks
 
-### Identity Verification
+### Identity verification
 
-- **Government ID Verification** - Official document verification
-- **Live Selfie Matching** - Real-time biometric comparison
-- **Anti-Fraud Detection** - Advanced fraud prevention systems
-- **Compliance Ready** - Meets global KYC/AML requirements
+- **Government ID verification** — official document checks
+- **Live selfie matching** — real-time biometric comparison
+- **Anti-fraud detection** — fraud prevention on the verification vendor side
+- **Compliance ready** — aligned with global KYC/AML requirements
 
-## Real-World Applications
+## Real-world applications
 
 <CardGroup cols={2}>
-  <Card title="Financial Services" icon="building-columns">
-    Account opening, wire transfers, loan applications with instant KYC compliance
+  <Card title="Financial services" icon="building-columns">
+    Account opening, wire transfers, loan applications with instant KYC
   </Card>
 
   <Card title="Healthcare" icon="heart-pulse">
-    Medical consent, prescriptions, HIPAA-compliant messaging
+    Medical consent, prescriptions, sensitive messaging
   </Card>
 
-  <Card title="Legal & Contracts" icon="file-contract">
-    NDAs, employment contracts, legal documents with court-admissible proof
+  <Card title="Legal & contracts" icon="file-contract">
+    NDAs, employment contracts, documents with court-admissible proof
   </Card>
 
-  <Card title="E-Commerce" icon="cart-shopping">
+  <Card title="E-commerce" icon="cart-shopping">
     Age verification, high-value purchases, fraud prevention
   </Card>
 
-  <Card title="Travel & Immigration" icon="plane">
+  <Card title="Travel & immigration" icon="plane">
     Border crossings, visa applications, hotel check-ins
   </Card>
 
-  <Card title="Government Services" icon="landmark">
+  <Card title="Government services" icon="landmark">
     Citizen authentication, benefit claims, official documentation
   </Card>
 
-  <Card title="Enterprise Security" icon="shield-halved">
+  <Card title="Enterprise security" icon="shield-halved">
     Employee authentication, system access, compliance reporting
   </Card>
 
-  <Card title="B2B Transactions" icon="handshake">
+  <Card title="B2B transactions" icon="handshake">
     Cross-border contracts, partnership agreements, payment authorization
   </Card>
 </CardGroup>
 
-## Getting Started
+## Getting started
 
 Ready to integrate UIP into your application?
 
@@ -242,10 +230,10 @@ Ready to integrate UIP into your application?
   </Card>
 
   <Card
-    title="Platform Delegation"
-    icon="users-gear"
-    href="/core-concepts/platform-delegation"
+    title="Integration Patterns"
+    icon="diagram-project"
+    href="/core-concepts/integration-patterns"
   >
-    Build platforms that act on behalf of businesses
+    QR, deep link, and polling patterns
   </Card>
 </CardGroup>

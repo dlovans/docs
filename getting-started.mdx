@@ -186,8 +186,7 @@ UIP provides a production API environment:
 - **Base URL:** `https://api.uip.digital/v1`
 - **Real users:** Actual biometric verification and signatures
 - **Usage-based billing:** Pay for what you use
-- **SLA:** 99.9% uptime guarantee
-- **Signup bonus:** $5 in credits to test and implement your integration
+- **Signup bonus:** $20 in credits on your first business — plenty to test and implement your integration
 
 ## Integration Checklist
 
@@ -213,13 +212,13 @@ Before you start building, review this checklist:
   <Accordion title="Security Planning" icon="shield-halved">
     - [ ] API keys stored as environment variables (never in code)
     - [ ] HTTPS enforced for all API calls
-    - [ ] Webhook signature verification implemented (for message/authorize flows)
+    - [ ] Webhook signature verification implemented (for message flows)
     - [ ] User data handling complies with GDPR/privacy laws
     - [ ] Audit trail storage planned for signatures
   </Accordion>
 
   <Accordion title="Testing Strategy" icon="flask">
-    - [ ] Use $5 signup credit for initial testing
+    - [ ] Use $20 signup credit for initial testing
     - [ ] Your own UIP identity created for testing
     - [ ] Error scenarios covered in tests
     - [ ] QR code expiration handling tested
@@ -301,7 +300,7 @@ Here's how a typical UIP integration works:
   </Accordion>
 
   <Accordion title="How do I test my integration?" icon="vial">
-    **Use your $5 signup credit and your own UIP identity for testing.** Create your UIP identity during onboarding, then use it to test the complete authentication and signature flows.
+    **Use your $20 signup credit and your own UIP identity for testing.** Create your UIP identity during onboarding, then use it to test the complete authentication and signature flows.
 
     This gives you the full end-to-end experience before deploying to production.
   </Accordion>
@@ -316,7 +315,7 @@ Here's how a typical UIP integration works:
   </Accordion>
 
   <Accordion title="How much does it cost?" icon="dollar-sign">
-    - **Signup bonus:** $5 in credits when you join UIP
+    - **Signup bonus:** $20 in credits on your first business
     - **Identify API:** $0.01 per identification
     - **Sign API:** $0.03 per signature
     - **Message API:** $0.03 without attachment, $0.10 with attachment
@@ -332,12 +331,10 @@ Here's how a typical UIP integration works:
   </Accordion>
 
   <Accordion title="Do I need webhooks?" icon="webhook">
-    **Not for Identify or Sign.** These use a simple poll-based flow -- just poll `GET /v1/identify/:id` or `GET /v1/sign/:id` until completed.
+    **Not for Identify or Sign.** These use a simple poll-based flow — just poll `GET /v1/identify/:id` or `GET /v1/sign/:id` until completed.
 
-    **Webhooks are used for:**
+    **Webhooks are used only for:**
     - Message signature events (user signs or declines a message)
-    - Authorize completion events (delegation token granted)
-    - Delegation revocation events
 
     See the [Webhooks guide](/api-reference/webhooks) for details.
   </Accordion>
@@ -347,7 +344,7 @@ Here's how a typical UIP integration works:
 
 <CardGroup cols={2}>
   <Card title="Use Your Signup Credit" icon="gift">
-    Use your $5 signup credit to test your integration with real UIP infrastructure
+    Use your $20 signup credit to test your integration against real UIP infrastructure
   </Card>
 
   <Card title="Device Detection" icon="mobile-screen">

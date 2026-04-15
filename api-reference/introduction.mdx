@@ -20,7 +20,7 @@ https://api.uip.digital/v1
 ```
 
 <Note>
-**Production only:** UIP doesn't provide a sandbox environment. Use your $5 signup credit for testing with real biometric verification.
+**Production only:** UIP doesn't provide a sandbox environment. Use your $20 signup credit for testing against real biometric verification.
 </Note>
 
 ## Core APIs
@@ -62,12 +62,6 @@ UIP provides three primary APIs that work together to deliver complete identity 
 ## Supporting APIs
 
 <CardGroup cols={2}>
-  <Card title="Authorize API" icon="users-gear" href="/api-reference/endpoint/authorize">
-    Platform delegation -- request scoped access to act on behalf of businesses.
-
-    **Always Free**
-  </Card>
-
   <Card title="Invalidate API" icon="ban" href="/api-reference/endpoint/invalidate">
     Cancel pending signature requests before recipients sign. Only works for unsigned messages.
 
@@ -90,17 +84,7 @@ All UIP API endpoints require authentication using Bearer tokens. Include your A
 Authorization: Bearer YOUR_API_KEY
 ```
 
-UIP supports two types of Bearer tokens:
-
-<CardGroup cols={2}>
-  <Card title="Direct API Keys" icon="key">
-    Standard UUID-format API keys for businesses making direct API calls. Full access to all endpoints.
-  </Card>
-
-  <Card title="Delegation Tokens" icon="users-gear">
-    Platform delegation tokens (`uip_at_` prefix) generated via the Authorize API. Scoped access based on granted permissions.
-  </Card>
-</CardGroup>
+API keys have the `uip_sk_` prefix and are issued from the UIP dashboard. Each key is scoped to a single business and can be rotated or revoked at any time.
 
 <Warning>
 **Keep your API keys secure.** Never expose them in client-side code, public repositories, or logs. Treat them like passwords.
@@ -113,8 +97,8 @@ UIP supports two types of Bearer tokens:
     Sign up at [uip.digital/identify](https://uip.digital/identify) and create your identity with government ID verification
   </Step>
 
-  <Step title="Receive $5 Credit">
-    New accounts automatically receive $5 in credits -- enough for testing and initial implementation
+  <Step title="Receive $20 credit">
+    New accounts receive $20 in credits on their first business — plenty for testing and initial implementation
   </Step>
 
   <Step title="Generate API Key">
@@ -160,18 +144,16 @@ The Identify and Sign APIs use a simple create-poll-complete flow. No redirect U
 
 ## Webhook Integration
 
-Webhooks are used for the **Message API** and **Authorize API** only. The Identify and Sign APIs use polling instead.
+Webhooks are used for the **Message API** only. The Identify and Sign APIs use polling instead.
 
 <AccordionGroup>
   <Accordion title="When Webhooks Are Used" icon="bolt">
     - **Message API:** `message` event when a user signs or declines a signature-required message
-    - **Authorize API:** `authorize.completed` event when a business owner approves delegation
-    - **Delegation revocation:** `delegation.revoked` event when a business revokes platform access
     - **Test:** `test` event from the webhook test endpoint
   </Accordion>
 
   <Accordion title="Webhook Security" icon="shield-check">
-    Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook secret is a UUID v4 identifier provided when you create your API key.
+    Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook secret is a UUID v4 that you can rotate any time from the dashboard.
 
     **Verify all webhook requests** to ensure they're from UIP and haven't been tampered with.
   </Accordion>
@@ -212,7 +194,6 @@ UIP enforces rate limits to ensure fair usage and system stability:
 |-------|-------|--------|
 | Global (per IP) | 500 requests | 1 minute |
 | Per API Key | 300 requests | 1 minute |
-| Authorize endpoint | 100 requests | 1 minute |
 
 When you exceed a rate limit, the API returns HTTP 429 with:
 - `X-RateLimit-Limit` -- Maximum requests allowed
@@ -242,8 +223,8 @@ Every UIP action generates a permanent audit record accessible via the Audit API
     Learn how to implement the QR code and deep link flow
   </Card>
 
-  <Card title="Platform Delegation" icon="users-gear" href="/core-concepts/platform-delegation">
-    Build platforms that act on behalf of businesses
+  <Card title="Integration Patterns" icon="diagram-project" href="/core-concepts/integration-patterns">
+    Common integration patterns for identify, sign, and messaging
   </Card>
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">

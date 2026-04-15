@@ -23,12 +23,11 @@ UIP is an identity protocol that replaces passwords with biometrics. Users verif
 
 ## Key Features
 
-- **Biometric-First** -- Face or fingerprint replaces passwords
-- **One-Time Verification** -- Verify identity once, use everywhere
-- **Government-Verified** -- KYC/ID verification built-in
-- **Sub-500ms Auth** -- Fast, frictionless authentication
-- **Modular Design** -- Use only what you need
-- **Usage-Based Pricing** -- No subscriptions, pay per request
+- **Biometric-first** — face or fingerprint replaces passwords
+- **One-time verification** — verify identity once, use everywhere
+- **Government-verified** — KYC/ID verification built-in
+- **Modular design** — use only what you need
+- **Usage-based pricing** — no subscriptions, pay per request
 
 ---
 
@@ -37,7 +36,7 @@ UIP is an identity protocol that replaces passwords with biometrics. Users verif
 - [Getting Started](https://docs.uip.digital/getting-started) -- Set up in 5 minutes
 - [API Reference](https://docs.uip.digital/api-reference/introduction) -- Complete API docs
 - [Pricing](https://docs.uip.digital/pricing) -- Usage-based pricing
-- [Get API Keys](https://uip.digital) -- $5 free credits to start
+- [Get API Keys](https://uip.digital) — $20 free credits on your first business
 
 ---
 

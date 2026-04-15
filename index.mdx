@@ -1,10 +1,10 @@
 ---
 title: "Universal Identity Protocol"
-description: "Biometric-first, self-sovereign identity and signature protocol for developers"
+description: "Biometric identity and signature APIs for developers"
 ---
 
 <Info>
-**One identity. Verified everywhere.** Authenticate and sign digital actions without passwords or centralized control.
+**One identity. Verified everywhere.** Authenticate users and collect legally binding signatures without building your own identity stack.
 </Info>
 
 ## Get started in minutes
@@ -44,7 +44,7 @@ Everything you need to integrate biometric authentication and legally binding si
 
 ## Three powerful APIs
 
-Modular APIs that work together seamlessly. Pick what you need.
+Modular APIs that work together. Pick what you need.
 
 <CardGroup cols={3}>
   <Card
@@ -106,7 +106,7 @@ A simple flow for every integration: create a session, display a QR code, poll f
   </Step>
 
   <Step title="Poll and get the result">
-    Poll `GET /v1/identify/:id` until the status is `completed`. The response includes all verified data -- no separate code exchange needed.
+    Poll `GET /v1/identify/:id` until the status is `completed`. The response includes all verified data — no separate code exchange needed.
   </Step>
 </Steps>
 
@@ -115,20 +115,20 @@ A simple flow for every integration: create a session, display a QR code, poll f
 Built for the modern web. From passwordless authentication to legally binding signatures.
 
 <AccordionGroup>
-  <Accordion title="Self-Sovereign Identity" icon="shield-check">
-    Mobile-only authentication with fingerprint or face recognition. Your cryptographic keys live on your device. No centralized control, no passwords to manage or reset.
+  <Accordion title="Biometric-first authentication" icon="shield-check">
+    Mobile-only authentication with fingerprint or face recognition. No passwords to manage or reset, no phishable secrets on the server.
   </Accordion>
 
-  <Accordion title="Government-Verified Identity" icon="id-card">
-    Government ID verification via official documents and biometric checks. Legally binding signatures with permanent audit trails. Court-admissible evidence generation.
+  <Accordion title="Government-verified identity" icon="id-card">
+    Identity verification via official documents and biometric checks. Legally binding signatures with permanent audit trails and court-admissible evidence.
   </Accordion>
 
-  <Accordion title="Global Compliance" icon="globe">
-    Works across borders, governments, and businesses. One identity for authentication and signing, globally. GDPR compliant with zero-knowledge architecture.
+  <Accordion title="Global by default" icon="globe">
+    Works across borders, governments, and businesses. One identity for authentication and signing, worldwide. GDPR compliant.
   </Accordion>
 
-  <Accordion title="Modular API Design" icon="puzzle-piece">
-    Composable APIs that work together seamlessly. Pick what you need: authentication, signing, messaging, or verification. Usage-based pricing, no subscriptions.
+  <Accordion title="Modular API design" icon="puzzle-piece">
+    Composable APIs that work together. Pick what you need: authentication, signing, messaging, or audit lookups. Usage-based pricing, no subscriptions.
   </Accordion>
 </AccordionGroup>
 
@@ -137,23 +137,23 @@ Built for the modern web. From passwordless authentication to legally binding si
 Everything you need for secure identity and signatures.
 
 <CardGroup cols={2}>
-  <Card title="Biometric Security" icon="fingerprint">
-    100% biometric recognition accuracy with local device processing
+  <Card title="Biometric security" icon="fingerprint">
+    Local device biometric authentication with liveness detection
   </Card>
-  <Card title="256-bit Encryption" icon="lock">
-    AES-256 encryption with zero-knowledge design
+  <Card title="AES-256 encryption" icon="lock">
+    Every PII field is encrypted at rest with AES-256-GCM
   </Card>
-  <Card title="< 500ms Response" icon="bolt">
-    Lightning-fast authentication and signature requests
+  <Card title="Fast response times" icon="bolt">
+    Session creation and polling respond in well under a second
   </Card>
-  <Card title="99.9% Uptime SLA" icon="server">
-    Enterprise-grade reliability and availability
+  <Card title="Permanent audit trail" icon="list-timeline">
+    Every action generates an immutable, verifiable record
   </Card>
-  <Card title="Permanent Audit Trail" icon="list-timeline">
-    Every action generates immutable, verifiable records
-  </Card>
-  <Card title="QR Code Flow" icon="qrcode">
+  <Card title="QR code flow" icon="qrcode">
     Simple scan-and-approve UX that users love
+  </Card>
+  <Card title="REST + webhooks" icon="webhook">
+    Plain HTTPS, JSON, and HMAC-signed webhook callbacks
   </Card>
 </CardGroup>
 
@@ -164,5 +164,5 @@ Everything you need for secure identity and signatures.
   icon="key"
   href="https://uip.digital/identify"
 >
-  Get $5 in credits when you join UIP to try it out. No credit card required.
+  Get $20 in credits on your first business. No credit card required.
 </Card>

@@ -456,50 +456,6 @@ Replace SMS/TOTP verification step with UIP call. User authenticates with userna
 
 ---
 
-## Pattern 5: Platform Delegation
-
-**Use Case:** Build a platform that makes UIP API calls on behalf of multiple businesses. Instead of each business integrating UIP directly, your platform handles the integration once and serves all customers.
-
-### When to Use This Pattern
-
-<Check>SaaS platforms serving multiple businesses</Check>
-<Check>Payroll, HR, or compliance platforms needing signatures from employees</Check>
-<Check>Marketplace platforms managing identity verification for sellers</Check>
-<Check>White-label solutions where clients don't integrate UIP directly</Check>
-
-### How It Works
-
-<Steps>
-  <Step title="Request Authorization">
-    Call `POST /v1/authorize` with your platform's client credentials and the scopes you need (e.g., `identify:create`, `sign:create`).
-  </Step>
-
-  <Step title="Business Approves">
-    Display the QR code to the business owner. They scan it, review the requested permissions, and approve with biometric verification.
-  </Step>
-
-  <Step title="Poll for Token">
-    Poll `POST /v1/authorize/:id/status` with client credentials until `completed`. You receive a delegation token (`uip_at_` prefix) in the response.
-  </Step>
-
-  <Step title="Make API Calls on Behalf of Business">
-    Use the delegation token as a Bearer token to make API calls. Billing goes to the business, not the platform.
-
-    ```bash
-    curl -X POST https://api.uip.digital/v1/identify \
-      -H "Authorization: Bearer uip_at_abc123xyz789..." \
-      -H "Content-Type: application/json" \
-      -d '{"intent": "Verify employee", "requested_data": ["first_name", "last_name"]}'
-    ```
-  </Step>
-</Steps>
-
-<Info>
-See the [Platform Delegation Guide](/core-concepts/platform-delegation) for full details on scopes, token management, and security best practices.
-</Info>
-
----
-
 ## Choosing the Right Pattern
 
 ### By Application Type
@@ -575,7 +531,6 @@ See the [Platform Delegation Guide](/core-concepts/platform-delegation) for full
 | B2B replacing SMS codes | **Pattern 3: MFA** | Stronger than SMS, same flow, better UX |
 | Enterprise internal tools | **Pattern 4: Progressive** | IT support + trained users = UIP-first works |
 | Banking/Financial (any) | **Pattern 3: MFA** | Compliance + audit trail + legal defensibility |
-| Multi-business platform | **Pattern 5: Delegation** | Single integration serves all customers |
 
 ---
 
@@ -599,10 +554,10 @@ See the [Platform Delegation Guide](/core-concepts/platform-delegation) for full
   </Card>
 
   <Card
-    title="Platform Delegation"
-    icon="users-gear"
-    href="/core-concepts/platform-delegation"
+    title="Security Architecture"
+    icon="shield-halved"
+    href="/core-concepts/security"
   >
-    Build platforms for multiple businesses
+    Deep dive into UIP's security model
   </Card>
 </CardGroup>

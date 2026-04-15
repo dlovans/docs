@@ -1,59 +1,59 @@
 ---
 title: 'Webhooks'
-description: 'Receive real-time notifications for message signatures and authorization events'
+description: 'Receive real-time notifications when users sign messages'
 ---
 
 ## Overview
 
-Webhooks allow your application to receive real-time notifications for specific UIP events. UIP sends POST requests to your configured webhook URL with cryptographically signed payloads.
+Webhooks let your application receive real-time notifications for specific UIP events. UIP sends a POST request to your configured webhook URL with a cryptographically signed JSON payload.
 
 <Note>
 **Webhooks are only used for:**
-- **Message API** -- when a user signs or declines a signature-required message
-- **Authorize API** -- when a business owner approves delegation (`authorize.completed`)
-- **Delegation revocation** -- when a business revokes platform access (`delegation.revoked`)
-- **Webhook testing** -- when you call the test endpoint
+- **Message API** — when a user signs or declines a signature-required message
+- **Webhook testing** — when you call the test endpoint
 
 **Identify and Sign APIs do NOT use webhooks.** Use polling with `GET /v1/identify/:id` or `GET /v1/sign/:id` instead.
 </Note>
 
-## Setting Up Webhooks
+## Setting up webhooks
 
-### 1. Configure Webhook URL
+### 1. Configure the webhook URL
 
 1. Log into the [Business Dashboard](https://uip.digital)
-2. Navigate to **Settings** > **Webhooks**
-3. Enter your webhook endpoint URL (must use HTTPS in production)
-4. Save your configuration
+2. Open **Settings** > **Webhooks**
+3. Enter your webhook endpoint URL (HTTPS in production)
+4. Save
 
 <Warning>
-**HTTPS Required:** Production webhook URLs must use HTTPS. HTTP URLs are not allowed for security reasons.
+**HTTPS required.** Production webhook URLs must use HTTPS.
 </Warning>
 
-### 2. Retrieve Webhook Secret
+### 2. Retrieve the webhook secret
 
-Your webhook secret is used to verify that requests are actually from UIP and haven't been tampered with.
+Your webhook secret is used to verify that requests came from UIP and weren't tampered with in transit.
 
-1. In the Business Dashboard, go to **Settings** > **Webhooks**
+1. In the dashboard, go to **Settings** > **Webhooks**
 2. Copy your **Webhook Secret** (shown after saving your webhook URL)
-3. Store this secret securely in your application's environment variables
+3. Store it in your application's environment variables
+
+You can rotate the secret at any time from the dashboard. All subsequent webhook deliveries will use the new secret.
 
 <Warning>
-**Keep Secret Secure:** Never commit your webhook secret to version control or expose it in client-side code. Treat it like a password.
+**Keep the secret secure.** Never commit it to version control or expose it in client-side code.
 </Warning>
 
-## Verifying Webhook Signatures
+## Verifying webhook signatures
 
 Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. You **must** verify this signature to ensure requests are from UIP.
 
-### Signature Verification Algorithm
+### Algorithm
 
 1. Get the `X-UIP-Signature` header from the request
-2. Calculate HMAC SHA-256 hash of the raw request body using your webhook secret
+2. Calculate HMAC SHA-256 of the raw request body using your webhook secret
 3. Compare the calculated signature with the header value
 4. Reject the request if signatures don't match
 
-### Implementation Examples
+### Implementation examples
 
 <CodeGroup>
 
@@ -64,17 +64,14 @@ app.post('/webhook', (req, res) => {
   const signature = req.headers['x-uip-signature'];
   const webhookSecret = process.env.UIP_WEBHOOK_SECRET;
 
-  // Calculate expected signature
   const hmac = crypto.createHmac('sha256', webhookSecret);
   hmac.update(JSON.stringify(req.body));
   const expectedSignature = hmac.digest('hex');
 
-  // Verify signature
   if (signature !== expectedSignature) {
     return res.status(401).send('Invalid signature');
   }
 
-  // Handle webhook event
   const { event, data } = req.body;
 
   res.status(200).send('OK');
@@ -93,7 +90,6 @@ def webhook():
     signature = request.headers.get('X-UIP-Signature')
     webhook_secret = os.environ.get('UIP_WEBHOOK_SECRET')
 
-    # Calculate expected signature
     body_bytes = request.get_data()
     expected_signature = hmac.new(
         webhook_secret.encode('utf-8'),
@@ -101,11 +97,9 @@ def webhook():
         hashlib.sha256
     ).hexdigest()
 
-    # Verify signature
     if signature != expected_signature:
         return 'Invalid signature', 401
 
-    # Handle webhook event
     data = request.get_json()
     event = data.get('event')
 
@@ -129,25 +123,21 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
     signature := r.Header.Get("X-UIP-Signature")
     webhookSecret := os.Getenv("UIP_WEBHOOK_SECRET")
 
-    // Read body
     body, err := ioutil.ReadAll(r.Body)
     if err != nil {
         http.Error(w, "Failed to read body", http.StatusBadRequest)
         return
     }
 
-    // Calculate expected signature
     h := hmac.New(sha256.New, []byte(webhookSecret))
     h.Write(body)
     expectedSignature := hex.EncodeToString(h.Sum(nil))
 
-    // Verify signature
     if signature != expectedSignature {
         http.Error(w, "Invalid signature", http.StatusUnauthorized)
         return
     }
 
-    // Handle webhook event
     var payload map[string]interface{}
     json.Unmarshal(body, &payload)
 
@@ -157,7 +147,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 
 </CodeGroup>
 
-## Webhook Events
+## Webhook events
 
 ### Event: `message`
 
@@ -175,42 +165,13 @@ Sent when a user signs or declines a signature-required message via the [Message
 ```
 
 **Fields:**
-- `signing_uip_id` - UIP ID of the user who signed or declined
-- `message_id` - Message ID from your original request
-- `audit_id` - Permanent audit trail reference (save for compliance)
+- `signing_uip_id` — UIP ID of the user who signed or declined
+- `message_id` — Message ID from your original request
+- `audit_id` — Permanent audit trail reference (save for compliance)
 
 <Info>
-**Determining Action:** The webhook structure is identical for both signed and declined messages. Query the [Audit API](/api-reference/endpoint/audit) using the `audit_id` to determine if the user signed or declined.
+**Determining action:** The webhook structure is identical for both signed and declined messages. Query the [Audit API](/api-reference/endpoint/audit) using the `audit_id` to determine the outcome.
 </Info>
-
-### Event: `authorize.completed`
-
-Sent when a business owner approves a platform delegation request via the [Authorize API](/api-reference/endpoint/authorize).
-
-```json
-{
-  "event": "authorize.completed",
-  "session_id": "sess_auth_1a2b3c4d",
-  "timestamp": "2025-01-11T12:31:00Z",
-  "data": {
-    "access_token": "uip_at_abc123xyz789..."
-  }
-}
-```
-
-### Event: `delegation.revoked`
-
-Sent when a business revokes a platform's delegation access.
-
-```json
-{
-  "event": "delegation.revoked",
-  "timestamp": "2025-01-11T12:31:00Z",
-  "data": {
-    "business_uip_id": "business_abc123"
-  }
-}
-```
 
 ### Event: `test`
 
@@ -226,7 +187,7 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
 
 **Purpose:** Verify your webhook endpoint is reachable and correctly validates signatures.
 
-## When Webhooks Are Sent
+## When webhooks are sent
 
 <AccordionGroup>
   <Accordion title="Message API" icon="envelope">
@@ -234,18 +195,8 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
 
     **No webhook sent when:**
     - Message does not require signature (`signature_required: false`)
-    - User doesn't respond and message expires
-    - Message is invalidated before user responds
-  </Accordion>
-
-  <Accordion title="Authorize API" icon="users-gear">
-    **Webhook sent when:** Business owner approves a delegation request
-
-    **No webhook sent when:** Authorization session expires without approval
-  </Accordion>
-
-  <Accordion title="Delegation Revocation" icon="ban">
-    **Webhook sent when:** A business revokes your platform's delegation access
+    - User doesn't respond and the signature window expires
+    - Message is invalidated before the user responds
   </Accordion>
 
   <Accordion title="Test Webhook" icon="flask">
@@ -255,49 +206,49 @@ Sent when you test your webhook configuration via the [Test Webhook endpoint](/a
   </Accordion>
 </AccordionGroup>
 
-## Best Practices
+## Best practices
 
 <CardGroup cols={2}>
-  <Card title="Always Verify Signatures" icon="shield-check">
-    Validate the X-UIP-Signature header on every request to prevent spoofing and tampering
+  <Card title="Always verify signatures" icon="shield-check">
+    Validate the `X-UIP-Signature` header on every request to prevent spoofing and tampering
   </Card>
 
-  <Card title="Return 200 Quickly" icon="bolt">
+  <Card title="Return 200 quickly" icon="bolt">
     Process webhooks asynchronously and return 200 immediately to avoid timeouts
   </Card>
 
-  <Card title="Store Audit IDs" icon="database">
-    Save audit_id from every webhook for permanent proof, compliance, and legal verification
+  <Card title="Store audit IDs" icon="database">
+    Save `audit_id` from every webhook for permanent proof, compliance, and legal verification
   </Card>
 
-  <Card title="Handle Idempotency" icon="rotate">
-    UIP may send the same webhook multiple times. Use audit_id or message_id to detect duplicates
+  <Card title="Handle idempotency" icon="rotate">
+    UIP may send the same webhook multiple times. Use `audit_id` or `message_id` to detect duplicates
   </Card>
 
   <Card title="Use HTTPS" icon="lock">
     Production webhook URLs must use HTTPS. HTTP is not allowed for security reasons.
   </Card>
 
-  <Card title="Test Before Production" icon="flask">
+  <Card title="Test before production" icon="flask">
     Use the Test Webhook endpoint during development to verify your setup works correctly
   </Card>
 </CardGroup>
 
-## Error Handling
+## Error handling
 
-If your webhook endpoint returns an error (non-200 status code) or times out, UIP will retry the webhook with exponential backoff.
+If your webhook endpoint returns an error (non-2xx status code) or times out, UIP will retry the webhook with exponential backoff.
 
-**Retry Schedule:**
+**Retry schedule:**
 UIP retries webhook delivery once after a short delay. If both attempts fail, the webhook is marked as failed.
 
 - Attempt 1: Immediate
 - Attempt 2: After a short delay
 
 <Warning>
-**Handle Retries:** Design your webhook handler to be idempotent. Use `audit_id` or `message_id` to detect duplicate webhook deliveries.
+**Handle retries.** Design your webhook handler to be idempotent. Use `audit_id` or `message_id` to detect duplicate deliveries.
 </Warning>
 
-## Webhook Handler Template
+## Webhook handler template
 
 ```javascript
 const express = require('express');
@@ -329,12 +280,6 @@ app.post('/webhook', async (req, res) => {
     switch (event) {
       case 'message':
         await handleMessage(data);
-        break;
-      case 'authorize.completed':
-        await handleAuthorizeCompleted(data);
-        break;
-      case 'delegation.revoked':
-        await handleDelegationRevoked(data);
         break;
       case 'test':
         console.log('Test webhook received');
@@ -385,21 +330,6 @@ async function handleMessage(data) {
   }
 }
 
-async function handleAuthorizeCompleted(data) {
-  const { access_token } = data;
-  // Store delegation token securely
-  await db.delegations.create({
-    access_token,
-    received_at: new Date()
-  });
-}
-
-async function handleDelegationRevoked(data) {
-  const { business_uip_id } = data;
-  // Remove stored delegation token
-  await db.delegations.delete({ business_uip_id });
-}
-
 app.listen(3000, () => {
   console.log('Webhook server listening on port 3000');
 });
@@ -421,7 +351,7 @@ app.listen(3000, () => {
     - Verify webhook URL is publicly accessible
     - Check firewall rules allow incoming requests
     - Ensure webhook returns 200 status for all events
-    - Use valid HTTPS certificate
+    - Use a valid HTTPS certificate
   </Accordion>
 
   <Accordion title="Invalid signature" icon="key">
@@ -429,12 +359,12 @@ app.listen(3000, () => {
 
     **Causes:**
     - Using wrong webhook secret
-    - Calculating signature on modified body
+    - Calculating signature on a modified body
     - Character encoding issues
 
     **Solutions:**
-    - Get webhook secret from Business Dashboard settings
-    - Calculate signature on raw request body (before parsing)
+    - Copy the webhook secret from the dashboard settings
+    - Calculate the signature on the raw request body (before parsing)
     - Use UTF-8 encoding for all strings
   </Accordion>
 
@@ -442,11 +372,11 @@ app.listen(3000, () => {
     **Problem:** API requests fail with `request/webhook-missing` error
 
     **Causes:**
-    - No webhook URL configured in Business Dashboard
+    - No webhook URL configured in the dashboard
     - Webhook URL field is empty
 
     **Solutions:**
-    - Log into Business Dashboard
+    - Log into the dashboard
     - Navigate to Settings > Webhooks
     - Add your webhook endpoint URL
   </Accordion>
@@ -460,12 +390,12 @@ app.listen(3000, () => {
 
     **Solutions:**
     - Use `audit_id` or `message_id` to detect duplicates
-    - Make webhook handler idempotent (safe to process multiple times)
-    - Store processed webhook IDs in database to skip duplicates
+    - Make your webhook handler idempotent
+    - Store processed webhook IDs in a database to skip duplicates
   </Accordion>
 </AccordionGroup>
 
-## Related Resources
+## Related resources
 
 <CardGroup cols={2}>
   <Card title="Test Webhook" icon="flask" href="/api-reference/endpoint/webhook-test">
@@ -476,19 +406,11 @@ app.listen(3000, () => {
     Messages with webhook signature events
   </Card>
 
-  <Card title="Authorize API" icon="users-gear" href="/api-reference/endpoint/authorize">
-    Authorization with webhook completion events
-  </Card>
-
   <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
     Query audit records from webhooks
   </Card>
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
     Handle API and webhook errors
-  </Card>
-
-  <Card title="Platform Delegation" icon="users-gear" href="/core-concepts/platform-delegation">
-    Build platforms for multiple businesses
   </Card>
 </CardGroup>
