@@ -242,7 +242,7 @@ Here's how a typical UIP integration works:
   </Step>
 
   <Step title="Display QR code or deep link">
-    Desktop: display the QR code image. Mobile: show an "Open UIP" button linking to `https://www.uip.id/{session_id}`
+    Desktop: inline the raw SVG `qr_code` markup. Mobile: show an "Open UIP" button linking to `uip://identify?sid={session_id}&exp={unix_seconds}`
   </Step>
 
   <Step title="User scans and authenticates">
@@ -250,11 +250,11 @@ Here's how a typical UIP integration works:
   </Step>
 
   <Step title="Poll for result">
-    Your backend polls `GET /v1/identify/:id` every 2-3 seconds until status is `completed`
+    Your backend polls `GET /v1/identify/:id` every 2-3 seconds until status is `approved`
   </Step>
 
   <Step title="Receive verified data">
-    When completed, the poll response includes all requested identity data (name, DOB, etc.) and an `audit_id`
+    When approved, the poll response carries the signer's `signer_snapshot`, `target_uip_id`, and `audit_id`
   </Step>
 
   <Step title="Create session">
@@ -282,11 +282,11 @@ Here's how a typical UIP integration works:
   </Step>
 
   <Step title="Poll for result">
-    Poll `GET /v1/sign/:id` until status is `completed`
+    Poll `GET /v1/sign/:id` until status is `signed`
   </Step>
 
   <Step title="Store proof">
-    Save the `audit_id` and `uip_id` from the completed response for permanent audit trail access
+    Save the `audit_id` and `target_uip_id` from the signed response for permanent audit trail access
   </Step>
 </Steps>
 

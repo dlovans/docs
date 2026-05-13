@@ -3,21 +3,21 @@ title: "Quickstart"
 description: "Integrate UIP identity verification in 5 minutes"
 ---
 
-Get up and running with UIP's Identify API in minutes. This guide walks you through creating your first identity verification session with working code examples.
+Get up and running with UIP's Identify API in minutes. This guide walks you through creating your first identity verification session with working code.
 
 <Info>
 **Prerequisites:** You need an API key from [uip.digital](https://uip.digital). New accounts get $20 in credits on their first business.
 </Info>
 
-## 1. Get Your API Key
+## 1. Get your API key
 
 <Steps>
   <Step title="Sign up">
-    Visit [uip.digital](https://uip.digital) and create your account with UIP identity verification
+    Visit [uip.digital](https://uip.digital) and create your account with UIP identity verification.
   </Step>
 
-  <Step title="Create API Key">
-    Navigate to **Settings** > **API Keys** and create a new key
+  <Step title="Create an API key">
+    Navigate to **Settings** > **API Keys** and create a new key.
   </Step>
 
   <Step title="Save it securely">
@@ -25,9 +25,7 @@ Get up and running with UIP's Identify API in minutes. This guide walks you thro
   </Step>
 </Steps>
 
-## 2. Create an Identify Session
-
-Make your first API call to create an identity verification session:
+## 2. Create an identify session
 
 <CodeGroup>
 
@@ -84,55 +82,53 @@ qr_code = data['qr_code']
 ```json
 {
   "session_id": "sess_1a2b3c4d5e6f",
-  "expires_at": "2025-01-11T12:35:00Z",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+  "expires_at": "2026-05-13T12:35:00Z",
+  "qr_code": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>...</svg>"
 }
 ```
 
-## 3. Display the QR Code or Deep Link
+<Warning>
+**`qr_code` is raw SVG markup, not a base64 PNG.** Inline it directly into your HTML — don't try to use it as an `<img src>`.
+</Warning>
 
-The QR code is returned as a base64 PNG data URI. Use device detection to show the right UX:
+## 3. Display the QR code or deep link
 
-- **Desktop users** -- display the QR code image for scanning
-- **Mobile users** -- display an "Open UIP" button that links to `https://www.uip.id/{session_id}`
+Use device detection to show the right UX:
+
+- **Desktop users** — inline the SVG so they can scan with the UIP mobile app.
+- **Mobile users** — show an "Open UIP" button that deep-links to the UIP app via the `uip://` URL scheme.
 
 ```html
-<!-- Device detection: show QR on desktop, deep link on mobile -->
-<div id="uip-desktop">
-  <img id="uip-qr" alt="Scan with UIP app to verify identity" />
-  <p>Scan with UIP app</p>
-</div>
-
+<div id="uip-desktop"></div>
 <div id="uip-mobile" style="display: none;">
   <a id="uip-link" class="button">Open UIP</a>
 </div>
 
 <script>
   const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  const expUnix = Math.floor(new Date(session.expires_at).getTime() / 1000);
 
   if (isMobile) {
     document.getElementById('uip-desktop').style.display = 'none';
     document.getElementById('uip-mobile').style.display = 'block';
     document.getElementById('uip-link').href =
-      `https://www.uip.id/${sessionId}`;
+      `uip://identify?sid=${session.session_id}&exp=${expUnix}`;
   } else {
-    // qr_code from API response is a base64-encoded PNG data URI
-    document.getElementById('uip-qr').src = qrCode;
+    // qr_code is raw SVG markup — inline it directly.
+    document.getElementById('uip-desktop').innerHTML = session.qr_code;
   }
 </script>
 ```
 
+Framework equivalents: `{@html session.qr_code}` (Svelte), `dangerouslySetInnerHTML={{ __html: session.qr_code }}` (React), `v-html="session.qr_code"` (Vue).
+
 <Info>
-**Session lifetime:** Sessions expire after 5 minutes. Show a timer and offer to generate a new session if it expires.
+**Session lifetime:** Sessions expire after ~5 minutes (`SESSION_EXPIRY_SECONDS` defaults to 310s). Show a timer and offer to generate a new session if it expires.
 </Info>
 
-<Note>
-**Future SDK:** A client-side SDK is planned that will handle device detection, QR rendering, and polling automatically. For now, implement this logic in your application.
-</Note>
+## 4. Poll for the result
 
-## 4. Poll for Completion
-
-Poll `GET /v1/identify/:id` every 2-3 seconds. When the status changes to `completed`, the response includes all the verified identity data in the same response.
+Poll `GET /v1/identify/:id` every 2–3 seconds. When the status changes to **`approved`**, the response carries the signer's identity snapshot and an `audit_id` you can use to look up the full audit record.
 
 <CodeGroup>
 
@@ -145,18 +141,15 @@ async function pollIdentify(sessionId, apiKey) {
     );
     const data = await res.json();
 
-    if (data.status === 'completed') {
-      // All verified data is right here
-      console.log(`Verified: ${data.first_name} ${data.last_name}`);
+    if (data.status === 'approved') {
+      console.log(`Verified: ${data.signer_snapshot.target.full_name}`);
       console.log(`Audit ID: ${data.audit_id}`);
       return data;
     }
-
     if (data.status === 'expired') {
       throw new Error('Session expired');
     }
 
-    // Still pending -- wait and poll again
     await new Promise(r => setTimeout(r, 2500));
   }
 }
@@ -173,8 +166,9 @@ def poll_identify(session_id, api_key):
         )
         data = response.json()
 
-        if data['status'] == 'completed':
-            print(f"Verified: {data['first_name']} {data['last_name']}")
+        if data['status'] == 'approved':
+            target = data['signer_snapshot']['target']
+            print(f"Verified: {target['full_name']}")
             print(f"Audit ID: {data['audit_id']}")
             return data
 
@@ -185,7 +179,6 @@ def poll_identify(session_id, api_key):
 ```
 
 ```bash cURL
-# Poll until completed
 curl -X GET "https://api.uip.digital/v1/identify/sess_1a2b3c4d5e6f" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -197,39 +190,47 @@ curl -X GET "https://api.uip.digital/v1/identify/sess_1a2b3c4d5e6f" \
 ```json
 {
   "status": "pending",
-  "expires_at": "2025-01-11T12:35:00Z"
+  "expires_at": "2026-05-13T12:35:00Z"
 }
 ```
 
-**Response when completed:**
+**Response when approved:**
 
 ```json
 {
-  "status": "completed",
-  "expires_at": "2025-01-11T12:35:00Z",
+  "status": "approved",
+  "expires_at": "2026-05-13T12:35:00Z",
   "audit_id": "audit_9z8y7x6w5v4u",
-  "uip_id": "user_abc123def456",
-  "first_name": "John",
-  "last_name": "Doe",
-  "date_of_birth": "1990-05-15",
-  "country": "US",
-  "identity_expires_at": "2027-01-11T00:00:00Z"
+  "target_uip_id": "user_def456",
+  "signer_snapshot": {
+    "target": {
+      "uip_id": "user_def456",
+      "full_name": "John Doe",
+      "date_of_birth": "1990-05-15",
+      "nationality": "US",
+      "document_type": "passport",
+      "document_number": "P1234567",
+      "issuing_state": "US",
+      "verified_at": "2024-09-01T10:00:00Z",
+      "kyc_provider": "didit",
+      "kyc_session_id": "didit_abc123",
+      "liveness_score": 98.4,
+      "face_match_score": 99.1
+    },
+    "requester": { "business_id": "biz_acme", "business_name": "Acme Corp" }
+  }
 }
 ```
 
-That's it. No webhooks, no redirect URIs, no code exchange. Your API key proves ownership of the session, so the verified data is returned directly.
+That's it. No webhooks, no redirect URIs, no code exchange. The polling response is your source of truth for the signer's identity. Save the `audit_id` if you need the full audit later (AdES proof, attachments) via [`GET /v1/audit/:id`](/api-reference/endpoint/audit).
 
-## Complete Example
-
-Here is the full flow in one script:
-
-<CodeGroup>
+## Complete example
 
 ```javascript Node.js
 const API_KEY = process.env.UIP_API_KEY;
 const BASE = 'https://api.uip.digital/v1';
 
-// Step 1: Create session
+// Step 1: Create the session
 const session = await fetch(`${BASE}/identify`, {
   method: 'POST',
   headers: {
@@ -243,99 +244,40 @@ const session = await fetch(`${BASE}/identify`, {
 }).then(r => r.json());
 
 console.log('Session created:', session.session_id);
-console.log('Show QR code to user:', session.qr_code.substring(0, 50) + '...');
+// session.qr_code is raw SVG — inline into your HTML for desktop users.
 
-// Step 2: Poll for completion
+// Step 2: Poll until approved or expired
 let result;
 while (true) {
   const poll = await fetch(`${BASE}/identify/${session.session_id}`, {
     headers: { 'Authorization': `Bearer ${API_KEY}` }
   }).then(r => r.json());
 
-  if (poll.status === 'completed') {
-    result = poll;
-    break;
-  }
+  if (poll.status === 'approved') { result = poll; break; }
   if (poll.status === 'expired') {
-    throw new Error('Session expired -- create a new one');
+    throw new Error('Session expired — create a new one');
   }
   await new Promise(r => setTimeout(r, 2500));
 }
 
 // Step 3: Use the verified identity
-console.log(`Welcome, ${result.first_name} ${result.last_name}!`);
+const { full_name, date_of_birth } = result.signer_snapshot.target;
+console.log(`Welcome, ${full_name}!`);
 console.log(`Audit trail: ${result.audit_id}`);
 ```
 
-```python Python
-import requests
-import time
-import os
-
-API_KEY = os.environ['UIP_API_KEY']
-BASE = 'https://api.uip.digital/v1'
-
-# Step 1: Create session
-session = requests.post(
-    f'{BASE}/identify',
-    headers={
-        'Authorization': f'Bearer {API_KEY}',
-        'Content-Type': 'application/json'
-    },
-    json={
-        'intent': 'Sign in to My App',
-        'requested_data': ['first_name', 'last_name', 'date_of_birth']
-    }
-).json()
-
-print(f"Session created: {session['session_id']}")
-print(f"Show QR code to user (base64 PNG data URI)")
-
-# Step 2: Poll for completion
-while True:
-    poll = requests.get(
-        f"{BASE}/identify/{session['session_id']}",
-        headers={'Authorization': f'Bearer {API_KEY}'}
-    ).json()
-
-    if poll['status'] == 'completed':
-        result = poll
-        break
-    if poll['status'] == 'expired':
-        raise Exception('Session expired -- create a new one')
-    time.sleep(2.5)
-
-# Step 3: Use the verified identity
-print(f"Welcome, {result['first_name']} {result['last_name']}!")
-print(f"Audit trail: {result['audit_id']}")
-```
-
-</CodeGroup>
-
-## What's Next?
+## What's next?
 
 <CardGroup cols={3}>
-  <Card
-    title="Sign API"
-    icon="file-signature"
-    href="/api-reference/endpoint/sign"
-  >
-    Request legally binding biometric signatures
+  <Card title="Sign API" icon="file-signature" href="/api-reference/endpoint/sign">
+    Request legally binding biometric signatures.
   </Card>
 
-  <Card
-    title="Message API"
-    icon="message"
-    href="/api-reference/endpoint/message"
-  >
-    Send encrypted messages with document attachments
+  <Card title="Message API" icon="message" href="/api-reference/endpoint/message">
+    Send encrypted messages with document attachments.
   </Card>
 
-  <Card
-    title="QR Integration Guide"
-    icon="qrcode"
-    href="/core-concepts/qr-integration"
-  >
-    Device detection, QR display best practices, and deep linking
+  <Card title="QR Integration Guide" icon="qrcode" href="/core-concepts/qr-integration">
+    Device detection, QR display best practices, and deep linking.
   </Card>
 </CardGroup>

@@ -122,19 +122,19 @@ The Identify and Sign APIs use a simple create-poll-complete flow. No redirect U
 
 <Steps>
   <Step title="Create Session">
-    Call `POST /v1/identify` (or `POST /v1/sign`) with your intent. You receive a `session_id`, `qr_code` (base64 PNG), and `expires_at`.
+    Call `POST /v1/identify` (or `POST /v1/sign`) with your intent. You receive a `session_id`, `qr_code` (raw SVG markup — inline directly into your HTML, NOT a base64 PNG), and `expires_at`.
   </Step>
 
   <Step title="Display QR Code or Deep Link">
-    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button linking to `https://www.uip.id/{session_id}`.
+    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button linking to `uip://identify?sid={session_id}&exp={unix_seconds}` (or `uip://sign?sid=…` for sign sessions).
   </Step>
 
   <Step title="User Scans & Authenticates">
-    User opens UIP app, scans code (or taps deep link), and authenticates with biometric
+    User opens UIP app, scans code (or taps deep link), and authenticates with biometric.
   </Step>
 
   <Step title="Poll for Result">
-    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2-3 seconds until status is `completed`. The completed response includes all verified data directly -- no separate code exchange needed.
+    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2–3 seconds. Identify terminal status is `approved`; sign terminal status is `signed`. The polling response carries the signer's identity snapshot and an `audit_id` for retrieving the full audit record.
   </Step>
 </Steps>
 

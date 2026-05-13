@@ -1,27 +1,25 @@
 ---
 title: "QR Code Integration"
-description: "Learn how to implement UIP authentication with device detection, QR code display, and deep linking for optimal user experience."
+description: "Implement the UIP QR flow correctly: raw SVG markup on desktop, uip:// deep link on mobile, polling for the result."
 ---
 
-## How UIP Authentication Works
-
-UIP uses a simple two-path UX based on the user's device. Your application detects the device type and shows the appropriate interface:
+UIP uses a simple two-path UX based on the user's device. Your application detects the device type and shows the appropriate interface.
 
 <CardGroup cols={2}>
-  <Card title="Desktop Flow" icon="desktop">
-    Display the QR code image returned by the API. The user scans it with their UIP app to complete verification.
+  <Card title="Desktop flow" icon="desktop">
+    Inline the raw SVG markup returned by the API. The user scans it with their UIP app.
   </Card>
 
-  <Card title="Mobile Flow" icon="mobile-screen">
-    Display an "Open UIP" button that deep links into the UIP app. No QR code scanning needed on mobile.
+  <Card title="Mobile flow" icon="mobile-screen">
+    Show an "Open UIP" button that deep-links into the UIP app via the `uip://` URL scheme. No QR-code scan needed.
   </Card>
 </CardGroup>
 
-## Implementation Flow
+## Implementation flow
 
 <Steps>
-  <Step title="Create a Session">
-    Call `POST /v1/identify` or `POST /v1/sign` with your intent. The API returns a `session_id`, `qr_code` (base64 PNG data URI), and `expires_at`.
+  <Step title="Create a session">
+    Call `POST /v1/identify` or `POST /v1/sign` with your intent. The API returns `session_id`, `qr_code`, and `expires_at`.
 
     ```javascript
     const session = await fetch('https://api.uip.digital/v1/identify', {
@@ -36,27 +34,23 @@ UIP uses a simple two-path UX based on the user's device. Your application detec
       })
     }).then(r => r.json());
     // session = { session_id, qr_code, expires_at }
+    // qr_code is a raw SVG string, NOT a base64 PNG data URI
     ```
   </Step>
 
-  <Step title="Detect Device Type">
-    Use user-agent detection to determine if the user is on mobile or desktop:
-
+  <Step title="Detect device type">
     ```javascript
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     ```
   </Step>
 
-  <Step title="Display QR Code (Desktop) or Deep Link (Mobile)">
-    **Desktop:** Display the `qr_code` from the API response as an image. It is a base64-encoded PNG data URI that you can use directly as an `<img>` `src`.
+  <Step title="Display the QR (desktop) or deep link (mobile)">
+    **Desktop:** the `qr_code` field is **raw SVG markup** — inline it directly into the page. Do not set it as the `src` of an `<img>` tag; that won't work for SVG markup.
 
-    **Mobile:** Display an "Open UIP" button linking to `https://www.uip.id/{session_id}`. This deep links into the UIP app.
+    **Mobile:** build a `uip://` deep link from the session details. Tapping it opens the UIP app directly.
 
     ```html
-    <div id="uip-desktop">
-      <img id="uip-qr" alt="Scan with UIP app to verify identity" />
-      <p>Scan with UIP app</p>
-    </div>
+    <div id="uip-desktop"></div>
 
     <div id="uip-mobile" style="display: none;">
       <a id="uip-link" class="button">Open UIP</a>
@@ -64,25 +58,52 @@ UIP uses a simple two-path UX based on the user's device. Your application detec
 
     <script>
       const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      const expUnix = Math.floor(new Date(session.expires_at).getTime() / 1000);
 
       if (isMobile) {
         document.getElementById('uip-desktop').style.display = 'none';
         document.getElementById('uip-mobile').style.display = 'block';
+        // Identify sessions: uip://identify?...
+        // Sign sessions:     uip://sign?...
         document.getElementById('uip-link').href =
-          `https://www.uip.id/${sessionId}`;
+          `uip://identify?sid=${session.session_id}&exp=${expUnix}`;
       } else {
-        // qr_code from API response is a base64-encoded PNG data URI
-        document.getElementById('uip-qr').src = qrCode;
+        // Inline the raw SVG markup. Frameworks: dangerouslySetInnerHTML in
+        // React, {@html} in Svelte, v-html in Vue, |raw in Twig, etc.
+        document.getElementById('uip-desktop').innerHTML = session.qr_code;
       }
     </script>
     ```
+
+    Framework examples:
+
+    ```jsx React
+    <div dangerouslySetInnerHTML={{ __html: session.qr_code }} />
+    ```
+
+    ```svelte Svelte
+    <div>{@html session.qr_code}</div>
+    ```
+
+    ```vue Vue
+    <div v-html="session.qr_code"></div>
+    ```
+
+    <Warning>
+    The `qr_code` value comes from a trusted source (UIP) and is generated server-side. You can inline it via `innerHTML` / `dangerouslySetInnerHTML` safely. If you have an XSS-strict CSP, ensure inline SVG is allowed.
+    </Warning>
   </Step>
 
-  <Step title="Poll for Completion">
-    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2-3 seconds. When the status changes to `completed`, all verified data is included in the response.
+  <Step title="Poll for the result">
+    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2–3 seconds.
+
+    - Identify terminal status: `"approved"` (or `"expired"`)
+    - Sign terminal status: `"signed"` (or `"expired"`)
+
+    The polling response carries the signer's identity snapshot and an `audit_id`. The full audit (AdES proof, attachments via signed URLs) is then available via [`GET /v1/audit/:id`](/api-reference/endpoint/audit).
 
     ```javascript
-    async function pollForResult(sessionId, apiKey) {
+    async function pollIdentify(sessionId, apiKey) {
       while (true) {
         const res = await fetch(
           `https://api.uip.digital/v1/identify/${sessionId}`,
@@ -90,7 +111,7 @@ UIP uses a simple two-path UX based on the user's device. Your application detec
         );
         const data = await res.json();
 
-        if (data.status === 'completed') return data;
+        if (data.status === 'approved') return data;
         if (data.status === 'expired') throw new Error('Session expired');
 
         await new Promise(r => setTimeout(r, 2500));
@@ -99,160 +120,115 @@ UIP uses a simple two-path UX based on the user's device. Your application detec
     ```
   </Step>
 
-  <Step title="Use the Verified Data">
-    The completed response includes all requested identity data (or signature proof). Use it to complete the user's action.
+  <Step title="Use the signer snapshot or audit_id">
+    The polling response gives you `target_uip_id` and `signer_snapshot` for immediate UI feedback. Save the `audit_id` if you need to retrieve the full audit (AdES proof, attachments) later via the [Audit API](/api-reference/endpoint/audit).
   </Step>
 </Steps>
 
 <Info>
-**No webhooks needed for Identify and Sign.** The polling flow is the primary integration pattern. Webhooks are only used for the Message API.
+**No webhooks needed for identify or sign.** Polling is the primary pattern. Webhooks are only used for the Message API.
 </Info>
 
-<Note>
-**Future SDK:** A client-side SDK is planned that will handle device detection, QR rendering, and polling automatically. For now, implement this logic in your application.
-</Note>
+## QR-code payload format
 
-## QR Code Details
+The QR encodes a BankID-style string, not a URL:
 
-The `qr_code` field in the API response is a base64-encoded PNG data URI. It encodes a URL in the format `https://www.uip.id/{session_id}`.
+```
+uip|<session_id>|<unix_seconds_until_expiry>
+```
 
-<AccordionGroup>
-  <Accordion title="Using the QR Code" icon="qrcode" defaultOpen>
-    The QR code is ready to use directly as an image source:
+The UIP app parses this format directly. There is no `https://` URL the user could open in a browser — scanning the QR with anything other than the UIP app does nothing meaningful.
 
-    ```javascript
-    // qr_code from API is like: "data:image/png;base64,iVBORw0KGgo..."
-    document.getElementById('qr-img').src = session.qr_code;
-    ```
+## Deep-link URL scheme
 
-    You do not need to generate your own QR code -- the API provides it.
-  </Accordion>
+For same-device flows where the user is already on a mobile browser, link to the `uip://` scheme rather than showing a QR they'd have to scan with the device they're already on:
 
-  <Accordion title="Deep Link URL" icon="link">
-    For mobile users, construct the deep link URL from the session ID:
+```
+uip://identify?sid={session_id}&exp={unix_seconds}
+uip://sign?sid={session_id}&exp={unix_seconds}
+```
 
-    ```
-    https://www.uip.id/{session_id}
-    ```
+Tapping the link opens the UIP app directly. iOS requires a `CFBundleURLTypes` entry for `uip`; Android requires an `<intent-filter android:scheme="uip">` on the receiving activity. If the user doesn't have the UIP app installed, the OS falls back to whatever the browser shows for unhandled custom schemes — typically a "no app to open this" dialog.
 
-    This URL opens the UIP app directly with the session details.
-  </Accordion>
-</AccordionGroup>
-
-## QR Code Display Best Practices
+## QR-code display best practices
 
 <AccordionGroup>
-  <Accordion title="Size and Positioning" icon="maximize">
-    - **Minimum size:** 200x200 pixels for reliable scanning
-    - **Recommended:** 256x256 to 300x300 pixels
-    - **Center the QR code** prominently on the page
-    - Add adequate white space (quiet zone) around the QR code
+  <Accordion title="Size and positioning" icon="maximize">
+    - **Minimum render size:** 200×200 px for reliable scanning from a phone
+    - **Recommended:** 256–320 px square
+    - **Quiet zone:** the SVG already includes its own quiet zone (margin). Don't override it with negative margins.
+    - **Don't transform the SVG colors.** The UIP-issued QR is high-contrast by design; recoloring can break scannability.
   </Accordion>
 
-  <Accordion title="Visual Feedback" icon="spinner">
-    - Show loading indicator while waiting for scan
-    - Display clear instructions: "Scan with UIP app"
-    - Add animated elements to draw attention to the QR code
-    - Show a countdown timer for session expiration
+  <Accordion title="Visual feedback" icon="spinner">
+    - Show a loading state while creating the session
+    - Display clear instructions: "Open the UIP app and scan"
+    - Show a countdown to `expires_at` — sessions expire in ~5 minutes
+    - When status flips to `approved` / `signed`, transition cleanly to your post-scan UI
   </Accordion>
 
-  <Accordion title="Error States" icon="triangle-exclamation">
-    - Handle expired sessions gracefully (5-minute expiry)
-    - Show "Try Again" button to generate a new session
-    - Display clear error messages for connection issues
-    - Provide fallback options if QR scanning fails
+  <Accordion title="Error states" icon="triangle-exclamation">
+    - Handle `expired` status: surface a "Generate a new code" button
+    - Handle network errors during polling: continue polling with backoff, surface "having trouble reaching UIP" after a few failures
+    - Don't auto-retry past `expires_at` — generate a new session instead
   </Accordion>
 
   <Accordion title="Accessibility" icon="universal-access">
-    - Provide alt text for screen readers
-    - Include text instructions alongside QR code
-    - Ensure sufficient color contrast for visibility
-    - Consider alternative authentication methods for accessibility
+    - The inlined SVG has no built-in accessible label. Wrap it in a `<div>` with `role="img"` and an `aria-label` describing what to do, or surface text instructions alongside it.
+    - Ensure sufficient contrast in the surrounding UI; the QR itself is already black-on-white.
   </Accordion>
 </AccordionGroup>
 
-## Session Management
+## Session management
 
 <CardGroup cols={2}>
-  <Card title="Session Expiration" icon="clock">
-    Sessions expire after **5 minutes**. Always check expiration status and generate new sessions as needed. Show a timer to the user.
+  <Card title="Session expiration" icon="clock">
+    Sessions expire after ~5 minutes (controlled by `SESSION_EXPIRY_SECONDS`, default 310s). Show the user a countdown.
   </Card>
 
-  <Card title="One-Time Use" icon="shield-check">
-    Each session is **single-use**. After the user completes verification, the session cannot be reused.
+  <Card title="One-time use" icon="shield-check">
+    Each session is single-use. Once the user signs, the session moves to its terminal state and cannot be reused.
   </Card>
 
-  <Card title="HTTPS Required" icon="lock">
-    All UIP integrations must use **HTTPS in production** to prevent man-in-the-middle attacks.
+  <Card title="HTTPS required" icon="lock">
+    All API calls and webhooks use HTTPS. Sessions are not transmitted in clear text anywhere.
   </Card>
 
-  <Card title="Concurrent Sessions" icon="users">
-    Support multiple concurrent sessions for users authenticating from different tabs or devices.
+  <Card title="Concurrent sessions" icon="users">
+    Multiple sessions for the same user can be in-flight simultaneously (e.g., a user authenticating from two browser tabs). Each is independent.
   </Card>
 </CardGroup>
 
-## Updating the Frontend
+## Pushing the result to your frontend
 
-Use WebSockets, Server-Sent Events, or short polling from your frontend to detect when the backend receives a completed result.
+Most integrations poll the UIP API from their backend and push the result to their frontend (which is also polling, or listening over SSE/WebSocket). Don't poll UIP directly from a browser using your API key — the key would leak.
 
 <CardGroup cols={3}>
   <Card title="WebSockets" icon="bolt">
-    Best for real-time bidirectional communication. Ideal for dashboards and interactive applications.
+    Best for real-time bidirectional updates. Backend polls UIP, pushes status changes over a WS to the frontend.
   </Card>
 
   <Card title="Server-Sent Events" icon="rss">
-    Simple one-way updates from server to client. Perfect for status updates and notifications.
+    Simpler one-way updates from your server to the browser. Good fit if you only need server → client.
   </Card>
 
-  <Card title="Short Polling" icon="rotate">
-    Poll your own backend every 2-3 seconds. Simple and works everywhere as a fallback.
+  <Card title="Short polling" icon="rotate">
+    Frontend polls your backend every 2–3s. Simple and works everywhere; backend in turn polls UIP.
   </Card>
 </CardGroup>
 
-## Testing QR Flows
-
-<Steps>
-  <Step title="Use Your $20 Signup Credit">
-    New accounts receive $20 in credits on their first business — plenty for extensive testing
-  </Step>
-
-  <Step title="Create Your UIP Identity">
-    Create your own UIP identity to test the full flow end-to-end
-  </Step>
-
-  <Step title="Test Device Detection">
-    Verify your device detection logic shows QR codes on desktop and deep link buttons on mobile
-  </Step>
-
-  <Step title="Test Error Scenarios">
-    Test session expiration, user cancellation, and network errors to ensure proper error handling
-  </Step>
-</Steps>
-
-## Next Steps
+## Next steps
 
 <CardGroup cols={3}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart"
-  >
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
     Build your first integration with working code
   </Card>
 
-  <Card
-    title="Identify API"
-    icon="fingerprint"
-    href="/api-reference/endpoint/identify"
-  >
+  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
     Full API reference for authentication
   </Card>
 
-  <Card
-    title="Error Handling"
-    icon="triangle-exclamation"
-    href="/core-concepts/error-handling"
-  >
+  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
     Handle errors gracefully
   </Card>
 </CardGroup>

@@ -126,27 +126,27 @@ Without email/password fallback, you'll face:
     - Request minimal fields (only need verification confirmation)
 
     **Response:**
-    - `session_id`, `qr_code` (base64 PNG), `expires_at`
+    - `session_id`, `qr_code` (raw SVG markup, not base64 PNG), `expires_at`
   </Step>
 
   <Step title="Display UIP Prompt">
     Show appropriate UI based on device type:
 
     **Mobile Flow:**
-    - Display "Open UIP App" button linking to `https://www.uip.id/{session_id}`
+    - Display "Open UIP App" button linking to `uip://identify?sid={session_id}&exp={unix_seconds}`
     - Show loading state: "Waiting for biometric verification..."
 
     **Desktop Flow:**
-    - Display QR code prominently (from `qr_code` in API response)
+    - Inline the raw `qr_code` SVG markup directly into the page
     - Show instructions: "Scan with UIP app to complete login"
     - Add loading indicator
   </Step>
 
   <Step title="Poll for Completion">
-    Poll `GET /v1/identify/:id` every 2-3 seconds until status is `completed`.
+    Poll `GET /v1/identify/:id` every 2-3 seconds until status is `approved`.
 
     **On Success:**
-    - Extract `uip_id` and `audit_id` from the response
+    - Extract `target_uip_id` and `audit_id` from the response
     - Grant user access to application
     - Update frontend to show logged-in state
 

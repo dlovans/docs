@@ -106,7 +106,7 @@ A simple flow for every integration: create a session, display a QR code, poll f
   </Step>
 
   <Step title="Poll and get the result">
-    Poll `GET /v1/identify/:id` until the status is `completed`. The response includes all verified data — no separate code exchange needed.
+    Poll `GET /v1/identify/:id` until the status is `approved`. The response carries the signer's identity snapshot and an `audit_id` — no separate code exchange needed.
   </Step>
 </Steps>
 

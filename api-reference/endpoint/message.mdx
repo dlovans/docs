@@ -61,7 +61,7 @@ Messages are end-to-end encrypted and support priority notification levels.
 
   **Format:** RFC3339 format (ISO 8601 timestamp)
 
-  **Example:** `"2025-01-15T17:00:00Z"`
+  **Example:** `"2026-05-15T17:00:00Z"`
 
   **Default behavior:**
   - If omitted when signature is required: Defaults to 7 days from message creation
@@ -71,6 +71,18 @@ Messages are end-to-end encrypted and support priority notification levels.
   <Warning>
   If you provide a `signature_expiry` date more than 3 months in the future or in the past, the request will fail with error code `request/invalid-payload`.
   </Warning>
+</ParamField>
+
+<ParamField body="mode" type="string">
+  Optional. How the audit record for this message is classified.
+
+  **Valid values:** `plain`, `certified`
+
+  **Default behavior** (when omitted):
+  - If `signature_required: true` → defaults to `"certified"`
+  - If `signature_required: false` → defaults to `"plain"`
+
+  Most callers can omit this and let the default match the signature requirement. Override only when you need the audit's `mode` field to differ from the signature requirement (rare).
 </ParamField>
 
 <ParamField body="attachments" type="file">
