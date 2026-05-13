@@ -23,9 +23,23 @@ Audit records are append-only, permanently retained, and the canonical evidence 
   **Example:** `"audit_9z8y7x6w5v4u"`
 </ParamField>
 
-## Response shape — full audit (default)
+## Privacy tiers — identify audits only
 
-Returned when the audit row was created at the default privacy tier (`auditable: "full"` — see the [Identify endpoint](/api-reference/endpoint/identify) for how the tier is set at session creation).
+Audit records produced by the Identify API carry a privacy tier set at session creation via the [`auditable`](/api-reference/endpoint/identify) parameter. The tier controls what fields this endpoint returns:
+
+| Source | `auditable` value | What `GET /v1/audit/:id` returns |
+|---|---|---|
+| Identify session, default | `full` | The full audit response (below) |
+| Identify session, redacted | `redacted` | The minimal envelope (below) |
+| Identify session, anonymous | `anon` | **404 — no audit row exists** |
+| Sign session | (does not apply) | Full audit response — always |
+| Message API | (does not apply) | Full audit response — always |
+
+Only the Identify API supports the privacy-tier system. Sign and message audits cannot be redacted, never produce 404 due to anon, and always return the full response shape below.
+
+## Response shape — full audit
+
+Returned for all sign audits, all message audits, and identify audits where `auditable` is `full` (the default).
 
 ```json
 {
@@ -158,9 +172,9 @@ Returned when the audit row was created at the default privacy tier (`auditable:
   Algorithm identifier for `signature`. Currently always `"ES256"` (ECDSA P-256 with SHA-256).
 </ResponseField>
 
-## Response shape — redacted audit
+## Response shape — redacted audit (identify-only)
 
-If the audit row was created at the **redacted** privacy tier (`auditable: "redacted"` set on the identify session), the response returns only the minimal envelope — content fields are intentionally omitted until a legal-case unlock is granted by UIP.
+Returned only for identify audits where `auditable: "redacted"` was set on the session. Sign and message audits never use this shape. The redacted response returns the minimal envelope — content fields are intentionally omitted until a legal-case unlock is granted by UIP.
 
 ```json
 {
@@ -180,9 +194,9 @@ If the audit row was created at the **redacted** privacy tier (`auditable: "reda
 
 The `signer_snapshot`, `intent`, `sign_information`, AdES proof fields, and attachments are all absent. The encrypted payload remains in the audit ledger and is recoverable through a legal-case unlock process — contact UIP support if you need a redacted audit unlocked for a legal matter.
 
-## Audits never returned
+## Audits never returned — anon tier (identify-only)
 
-If the identify session was created at the **anonymous** privacy tier (`auditable: "anon"`), **no audit record is ever produced**. Querying `GET /v1/audit/:id` for the (non-existent) audit returns `404`.
+When an identify session is created with `auditable: "anon"`, the consume path writes **no audit row at all**. Querying `GET /v1/audit/:id` for the (non-existent) audit returns `404` (`resource/not-found`). The session still completes — the user still signs, the polling endpoint reports `status: "approved"` — but there is no durable audit. Sign and message audits cannot reach this state.
 
 ## Example request
 

@@ -71,12 +71,12 @@ The same endpoint produces four different verification flows depending on the [`
 </ParamField>
 
 <ParamField body="auditable" type="string" default="full">
-  Privacy tier for the audit record this session will produce.
+  Privacy tier for the audit record this session will produce. **Identify-only** — the Sign API and Message API do not accept this parameter; their audits are always full.
 
   **Valid values:**
   - `full` *(default)* — Full audit record. Visible in [`GET /v1/audit/:id`](/api-reference/endpoint/audit) with all signer-snapshot data, intent, AdES proof, attachments.
   - `redacted` — A row is written but reads return only the minimal envelope (audit_id, requester_business_name, target_uip_id, action_accepted, created_at). The encrypted content stays on disk and is only surfaced via a legal-case unlock. Use this when the user or your business wants to remain anonymous in routine reads while preserving an evidence record (e.g., adult-industry use cases under 2257 or DSA).
-  - `anon` — **No audit row is written at all.** The session still completes; the user still signs; the business still receives the result. Just no durable audit record exists. Use sparingly.
+  - `anon` — **No audit row is written at all.** The session still completes; the user still signs; the polling endpoint reports `status: "approved"`. But there is no durable audit record — `GET /v1/audit/:id` returns 404 for the (non-existent) row. Use sparingly.
 
   Any value other than these three returns `request/invalid-auditable` (400).
 </ParamField>
