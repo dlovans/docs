@@ -3,55 +3,101 @@ title: 'Poll Sign Session'
 openapi: 'GET /v1/sign/{id}'
 ---
 
-Poll this endpoint every 2-3 seconds to check session status. When the user completes biometric signature, the response includes the audit trail reference.
+Poll this endpoint every 2–3 seconds after creating a sign session. When the user completes biometric signing, the response carries the signer's identity snapshot and an `audit_id` for retrieving the full audit (AdES proof, attachments, signed payload).
 
-### Response -- Pending
+## Response — pending
 
 ```json
 {
   "status": "pending",
-  "expires_at": "2025-01-11T12:35:00Z"
+  "expires_at": "2026-05-13T12:35:00Z"
 }
 ```
 
-### Response -- Completed
+The user hasn't scanned the QR yet or hasn't completed signing. Keep polling.
 
-When the user completes biometric signature:
+## Response — signed
 
 ```json
 {
-  "status": "completed",
-  "expires_at": "2025-01-11T12:35:00Z",
+  "status": "signed",
+  "expires_at": "2026-05-13T12:35:00Z",
   "audit_id": "audit_9z8y7x6w5v4u",
-  "uip_id": "user_abc123def456"
+  "target_uip_id": "user_def456",
+  "signer_snapshot": {
+    "target": {
+      "uip_id": "user_def456",
+      "full_name": "John Doe",
+      "date_of_birth": "1990-05-15",
+      "nationality": "US",
+      "document_type": "passport",
+      "document_number": "P1234567",
+      "issuing_state": "US",
+      "verified_at": "2024-09-01T10:00:00Z",
+      "kyc_provider": "didit",
+      "kyc_session_id": "didit_abc123",
+      "liveness_score": 98.4,
+      "face_match_score": 99.1
+    },
+    "requester": {
+      "business_id": "biz_acme",
+      "business_name": "Acme Corp"
+    }
+  }
 }
 ```
 
-### Response -- Expired
+The user has scanned the QR and biometrically signed. `audit_id` is the durable handle — store it. Use [`GET /v1/audit/:id`](/api-reference/endpoint/audit) to retrieve the full audit (AdES signature, signed payload, signed payload hash, public key, attachment signed URLs).
+
+## Response — expired
 
 ```json
 {
   "status": "expired",
-  "expires_at": "2025-01-11T12:35:00Z"
+  "expires_at": "2026-05-13T12:35:00Z"
 }
 ```
 
+The session expired before the user signed. Create a new session if you still need the signature.
+
+## Fields
+
 <ResponseField name="status" type="string" required>
-  Session status: `pending`, `completed`, or `expired`
+  One of `"pending"`, `"signed"`, or `"expired"`.
+
+  Note: sign sessions use `"signed"` as their terminal-success state. (Identify sessions use `"approved"`.)
+</ResponseField>
+
+<ResponseField name="expires_at" type="string" required>
+  RFC 3339 timestamp when the session expires (or expired). Mirrors the create response.
 </ResponseField>
 
 <ResponseField name="audit_id" type="string">
-  Permanent audit trail reference (only present when `completed`). Save this for compliance.
+  Permanent audit reference. Present only when `status === "signed"`.
 </ResponseField>
 
-<ResponseField name="uip_id" type="string">
-  User's unique UIP identifier (only present when `completed`).
+<ResponseField name="target_uip_id" type="string">
+  UIP ID of the user who signed. Present only on `"signed"` responses.
+</ResponseField>
+
+<ResponseField name="signer_snapshot" type="object">
+  Frozen identity snapshot captured at the moment of signing. Same shape as on the audit record. Present only on `"signed"` responses. Use this for immediate UI feedback; query the audit endpoint when you need the cryptographic proof.
 </ResponseField>
 
 <Warning>
-**Save the audit_id:** This is your permanent proof of signature. Store it in your database for compliance and verification purposes.
+**Save the `audit_id`.** It's your permanent proof of the signature and the only handle for retrieving the full audit (signature, signed payload, public key, attachment URLs).
 </Warning>
 
 <Info>
-**No webhooks needed.** The Sign API uses simple polling. No redirect URIs, no code exchange.
+**No webhooks.** Sign sessions are polled, not pushed.
 </Info>
+
+## Errors
+
+- `auth/missing-api-key` — No API key
+- `auth/invalid-api-key` — Invalid API key
+- `auth/revoked-api-key` — API key has been revoked
+- `auth/business-archived` — Business has been archived
+- `request/invalid-payload` — Session ID missing in path
+- `resource/not-found` — Session does not exist or belongs to a different business
+- `internal/server-error` — Failed to fetch the session

@@ -3,201 +3,188 @@ title: 'Create Sign Session'
 openapi: 'POST /v1/sign'
 ---
 
-Create a signature session. Returns a QR code and session ID for the user to scan with their UIP app.
+Create a signature session. Returns a session ID and a QR code your application shows to the user. The user scans it with the UIP app, sees the agreement, and biometrically signs.
 
-Use this for quick signatures on lightweight agreements, terms of service, policies, and attestations.
+Use this endpoint for lightweight signatures (terms of service, policies, attestations) and for document signatures — attach an optional PDF and the signature covers both the agreement text and the document hash.
 
-### Body Parameters
+Like Identify, Sign is QR-session-based: you do NOT pass a target user upfront. Whoever scans the QR is the signer; their UIP ID is captured at consume time and returned to you when you poll.
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | Bearer token with your API key: `Bearer YOUR_API_KEY` |
+| `Content-Type` | Yes | `multipart/form-data` (the endpoint accepts an optional file upload alongside the form fields) |
+
+### Form fields
 
 <ParamField body="intent" type="string" required>
-  Description of why you're requesting a signature. Shown to the user in the UIP app.
+  Why you're requesting the signature. Shown to the user in the UIP app.
 
-  **Example:** `"Sign Terms of Service"` or `"Acknowledge Privacy Policy"`
+  **Example:** `"Sign Terms of Service"` or `"Acknowledge NDA"`
 </ParamField>
 
 <ParamField body="signature_information" type="string" required>
-  The content or description of what the user is signing. This is the actual agreement text or reference.
+  The agreement text the user is signing — the actual content their signature attests to.
 
-  **Example:** `"I agree to the Terms of Service version 2.1"` or `"I acknowledge receipt of the employee handbook"`
+  **Example:** `"I agree to the Terms of Service version 2.1 dated May 13, 2026"`
 </ParamField>
 
-### Example Request
+<ParamField body="mode" type="string" default="document">
+  Optional. Mode marker recorded on the resulting audit. Defaults to `"document"`. No other modes are enforced today.
+</ParamField>
 
-<CodeGroup>
+<ParamField body="document_ref" type="string">
+  Optional. An external URL or identifier where the document you're signing lives in your own systems. Stored on the session and included in the audit. Use this when you don't want to upload the PDF to UIP storage but still want a reference in the audit trail.
+</ParamField>
 
-```bash cURL
-curl -X POST https://api.uip.digital/v1/sign \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "intent": "Sign Terms of Service",
-    "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
-  }'
-```
+<ParamField body="document" type="file">
+  Optional. PDF file the user is signing. The server computes a SHA-256 hash of the file at session creation; that hash is included in the signed payload, so post-signing modifications to the PDF invalidate the signature.
 
-```javascript Node.js
-const response = await fetch('https://api.uip.digital/v1/sign', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    intent: 'Sign Terms of Service',
-    signature_information: 'I agree to the Terms of Service version 2.1 dated January 11, 2025'
-  })
-});
+  **Constraints:**
+  - PDF only (`.pdf` extension required)
+  - Max size: 20 MB
+  - Single file upload under the form field name `document`
 
-const { session_id, qr_code, expires_at } = await response.json();
-```
+  When present, the file is stored in UIP Storage and a 1-hour pre-signed URL is later returned via the [audit endpoint](/api-reference/endpoint/audit) under `attachments[]`.
+</ParamField>
 
-```python Python
-import requests
-
-response = requests.post(
-    'https://api.uip.digital/v1/sign',
-    headers={
-        'Authorization': f'Bearer {API_KEY}',
-        'Content-Type': 'application/json'
-    },
-    json={
-        'intent': 'Sign Terms of Service',
-        'signature_information': 'I agree to the Terms of Service version 2.1 dated January 11, 2025'
-    }
-)
-
-data = response.json()
-session_id = data['session_id']
-qr_code = data['qr_code']
-```
-
-</CodeGroup>
-
-### Response (200 OK)
+## Response (200 OK)
 
 ```json
 {
   "session_id": "sess_1a2b3c4d5e6f",
-  "expires_at": "2025-01-11T12:35:00Z",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+  "expires_at": "2026-05-13T12:35:00Z",
+  "qr_code": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>...</svg>"
 }
 ```
 
 <ResponseField name="session_id" type="string" required>
-  Unique identifier for this session. Use this to poll for results.
+  Unique session identifier. Pass it to `GET /v1/sign/:id` to poll for the result.
 </ResponseField>
 
 <ResponseField name="expires_at" type="string" required>
-  ISO 8601 timestamp when the session expires (5 minutes from creation).
+  RFC 3339 timestamp when the session expires (~5 minutes from creation).
 </ResponseField>
 
 <ResponseField name="qr_code" type="string" required>
-  Base64-encoded PNG data URI of the QR code. Display this to desktop users. The QR code encodes `https://www.uip.id/{session_id}`.
+  Raw SVG markup for the QR code to display. **Not a base64 PNG data URI.** Inline it directly into your HTML.
+
+  The QR encodes `uip|<session_id>|<unix_seconds>` (BankID-style, not a URL). On mobile, deep-link to `uip://sign?sid={session_id}&exp={unix_seconds}` to open the UIP app directly.
 </ResponseField>
 
-## Implementation Flow
+## Examples
+
+### Lightweight signature — terms of service
+
+```bash
+curl -X POST https://api.uip.digital/v1/sign \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "intent=Sign Terms of Service" \
+  -F "signature_information=I agree to the Terms of Service version 2.1 dated May 13, 2026"
+```
+
+### Document signature — sign a PDF
+
+```bash
+curl -X POST https://api.uip.digital/v1/sign \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "intent=Sign Employment Contract" \
+  -F "signature_information=I agree to the terms of the attached employment contract" \
+  -F "document=@./contract.pdf"
+```
+
+### Document signature with external reference
+
+```bash
+curl -X POST https://api.uip.digital/v1/sign \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "intent=Sign Lease Agreement" \
+  -F "signature_information=I agree to the lease terms at https://docs.example.com/lease-2026.pdf" \
+  -F "document_ref=https://docs.example.com/lease-2026.pdf"
+```
+
+## Implementation flow
 
 <Steps>
-  <Step title="Create Session">
-    Call `POST /v1/sign` with your intent and signature information
+  <Step title="Create the session">
+    `POST /v1/sign` with `intent` + `signature_information`. Optionally attach a PDF or a `document_ref`.
   </Step>
 
-  <Step title="Display QR Code or Deep Link">
-    Desktop: show the `qr_code` image. Mobile: show an "Open UIP" button linking to `https://www.uip.id/{session_id}`
+  <Step title="Show the QR or deep-link">
+    Desktop: inline the `qr_code` SVG. Mobile (same-device): button linking to `uip://sign?sid={session_id}&exp={unix_seconds}`.
   </Step>
 
-  <Step title="Poll for Result">
-    Call `GET /v1/sign/:id` every 2-3 seconds until status is `completed` or `expired`
+  <Step title="User scans and signs">
+    The user opens the UIP app, sees your intent + signature_information (and the document filename if you attached one), and biometrically signs.
   </Step>
 
-  <Step title="Use Verified Signature">
-    Extract `audit_id` and `uip_id` from the completed response. Save `audit_id` for compliance.
+  <Step title="Poll for the result">
+    `GET /v1/sign/:id` every 2–3 seconds until `status === "signed"` or `"expired"`. See [Poll Sign Session](/api-reference/endpoint/sign-session) for the response shape.
+  </Step>
+
+  <Step title="Save the audit_id">
+    Persist `audit_id` from the signed response. The full audit (AdES proof, attachments via signed URL, signed payload hash) is available via [`GET /v1/audit/:id`](/api-reference/endpoint/audit).
   </Step>
 </Steps>
 
 <Info>
-**No webhooks needed.** The Sign API uses simple polling. No redirect URIs, no code exchange.
+**No webhooks.** Sign uses polling.
 </Info>
 
-## Best Practices
-
-<CardGroup cols={2}>
-  <Card title="Clear Intent" icon="message">
-    Always provide a clear, user-friendly intent message explaining what they're signing
-  </Card>
-
-  <Card title="Specific Information" icon="file-contract">
-    Include version numbers and dates in signature_information for legal clarity
-  </Card>
-
-  <Card title="Handle Expiration" icon="clock">
-    Sessions expire after 5 minutes. Implement retry logic or allow users to generate a new code
-  </Card>
-
-  <Card title="Save Audit IDs" icon="database">
-    Always save the audit_id from completed responses for permanent proof and compliance
-  </Card>
-</CardGroup>
-
-## Common Use Cases
+## Common use cases
 
 <AccordionGroup>
   <Accordion title="Terms of Service" icon="file-contract">
-    Request users to sign your TOS with biometric verification
+    Sign your TOS or EULA with cryptographic proof of identity.
 
-    ```json
-    {
-      "intent": "Sign Terms of Service",
-      "signature_information": "I agree to the Terms of Service version 2.1 dated January 11, 2025"
-    }
+    ```bash
+    curl -X POST https://api.uip.digital/v1/sign \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "intent=Sign Terms of Service" \
+      -F "signature_information=I agree to the Terms of Service v2.1, May 2026"
     ```
   </Accordion>
 
-  <Accordion title="Privacy Policy" icon="shield-check">
-    Get user consent for privacy policies with cryptographic proof
+  <Accordion title="Employee handbook" icon="book">
+    Acknowledge a handbook or policy document.
 
-    ```json
-    {
-      "intent": "Acknowledge Privacy Policy",
-      "signature_information": "I acknowledge and agree to the Privacy Policy updated January 2025"
-    }
+    ```bash
+    curl -X POST https://api.uip.digital/v1/sign \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "intent=Acknowledge 2026 Employee Handbook" \
+      -F "signature_information=I confirm receipt of the 2026 Employee Handbook and agree to comply with all policies" \
+      -F "document=@./handbook-2026.pdf"
     ```
   </Accordion>
 
-  <Accordion title="Employee Handbook" icon="book">
-    Require employees to acknowledge receipt and understanding
+  <Accordion title="Code of conduct" icon="gavel">
+    Get an attestation against a code of conduct.
 
-    ```json
-    {
-      "intent": "Acknowledge Employee Handbook",
-      "signature_information": "I confirm receipt of the 2025 Employee Handbook and agree to comply with all policies"
-    }
-    ```
-  </Accordion>
-
-  <Accordion title="Code of Conduct" icon="gavel">
-    Get attestations for codes of conduct or ethical guidelines
-
-    ```json
-    {
-      "intent": "Sign Code of Conduct",
-      "signature_information": "I agree to follow the Company Code of Conduct effective January 2025"
-    }
+    ```bash
+    curl -X POST https://api.uip.digital/v1/sign \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "intent=Sign Code of Conduct" \
+      -F "signature_information=I agree to follow the Company Code of Conduct effective May 2026"
     ```
   </Accordion>
 </AccordionGroup>
 
 ## Errors
 
-See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive error handling strategies.
+See the [Error Handling Guide](/core-concepts/error-handling) for full coverage.
 
 Possible error codes:
 
-- `auth/missing-api-key` - No API key provided in Authorization header
-- `auth/invalid-api-key` - Invalid API key
-- `auth/revoked-api-key` - API key has been revoked
-- `auth/business-archived` - Business account has been archived
-- `request/invalid-payload` - Request payload is invalid or missing required fields
-- `payment/insufficient-funds` - Insufficient account balance
-- `resource/not-found` - Session not found (GET endpoint)
-- `internal/server-error` - Failed to create or retrieve session
+- `auth/missing-api-key` — No API key in Authorization header
+- `auth/invalid-api-key` — Invalid API key
+- `auth/revoked-api-key` — API key has been revoked
+- `auth/business-archived` — Business has been archived
+- `auth/verification-required` — Business owner needs to re-run identity verification
+- `request/invalid-payload` — Failed to parse multipart form, or `intent` / `signature_information` empty
+- `request/invalid-file-type` — Uploaded file is not a PDF
+- `request/file-too-large` — PDF exceeds 20 MB
+- `payment/insufficient-funds` — Insufficient account balance
+- `internal/server-error` — Failed to create the session

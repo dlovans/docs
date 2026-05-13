@@ -1,11 +1,11 @@
 ---
 title: 'Get Audit Record'
-openapi: 'GET /audit/{auditID}'
+openapi: 'GET /v1/audit/{auditID}'
 ---
 
-Retrieve the complete, permanent audit record for any completed action using the audit ID from completed responses. Returns verified identity information, timestamps, action details, and any attached documents.
+Retrieve the permanent audit record for any completed action. Returns the cryptographic proof (AdES signature, signed payload, public key), the signer's verified identity snapshot, the action details, and signed URLs for any attached documents.
 
-Audit records are cryptographically secured, permanently stored, and can be queried at any time for legal verification, compliance, and dispute resolution.
+Audit records are append-only, permanently retained, and the canonical evidence layer for legal verification, compliance, and dispute resolution.
 
 ## Request
 
@@ -18,194 +18,276 @@ Audit records are cryptographically secured, permanently stored, and can be quer
 ### Path Parameters
 
 <ParamField path="auditID" type="string" required>
-  The audit ID returned in webhook responses (the `audit_id` field).
+  The audit ID returned in completed responses from the [Identify](/api-reference/endpoint/identify-session) and [Sign](/api-reference/endpoint/sign-session) GET endpoints, or in the `message` [webhook payload](/api-reference/webhooks).
 
   **Example:** `"audit_9z8y7x6w5v4u"`
-
-  **Where to get this:** Completed polling responses from Identify API and Sign API, and webhook responses from Message API (with signature), all include an `audit_id` field. Save this ID to query the full audit record later.
 </ParamField>
 
-## Response
+## Response shape — full audit (default)
 
-### Success Response (200 OK)
+Returned when the audit row was created at the default privacy tier (`auditable: "full"` — see the [Identify endpoint](/api-reference/endpoint/identify) for how the tier is set at session creation).
 
-Returns a JSON object containing the complete audit record and any attachments.
+```json
+{
+  "audit_id": "audit_9z8y7x6w5v4u",
+  "audit_type": "DATA_SHARE",
+  "requester_business_name": "Acme Corp",
+  "target_uip_id": "user_def456",
+  "intent": "Sign Employment Contract",
+  "action_accepted": true,
+  "created_at": "2025-01-11T14:30:00Z",
+  "signer_snapshot": {
+    "target": {
+      "uip_id": "user_def456",
+      "full_name": "John Doe",
+      "date_of_birth": "1990-05-15",
+      "nationality": "US",
+      "document_type": "passport",
+      "document_number": "P1234567",
+      "issuing_state": "US",
+      "verified_at": "2024-09-01T10:00:00Z",
+      "kyc_provider": "didit",
+      "kyc_session_id": "didit_abc123",
+      "liveness_score": 98.4,
+      "face_match_score": 99.1
+    },
+    "requester": {
+      "business_id": "biz_acme",
+      "business_name": "Acme Corp"
+    }
+  },
+  "requested_fields": ["first_name", "last_name", "date_of_birth"],
+  "sign_information": "I agree to the Terms of Service version 2.1",
+  "attachments": [
+    {
+      "filename": "contract.pdf",
+      "signed_url": "https://supabase.example/storage/v1/object/sign/attachments/..."
+    }
+  ],
+  "signature": "MEUCIQDx...base64...",
+  "signed_payload": "{\"session_id\":\"sess_...\",\"timestamp\":...}",
+  "signed_payload_hash": "a3f5b1...",
+  "public_key": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+  "attachment_hashes": ["e3b0c4...hex of contract.pdf"],
+  "signature_algorithm": "ES256"
+}
+```
 
-<ResponseField name="audit" type="object" required>
-  Complete audit record with all action details
-
-  <Expandable title="audit properties">
-    <ResponseField name="created_at" type="string" required>
-      ISO 8601 timestamp when the action was completed with biometric verification
-
-      **Example:** `"2025-01-11T14:30:00Z"`
-    </ResponseField>
-
-    <ResponseField name="requester_uip_id" type="string" required>
-      UIP ID of the business that requested the action
-
-      **Example:** `"business_abc123"`
-    </ResponseField>
-
-    <ResponseField name="requester_sign_intent" type="string" required>
-      The intent message shown to the user (subject/title of the signature or identity request)
-
-      **Example:** `"Sign Employment Contract"`
-    </ResponseField>
-
-    <ResponseField name="requester_sign_information" type="string" required>
-      The signature information or message content that was presented to the user
-
-      **Example:** `"Please review and sign your employment contract by January 31, 2025."`
-    </ResponseField>
-
-    <ResponseField name="signatoree_uip_id" type="string" required>
-      UIP ID of the user who signed, declined, or authenticated
-
-      **Example:** `"user_def456"`
-    </ResponseField>
-
-    <ResponseField name="message_ref" type="string">
-      Message ID reference if this was a message-based signature. `null` for lightweight signatures (Sign API).
-
-      **Example:** `"msg_xyz789abc123"` or `null`
-    </ResponseField>
-
-    <ResponseField name="attachment_refs" type="array">
-      Array of internal attachment references if PDF attachments were included. `null` if no attachments.
-
-      **Example:** `["audit_abc123___msg_xyz789___contract.pdf"]` or `null`
-    </ResponseField>
-
-    <ResponseField name="audit_type" type="string" required>
-      Type of action that created this audit record
-
-      **Valid values:**
-      - `identify` - Identify API authentication
-      - `sign` - Sign API signature (lightweight signature without message)
-      - `message` - Message API signature (message with signature required)
-    </ResponseField>
-
-    <ResponseField name="requester_name" type="string" required>
-      Display name of the requester (business or admin who initiated the request)
-
-      **Example:** `"HR Manager"`
-    </ResponseField>
-
-    <ResponseField name="signatoree_name" type="string" required>
-      Full name of the user who signed, declined, or authenticated (from their government-verified identity)
-
-      **Example:** `"John Doe"`
-    </ResponseField>
-
-    <ResponseField name="requester_business_name" type="string" required>
-      Business name of the requesting organization
-
-      **Example:** `"Acme Corp"`
-    </ResponseField>
-
-    <ResponseField name="signed_accepted" type="boolean" required>
-      Whether the user accepted or declined the action
-
-      - `true` - User signed/accepted (always true for Sign API and Identify API)
-      - `false` - User declined (only possible for Message API with signature)
-
-      **Use this field to determine the outcome of Message API signature requests.**
-
-      **Note:** Lightweight signatures (Sign API) and identity requests (Identify API) can only be accepted, never declined. Only Message API signature requests can be declined.
-    </ResponseField>
-  </Expandable>
+<ResponseField name="audit_id" type="string" required>
+  Stable identifier for this audit row. Use it to retrieve this same record again.
 </ResponseField>
 
-<ResponseField name="attachments" type="array" required>
-  Array of PDF attachments that were included with the message. Empty array if no attachments.
+<ResponseField name="audit_type" type="string" required>
+  What action produced this record. One of:
+  - `DATA_SHARE` — identify session in profile mode (data fields shared)
+  - `VERIFY` — identify session in verify mode (identity assertion)
+  - `CHECK` — identify session in check mode (requirements check)
+  - `AGE_CHECK` — identify session in age-check mode
+  - `SIGN` — sign session (lightweight signature)
+  - Message-based signatures use the type set on the session at create time
 
-  <Expandable title="attachment properties">
-    <ResponseField name="filename" type="string" required>
-      Original filename of the PDF attachment
-
-      **Example:** `"contract.pdf"`
-    </ResponseField>
-
-    <ResponseField name="content_type" type="string" required>
-      MIME type of the attachment (always `application/pdf`)
-
-      **Example:** `"application/pdf"`
-    </ResponseField>
-
-    <ResponseField name="content" type="string" required>
-      Base64-encoded PDF file content
-
-      **Example:** `"JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFs..."`
-
-      **Decode this:** Use base64 decoding to retrieve the original PDF file
-    </ResponseField>
-
-    <ResponseField name="size" type="integer" required>
-      File size in bytes
-
-      **Example:** `245678`
-    </ResponseField>
-  </Expandable>
+  Use [`requested_fields`](#requested-fields) to distinguish identify subtypes from sign/message.
 </ResponseField>
 
-### Example Request
+<ResponseField name="requester_business_name" type="string" required>
+  Human-readable business name of the requesting business (yours).
+</ResponseField>
+
+<ResponseField name="target_uip_id" type="string" required>
+  UIP ID of the user who completed the action.
+</ResponseField>
+
+<ResponseField name="intent" type="string" required>
+  The intent message you provided at session creation. Decrypted before return.
+</ResponseField>
+
+<ResponseField name="action_accepted" type="boolean" required>
+  Whether the user accepted or declined the action.
+
+  - `true` — User signed / consented / verified
+  - `false` — User explicitly declined (currently only possible on message-based signature requests; identify and sign sessions only ever record `true`)
+</ResponseField>
+
+<ResponseField name="created_at" type="string" required>
+  RFC 3339 / ISO 8601 timestamp of when the user completed the action.
+</ResponseField>
+
+<ResponseField name="signer_snapshot" type="object" required>
+  Frozen identity snapshot captured at the moment the action was signed. Contains the verified identity fields applicable to this audit type — for `DATA_SHARE` audits, the fields the business [requested](/api-reference/endpoint/identify); for other types, the verifying identity record.
+
+  Embedded structure (subject to change as identity attributes evolve):
+  - `target.full_name`, `target.date_of_birth`, `target.nationality`, `target.document_type`, `target.document_number`, `target.issuing_state`, `target.verified_at`, `target.kyc_provider`, `target.kyc_session_id`, `target.liveness_score`, `target.face_match_score`
+  - `requester.business_id`, `requester.business_name`
+</ResponseField>
+
+<ResponseField name="requested_fields" type="array">
+  Array of identity field names the business explicitly requested at session creation. Present only on `DATA_SHARE` (identify-profile) audits; absent from `SIGN`, message-based audits, and other identify modes.
+</ResponseField>
+
+<ResponseField name="sign_information" type="string">
+  The signed agreement text (for `SIGN` audits) or message body (for message-based audits). Decrypted before return. Empty on identify-only audits.
+</ResponseField>
+
+<ResponseField name="attachments" type="array">
+  Array of attachment metadata + signed URLs for each PDF attached at signing time. Each entry has `filename` (original filename) and `signed_url` (a 1-hour pre-signed URL pointing at Supabase Storage where the PDF lives). **Download attachments by fetching the `signed_url`**, not by base64-decoding any field in this response.
+
+  Empty array when the audit has no attachments.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+  Base64-encoded ECDSA signature over the canonical signed payload. AdES-grade proof. Present on every action that involves a user signing — that's identify-consume, sign, and message-sign.
+</ResponseField>
+
+<ResponseField name="signed_payload" type="string">
+  The canonical payload the user's device signed. Plain string (JSON-encoded structure) — reconstruct from the audit and verify the signature against this byte sequence.
+</ResponseField>
+
+<ResponseField name="signed_payload_hash" type="string">
+  SHA-256 hex digest of `signed_payload`. Use it as the document hash if you need to compare signatures across systems.
+</ResponseField>
+
+<ResponseField name="public_key" type="string">
+  PEM-encoded ECDSA P-256 public key of the signing device. Use it to verify `signature` against `signed_payload`.
+</ResponseField>
+
+<ResponseField name="attachment_hashes" type="array">
+  SHA-256 hex digests of each attached PDF, in the same order as `attachments[]`. The signature covers these hashes, so any post-signing modification of an attachment invalidates the signature.
+</ResponseField>
+
+<ResponseField name="signature_algorithm" type="string">
+  Algorithm identifier for `signature`. Currently always `"ES256"` (ECDSA P-256 with SHA-256).
+</ResponseField>
+
+## Response shape — redacted audit
+
+If the audit row was created at the **redacted** privacy tier (`auditable: "redacted"` set on the identify session), the response returns only the minimal envelope — content fields are intentionally omitted until a legal-case unlock is granted by UIP.
+
+```json
+{
+  "audit_id": "audit_9z8y7x6w5v4u",
+  "audit_type": "DATA_SHARE",
+  "requester_business_name": "Acme Corp",
+  "target_uip_id": "user_def456",
+  "action_accepted": true,
+  "created_at": "2025-01-11T14:30:00Z",
+  "auditable": "redacted"
+}
+```
+
+<ResponseField name="auditable" type="string">
+  Privacy-tier marker. Present and equal to `"redacted"` only on redacted-tier audits; absent from full-tier audits.
+</ResponseField>
+
+The `signer_snapshot`, `intent`, `sign_information`, AdES proof fields, and attachments are all absent. The encrypted payload remains in the audit ledger and is recoverable through a legal-case unlock process — contact UIP support if you need a redacted audit unlocked for a legal matter.
+
+## Audits never returned
+
+If the identify session was created at the **anonymous** privacy tier (`auditable: "anon"`), **no audit record is ever produced**. Querying `GET /v1/audit/:id` for the (non-existent) audit returns `404`.
+
+## Example request
 
 ```bash
 curl -X GET "https://api.uip.digital/v1/audit/audit_9z8y7x6w5v4u" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### Example Response (Signed Message with Attachment)
+## Determining outcome
 
-```json
-{
-  "audit": {
-    "created_at": "2025-01-11T14:30:00Z",
-    "requester_uip_id": "business_abc123",
-    "requester_sign_intent": "Sign Employment Contract",
-    "requester_sign_information": "Please review and sign your employment contract by January 31, 2025.",
-    "signatoree_uip_id": "user_def456",
-    "message_ref": "msg_xyz789abc123",
-    "attachment_refs": ["audit_abc123___msg_xyz789___contract.pdf"],
-    "audit_type": "message",
-    "requester_name": "HR Manager",
-    "signatoree_name": "John Doe",
-    "requester_business_name": "Acme Corp",
-    "signed_accepted": true
-  },
-  "attachments": [
-    {
-      "filename": "contract.pdf",
-      "content_type": "application/pdf",
-      "content": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFs...",
-      "size": 245678
-    }
-  ]
+Use `action_accepted` as the definitive signal of whether the user signed or declined. `audit_type` tells you which API produced the record, not whether the user agreed.
+
+<CodeGroup>
+
+```javascript Node.js
+const response = await fetch(
+  `https://api.uip.digital/v1/audit/${auditId}`,
+  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+);
+const audit = await response.json();
+
+if (audit.auditable === 'redacted') {
+  // Minimal envelope — content fields are absent.
+  console.log(`Redacted audit at ${audit.created_at}`);
+  return;
+}
+
+if (audit.action_accepted) {
+  console.log(`${audit.signer_snapshot.target.full_name} accepted`);
+  // Fetch attachments if any
+  for (const att of audit.attachments) {
+    const pdfResp = await fetch(att.signed_url);
+    const pdfBuffer = await pdfResp.arrayBuffer();
+    // ... store the PDF
+  }
+} else {
+  console.log('User declined');
 }
 ```
 
-### Example Response (Declined Lightweight Signature)
+```python Python
+import requests
 
-```json
-{
-  "audit": {
-    "created_at": "2025-01-11T10:15:00Z",
-    "requester_uip_id": "business_abc123",
-    "requester_sign_intent": "Sign Terms of Service",
-    "requester_sign_information": "I agree to the Terms of Service version 2.1",
-    "signatoree_uip_id": "user_xyz789",
-    "message_ref": null,
-    "attachment_refs": null,
-    "audit_type": "sign",
-    "requester_name": "Jane Doe",
-    "signatoree_name": "Jane Smith",
-    "requester_business_name": "Tech Startup Inc",
-    "signed_accepted": false
-  },
-  "attachments": []
+response = requests.get(
+    f"https://api.uip.digital/v1/audit/{audit_id}",
+    headers={"Authorization": f"Bearer {API_KEY}"}
+)
+audit = response.json()
+
+if audit.get("auditable") == "redacted":
+    print(f"Redacted audit at {audit['created_at']}")
+else:
+    if audit["action_accepted"]:
+        print(f"{audit['signer_snapshot']['target']['full_name']} accepted")
+        for att in audit["attachments"]:
+            pdf = requests.get(att["signed_url"]).content
+            # ... store the PDF
+    else:
+        print("User declined")
+```
+
+```go Go
+type AuditResponse struct {
+    AuditID                string          `json:"audit_id"`
+    AuditType              string          `json:"audit_type"`
+    RequesterBusinessName  string          `json:"requester_business_name"`
+    TargetUIPID            string          `json:"target_uip_id"`
+    Intent                 string          `json:"intent"`
+    ActionAccepted         bool            `json:"action_accepted"`
+    CreatedAt              string          `json:"created_at"`
+    SignerSnapshot         json.RawMessage `json:"signer_snapshot"`
+    RequestedFields        []string        `json:"requested_fields,omitempty"`
+    SignInformation        string          `json:"sign_information,omitempty"`
+    Attachments            []struct {
+        Filename  string `json:"filename"`
+        SignedURL string `json:"signed_url"`
+    } `json:"attachments"`
+    Signature              *string  `json:"signature,omitempty"`
+    SignedPayload          *string  `json:"signed_payload,omitempty"`
+    SignedPayloadHash      *string  `json:"signed_payload_hash,omitempty"`
+    PublicKey              *string  `json:"public_key,omitempty"`
+    AttachmentHashes       []string `json:"attachment_hashes,omitempty"`
+    SignatureAlgorithm     *string  `json:"signature_algorithm,omitempty"`
+    Auditable              *string  `json:"auditable,omitempty"` // "redacted" on redacted-tier rows; absent on full
+}
+
+req, _ := http.NewRequest("GET",
+    fmt.Sprintf("https://api.uip.digital/v1/audit/%s", auditID), nil)
+req.Header.Set("Authorization", "Bearer "+apiKey)
+resp, _ := http.DefaultClient.Do(req)
+defer resp.Body.Close()
+
+var audit AuditResponse
+json.NewDecoder(resp.Body).Decode(&audit)
+
+if audit.Auditable != nil && *audit.Auditable == "redacted" {
+    fmt.Printf("Redacted audit at %s\n", audit.CreatedAt)
+    return
+}
+if audit.ActionAccepted {
+    fmt.Println("User accepted")
 }
 ```
+
+</CodeGroup>
 
 ## Errors
 
@@ -214,318 +296,81 @@ See the [Error Handling Guide](/core-concepts/error-handling) for comprehensive 
 Possible error codes for this endpoint:
 
 **Authentication Errors:**
-- `auth/missing-api-key` - No API key provided in Authorization header
-- `auth/revoked-api-key` - API key has been revoked
-- `auth/unauthorized` - You do not own this audit record
+- `auth/missing-api-key` — No API key in the Authorization header
+- `auth/invalid-api-key` — API key not recognised
+- `auth/revoked-api-key` — API key has been revoked
 
 **Request Validation Errors:**
-- `request/invalid-path` - Missing audit ID or audit ID parameter is empty
-- `request/not-found` - No such registered route in API service
+- `request/invalid-payload` — Audit ID missing or not a valid UUID
+- `request/not-found` — No such registered route in API service
 
 **Resource Errors:**
-- `resource/not-found` - Audit record not found, API key not found, or attachment not found
+- `resource/not-found` — Audit record does not exist OR the audit belongs to a different business OR the row was created at the `anon` privacy tier (no audit produced)
+
+**Data Errors:**
+- `data/corrupt` — Audit row is missing required fields (rare; indicates a bug in the writer)
+- `data/decryption-failed` — Encrypted intent or sign_information could not be decrypted (signals key drift; surfaces as a 500 to operators)
 
 **Internal Errors:**
-- `internal/server-error` - Failed to fetch audit record, decode audit data, or fetch attachments
+- `internal/server-error` — Failed to fetch the audit record or to mint attachment signed URLs
 
-## Determining Signature Outcome
-
-The `signed_accepted` field is the definitive indicator of whether a user signed or declined:
-
-<CodeGroup>
-
-```javascript JavaScript
-const auditResponse = await fetch(
-  `https://api.uip.digital/v1/audit/${auditId}`,
-  {
-    headers: {
-      'Authorization': `Bearer ${YOUR_API_KEY}`
-    }
-  }
-);
-
-const { audit, attachments } = await auditResponse.json();
-
-if (audit.signed_accepted) {
-  console.log(`${audit.signatoree_name} signed the document`);
-  // Process signed document
-  if (attachments.length > 0) {
-    // Decode and save PDF attachments
-    attachments.forEach(att => {
-      const pdfBuffer = Buffer.from(att.content, 'base64');
-      // Save or process PDF
-    });
-  }
-} else {
-  console.log(`${audit.signatoree_name} declined to sign`);
-  // Handle declined signature
-}
-```
-
-```python Python
-import requests
-import base64
-
-response = requests.get(
-    f"https://api.uip.digital/v1/audit/{audit_id}",
-    headers={"Authorization": f"Bearer {YOUR_API_KEY}"}
-)
-
-data = response.json()
-audit = data["audit"]
-attachments = data["attachments"]
-
-if audit["signed_accepted"]:
-    print(f"{audit['signatoree_name']} signed the document")
-    # Process signed document
-    for attachment in attachments:
-        pdf_content = base64.b64decode(attachment["content"])
-        # Save or process PDF
-else:
-    print(f"{audit['signatoree_name']} declined to sign")
-    # Handle declined signature
-```
-
-```go Go
-type AuditResponse struct {
-    Audit struct {
-        CreatedAt               string   `json:"created_at"`
-        RequesterUIPID          string   `json:"requester_uip_id"`
-        RequesterSignIntent     string   `json:"requester_sign_intent"`
-        RequesterSignInfo       string   `json:"requester_sign_information"`
-        SignatoreeUIPID         string   `json:"signatoree_uip_id"`
-        MessageRef              *string  `json:"message_ref"`
-        AttachmentRefs          []string `json:"attachment_refs"`
-        AuditType               string   `json:"audit_type"`
-        RequesterName           string   `json:"requester_name"`
-        SignatoreeName          string   `json:"signatoree_name"`
-        RequesterBusinessName   string   `json:"requester_business_name"`
-        SignedAccepted          bool     `json:"signed_accepted"`
-    } `json:"audit"`
-    Attachments []struct {
-        Filename    string `json:"filename"`
-        ContentType string `json:"content_type"`
-        Content     string `json:"content"`
-        Size        int64  `json:"size"`
-    } `json:"attachments"`
-}
-
-// Query audit record
-req, _ := http.NewRequest("GET",
-    fmt.Sprintf("https://api.uip.digital/v1/audit/%s", auditID),
-    nil,
-)
-req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", YOUR_API_KEY))
-
-resp, _ := http.DefaultClient.Do(req)
-defer resp.Body.Close()
-
-var auditResp AuditResponse
-json.NewDecoder(resp.Body).Decode(&auditResp)
-
-if auditResp.Audit.SignedAccepted {
-    fmt.Printf("%s signed the document\n", auditResp.Audit.SignatoreeName)
-    // Process signed document
-} else {
-    fmt.Printf("%s declined to sign\n", auditResp.Audit.SignatoreeName)
-    // Handle declined signature
-}
-```
-
-</CodeGroup>
-
-## Implementation Flow
+## Implementation flow
 
 <Steps>
-  <Step title="Request Signature or Authentication">
-    Use Sign API, Message API (with signature), or Identify API to request an action from a user
+  <Step title="Capture the audit_id">
+    Identify and Sign: from the completed `GET /v1/identify/:id` or `GET /v1/sign/:id` response. Message: from the `message` webhook payload's `data.audit_id`.
   </Step>
 
-  <Step title="Receive audit_id">
-    For Identify/Sign: extract `audit_id` from the completed polling response. For Message: extract `audit_id` from the webhook event.
+  <Step title="Persist it">
+    Store the `audit_id` alongside your internal record of the action. This is the only handle for retrieving the audit later.
   </Step>
 
-  <Step title="Save Audit ID">
-    Store the `audit_id` in your database for permanent reference and compliance tracking
+  <Step title="Query when needed">
+    Call `GET /v1/audit/:id` whenever you need the full record — for compliance reports, dispute investigation, or court submission.
   </Step>
 
-  <Step title="Query Audit Record">
-    Call the Audit API with the `audit_id` to retrieve complete action details
+  <Step title="Branch on auditable tier">
+    If `auditable === "redacted"`, you have a minimal envelope only. For full content, contact UIP support to initiate a legal-case unlock.
   </Step>
 
-  <Step title="Check signed_accepted">
-    Use the `signed_accepted` field to determine if the user signed/accepted or declined
-  </Step>
-
-  <Step title="Process Attachments">
-    If attachments are present, decode the base64 content to retrieve the original PDFs
-  </Step>
-
-  <Step title="Store for Compliance">
-    Save the complete audit record and attachments for legal verification and compliance requirements
+  <Step title="Use signed URLs for attachments">
+    `attachments[].signed_url` is a short-lived pre-signed URL (~1 hour). Re-query the audit when you need a fresh URL; do NOT cache the URL itself.
   </Step>
 </Steps>
 
-## Best Practices
+## Best practices
 
 <CardGroup cols={2}>
-  <Card title="Always Save Audit IDs" icon="database">
-    Store audit_id from every webhook response. This is your permanent proof of action and the only way to retrieve full audit details.
+  <Card title="Save every audit_id" icon="database">
+    Persist the audit_id alongside your record of the action. Audits are permanent; you only need to know how to find them.
   </Card>
 
-  <Card title="Check signed_accepted" icon="check-circle">
-    Use the signed_accepted boolean field to determine outcome. Don't rely on audit_type alone—it only tells you the API used, not the result.
+  <Card title="Treat signed_url as ephemeral" icon="clock">
+    Pre-signed URLs expire (~1 hour). Re-query the audit to mint a fresh URL when you need to share the PDF again.
   </Card>
 
-  <Card title="Decode Attachments Properly" icon="file-pdf">
-    Use base64 decoding to convert attachment content back to PDF. Verify file integrity after decoding.
+  <Card title="Verify the signature offline" icon="shield-check">
+    `signature` + `signed_payload` + `public_key` + `signature_algorithm` together are enough to verify the action cryptographically without trusting UIP's response.
   </Card>
 
-  <Card title="Store Complete Records" icon="archive">
-    Save the entire audit response for compliance. Include audit record, attachments, and metadata in your database.
+  <Card title="action_accepted, not audit_type" icon="check">
+    `audit_type` tells you which API created the record. `action_accepted` tells you what the user did. Branch on the second.
   </Card>
 </CardGroup>
 
-## Common Use Cases
-
-<AccordionGroup>
-  <Accordion title="Legal Verification" icon="gavel">
-    Query audit records to provide court-admissible evidence of signed documents and verified identities.
-
-    ```javascript
-    // Retrieve signed contract for legal proceedings
-    const auditResponse = await fetch(
-      `https://api.uip.digital/v1/audit/${savedAuditId}`,
-      {
-        headers: { 'Authorization': `Bearer ${YOUR_API_KEY}` }
-      }
-    );
-
-    const { audit, attachments } = await auditResponse.json();
-
-    // Generate legal evidence package
-    const evidence = {
-      signer_name: audit.signatoree_name,
-      signed_at: audit.created_at,
-      document_signed: audit.requester_sign_information,
-      signed: audit.signed_accepted,
-      business_requester: audit.requester_business_name,
-      attachments: attachments.map(att => ({
-        filename: att.filename,
-        size: att.size,
-        pdf_data: att.content
-      }))
-    };
-
-    // Store for legal team or court submission
-    ```
-  </Accordion>
-
-  <Accordion title="Compliance Reporting" icon="file-check">
-    Generate compliance reports showing all signatures and authentications for regulatory audits.
-
-    ```javascript
-    // Query audit records for compliance report
-    const auditIds = await db.signatures.find({ month: '2025-01' });
-
-    const complianceReport = await Promise.all(
-      auditIds.map(async ({ audit_id }) => {
-        const response = await fetch(
-          `https://api.uip.digital/v1/audit/${audit_id}`,
-          { headers: { 'Authorization': `Bearer ${YOUR_API_KEY}` } }
-        );
-        const { audit } = await response.json();
-
-        return {
-          date: audit.created_at,
-          action: audit.audit_type,
-          signatory: audit.signatoree_name,
-          intent: audit.requester_sign_intent,
-          outcome: audit.signed_accepted ? 'Signed' : 'Declined'
-        };
-      })
-    );
-
-    // Generate compliance PDF or CSV
-    ```
-  </Accordion>
-
-  <Accordion title="Dispute Resolution" icon="scale-balanced">
-    Resolve "who signed what when" disputes with cryptographically verified audit records.
-
-    ```javascript
-    // Customer claims they never signed
-    const dispute = {
-      customer_name: "John Doe",
-      claimed_audit_id: "audit_9z8y7x6w5v4u"
-    };
-
-    const response = await fetch(
-      `https://api.uip.digital/v1/audit/${dispute.claimed_audit_id}`,
-      { headers: { 'Authorization': `Bearer ${YOUR_API_KEY}` } }
-    );
-
-    const { audit } = await response.json();
-
-    // Verify claims against audit record
-    const verification = {
-      signatory_name: audit.signatoree_name,
-      signed_at: audit.created_at,
-      signed: audit.signed_accepted,
-      biometric_verified: true, // All UIP signatures require biometric verification
-      government_verified_identity: true
-    };
-
-    // Present verification to customer or legal team
-    ```
-  </Accordion>
-
-  <Accordion title="Document Retrieval" icon="download">
-    Retrieve signed PDFs from audit records for archiving or distribution.
-
-    ```javascript
-    // Employee requests copy of signed employment contract
-    const employeeRequest = {
-      employee_id: "emp_12345",
-      document_type: "employment_contract"
-    };
-
-    // Look up audit ID from your database
-    const { audit_id } = await db.documents.findOne({
-      employee_id: employeeRequest.employee_id,
-      document_type: employeeRequest.document_type
-    });
-
-    // Retrieve audit record with attachments
-    const response = await fetch(
-      `https://api.uip.digital/v1/audit/${audit_id}`,
-      { headers: { 'Authorization': `Bearer ${YOUR_API_KEY}` } }
-    );
-
-    const { audit, attachments } = await response.json();
-
-    // Decode and send PDF to employee
-    if (attachments.length > 0) {
-      const pdfBuffer = Buffer.from(attachments[0].content, 'base64');
-      // Email PDF to employee or provide download link
-    }
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Related Resources
+## Related resources
 
 <CardGroup cols={2}>
-  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
-    Request lightweight biometric signatures
+  <Card title="Identify Session" icon="fingerprint" href="/api-reference/endpoint/identify-session">
+    Polling endpoint that returns the audit_id on completion
   </Card>
 
-  <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
-    Send messages with signature requests and attachments
+  <Card title="Sign Session" icon="signature" href="/api-reference/endpoint/sign-session">
+    Polling endpoint that returns the audit_id on completion
   </Card>
 
-  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
-    Authenticate users with biometric verification
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Message webhooks carry the audit_id for signed/declined events
   </Card>
 
   <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
