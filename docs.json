@@ -8,8 +8,8 @@
     "dark": "#B22F22"
   },
   "favicon": {
-    "light": "/favicon.svg",
-    "dark": "/favicon.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "navigation": {
     "tabs": [
@@ -32,6 +32,7 @@
               "core-concepts/sessions",
               "core-concepts/wallets",
               "core-concepts/verification",
+              "core-concepts/audits",
               "core-concepts/webhooks",
               "core-concepts/security"
             ]
@@ -61,6 +62,12 @@
               "api-reference/sessions/get",
               "api-reference/sessions/continue",
               "api-reference/sessions/stop"
+            ]
+          },
+          {
+            "group": "Audits",
+            "pages": [
+              "api-reference/audits/get"
             ]
           },
           {
@@ -94,8 +101,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "navbar": {
     "links": [
@@ -121,12 +128,5 @@
       "cursor",
       "vscode"
     ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/uip_protocol",
-      "github": "https://github.com/uip-protocol",
-      "linkedin": "https://linkedin.com/company/uip-protocol"
-    }
   }
 }

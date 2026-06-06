@@ -1,0 +1,79 @@
+---
+title: "Audits & disclosure"
+description: "The audit id, the two disclosure tiers, and how to retrieve a record."
+---
+
+Every successfully verified step writes an **immutable, hash-chained, timestamped**
+audit record — the durable proof that makes a UIP result legally meaningful. How that
+record is built (the chain, the RFC 3161 timestamp, the sealed identity) is covered in
+[Verification & trust](/core-concepts/verification#audit-ledger). This page is about
+**getting at it**: the id, who can see what, and the lawful path to the full record.
+
+## The audit id
+
+Each record has a stable id of the form `{session_id}_{stage}` — e.g.
+`sess_abc123_0` for the first step of `sess_abc123`. You receive it in two places:
+
+- On every [`step.completed`](/api-reference/webhooks#step-completed) webhook, as `audit_id`.
+- On every result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
+
+Store it (or your own `client_reference_id`) and you can pull the proof back on demand.
+
+## Two tiers of disclosure
+
+The same record is disclosed at **two very different levels**, by design.
+
+<CardGroup cols={2}>
+  <Card title="Developer — redacted" icon="code">
+    What you, the verifying business, can fetch with your API key. The cryptographic
+    proof, trusted timestamp, and hash-chain position — but the signer's **identity
+    stays sealed**. `age_verify` is the boolean, never the birth date.
+  </Card>
+  <Card title="Legal — full" icon="scale-balanced">
+    The complete, **decrypted** record, including the signer's attested identity.
+    Disclosed only through a lawful request tied to a proceeding — never over the API.
+  </Card>
+</CardGroup>
+
+This split is deliberate: businesses get everything they need to **prove an event
+happened and wasn't tampered with**, without UIP handing back a copy of the user's
+identity on every read. The identity is sealed at rest and only ever surfaced through
+the legal channel below.
+
+## Fetch the redacted record
+
+Call [`GET /v1/audits/{id}`](/api-reference/audits/get) with your API key. It returns
+the proof, timestamp, and chain position, scoped to your business (a record you don't
+own returns `404`).
+
+<Note>
+  For `identify`, the cleartext claims arrived on the `step.completed` webhook — the
+  audit keeps a `claims_digest` (a hash commitment), not a second copy. Keep the
+  webhook payload alongside the digest and you can prove the two match.
+</Note>
+
+## Legal requests
+
+When a court order, subpoena, or other lawful proceeding requires the **full,
+decrypted** record — the attested identity behind a verification — that disclosure
+runs through a dedicated, human-reviewed channel, never the API.
+
+<Steps>
+  <Step title="Submit a request">
+    Counsel files the request at [uip.digital/legal](https://uip.digital/legal) with
+    the audit id(s), the matter reference, and the legal basis for disclosure.
+  </Step>
+  <Step title="Review">
+    UIP's legally-authorized staff review the request against the proceeding.
+    Submitting a request does not by itself compel disclosure.
+  </Step>
+  <Step title="Disclosure">
+    On approval, the full decrypted record is delivered to the requester by email.
+  </Step>
+</Steps>
+
+<Tip>
+  As the verifying business you never have to hold your users' identities to stay
+  compliant — UIP retains the sealed record and discloses it lawfully on request, so
+  the liability of storing identity documents doesn't land on you.
+</Tip>

@@ -1,0 +1,77 @@
+---
+title: "Get an audit record"
+description: "GET /v1/audits/{id}"
+---
+
+<Note>
+  `GET https://api.uip.digital/v1/audits/{id}` · Auth: `Bearer` API key
+</Note>
+
+Returns the **redacted** audit record for one verified step: the cryptographic proof,
+trusted timestamp, and hash-chain position. The signer's **identity stays sealed** —
+this endpoint never decrypts it (see [Audits](/core-concepts/audits) for the two
+disclosure tiers). Scoped to your business: a record belonging to another business —
+or one that doesn't exist — returns `404`.
+
+The audit `id` is `{session_id}_{stage}`. You receive it on the
+[`step.completed`](/api-reference/webhooks#step-completed) webhook and on every result
+in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The audit id, e.g. `sess_abc123_0` (session id + `_` + zero-based stage).
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">The audit id.</ResponseField>
+<ResponseField name="session_id" type="string">The session this step belonged to.</ResponseField>
+<ResponseField name="stage" type="integer">Zero-based index of the step within the session.</ResponseField>
+<ResponseField name="primitive" type="string">`identify` · `age_verify` · `sign` · `light_sign`.</ResponseField>
+<ResponseField name="wallet" type="string">The wallet that fulfilled the step.</ResponseField>
+<ResponseField name="proof" type="object">
+  The cleartext cryptographic proof — PII-free by construction. Shape depends on the
+  primitive:
+  <Expandable title="proof by primitive">
+    <ResponseField name="claims_digest" type="string">`identify` — a hash commitment to the disclosed claims (the cleartext claims arrived by webhook; the ledger keeps only the digest).</ResponseField>
+    <ResponseField name="satisfied" type="boolean">`age_verify` — the threshold result.</ResponseField>
+    <ResponseField name="min_age" type="integer">`age_verify` — the threshold that was proven.</ResponseField>
+    <ResponseField name="document_hash" type="string">`sign`/`light_sign` — the hash the wallet signed.</ResponseField>
+    <ResponseField name="signature" type="string">`sign`/`light_sign` — the device signature.</ResponseField>
+    <ResponseField name="terms" type="string">`light_sign` — the exact terms text attested to.</ResponseField>
+    <ResponseField name="documents" type="object[]">`sign` — per-file `{ id, hash }` manifest, so any one file stays provable after the bytes are deleted.</ResponseField>
+  </Expandable>
+</ResponseField>
+<ResponseField name="record_hash" type="string">This record's content hash (`sha256:…`), the head of the chain link.</ResponseField>
+<ResponseField name="prev_hash" type="string">The previous stage's `record_hash` (or the genesis value for stage 0) — the per-session hash chain.</ResponseField>
+<ResponseField name="ts_token" type="string">RFC 3161 trusted-timestamp token, when a timestamping authority is configured.</ResponseField>
+<ResponseField name="occurred_at" type="string">ISO 8601 time the step verified.</ResponseField>
+<ResponseField name="client_reference_id" type="string">Your durable correlation key, if you set one at create.</ResponseField>
+<ResponseField name="business_redacted" type="boolean">`true` when the underlying identity was sealed (e.g. `age_verify`) — a flag, never the PII.</ResponseField>
+
+<ResponseExample>
+```json 200 OK
+{
+  "id": "sess_abc123_0",
+  "session_id": "sess_abc123",
+  "stage": 0,
+  "primitive": "age_verify",
+  "wallet": "apple-wallet",
+  "proof": { "satisfied": true, "min_age": 21 },
+  "occurred_at": "2026-06-07T12:01:30.000000000Z",
+  "client_reference_id": "order_4815",
+  "prev_hash": "0x000",
+  "record_hash": "sha256:9f86d081...",
+  "ts_token": "MIIE...",
+  "business_redacted": true
+}
+```
+</ResponseExample>
+
+`404` if the audit record doesn't exist or isn't owned by your business.
+
+<Note>
+  Need the **full, decrypted** record for a legal proceeding? That's a separate,
+  lawful channel — see [Audits → Legal requests](/core-concepts/audits#legal-requests).
+</Note>

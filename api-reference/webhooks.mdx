@@ -33,6 +33,7 @@ the step's primitive.
     "client_reference_id": "order_4815",
     "stage": 0,
     "primitive": "identify",
+    "audit_id": "sess_abc123_0",
     "claims": { "first_name": "Jane", "last_name": "Doe", "country": "US" }
   }
 }
@@ -44,6 +45,7 @@ the step's primitive.
     "session_id": "sess_abc123",
     "stage": 0,
     "primitive": "age_verify",
+    "audit_id": "sess_abc123_0",
     "satisfied": true
   }
 }
@@ -55,6 +57,7 @@ the step's primitive.
     "session_id": "sess_abc123",
     "stage": 1,
     "primitive": "sign",
+    "audit_id": "sess_abc123_1",
     "signature": "mdoc:3045...",
     "document_hash": "sha256:9f86..."
   }
@@ -64,6 +67,7 @@ the step's primitive.
 
 <ResponseField name="stage" type="integer">Zero-based index of the completed step.</ResponseField>
 <ResponseField name="primitive" type="string">The step's primitive.</ResponseField>
+<ResponseField name="audit_id" type="string">Id of this step's audit record — fetch the proof via [`GET /v1/audits/{id}`](/api-reference/audits/get).</ResponseField>
 <ResponseField name="claims" type="object">`identify` only — the disclosed blocks.</ResponseField>
 <ResponseField name="satisfied" type="boolean">`age_verify` only — the threshold result. The birth date is never included.</ResponseField>
 <ResponseField name="signature" type="string">`sign`/`light_sign` only — the device signature.</ResponseField>
