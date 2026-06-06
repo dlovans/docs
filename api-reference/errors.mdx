@@ -1,0 +1,44 @@
+---
+title: "Errors"
+description: "Error format and HTTP status codes."
+---
+
+Errors use standard HTTP status codes and a JSON body with a human-readable message:
+
+```json
+{ "error": "body must include a non-empty steps[]" }
+```
+
+## Status codes
+
+| Status | Meaning | Typical cause |
+| --- | --- | --- |
+| `400` | Bad Request | Malformed body, unknown primitive, invalid `min_age`, bad `steps[]` |
+| `401` | Unauthorized | Missing or invalid API key |
+| `402` | Payment Required | Insufficient balance to start the session |
+| `404` | Not Found | Unknown session id, or not owned by your business |
+| `409` | Conflict | Session already open on another device, or an idempotency conflict |
+| `422` | Unprocessable | No webhook configured for your business (set one in the dashboard) |
+| `429` | Too Many Requests | Rate limit exceeded |
+| `5xx` | Server / Unavailable | Transient error (`500`) or a dependency not configured (`503`) |
+
+## Notes
+
+<AccordionGroup>
+  <Accordion title="402 — fund your balance">
+    Creating a session checks eligibility against your balance (and overdraft floor /
+    credit limit). Top up in the dashboard, then retry. See [Pricing](/pricing).
+  </Accordion>
+  <Accordion title="422 — webhook required">
+    Results are delivered only by webhook, so a session can't be created until your
+    business has a webhook URL. Configure it in the dashboard.
+  </Accordion>
+  <Accordion title="409 — binding & idempotency">
+    A session is bound to the first device that opens it; a second device is refused.
+    A reused `Idempotency-Key` with a different payload also conflicts.
+  </Accordion>
+  <Accordion title="Retrying safely">
+    Retry `5xx` and network errors with backoff. Make `POST /v1/sessions` retries safe
+    with an `Idempotency-Key`.
+  </Accordion>
+</AccordionGroup>

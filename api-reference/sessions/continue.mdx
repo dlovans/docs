@@ -1,0 +1,39 @@
+---
+title: "Continue a session"
+description: "POST /v1/sessions/{id}/continue"
+---
+
+<Note>
+  `POST https://api.uip.digital/v1/sessions/{id}/continue` · Auth: `Bearer` API key
+</Note>
+
+Resumes a session paused at a [gate](/core-concepts/primitives#gates-pause-for-a-decision)
+(`status: awaiting_decision`), advancing it to the next step. Use this when a later
+step should depend on an earlier result — e.g. only proceed to `sign` once you've
+checked the `identify` claims against your records.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>The session id.</ParamField>
+
+## Behavior
+
+- Valid only when the session is `awaiting_decision`; otherwise returns an error.
+- If the gated step was the last remaining step, the session moves to `completed`;
+  the matching `session.completed` webhook fires.
+- Owner-only: the API key's business must own the session.
+
+<ResponseExample>
+```json 200 OK
+{
+  "id": "sess_abc123",
+  "status": "in_progress",
+  "current_step": 1,
+  "step_count": 2,
+  "current_primitive": "sign"
+}
+```
+</ResponseExample>
+
+`404` unknown/foreign session · `409`/`400` if the session isn't at a gate. See
+[Errors](/api-reference/errors).

@@ -1,168 +1,94 @@
 ---
-title: "Universal Identity Protocol"
-description: "Biometric identity and signature APIs for developers"
+title: "UIP Documentation"
+description: "Government-attested identity, age checks, and document signatures — from the user's own digital wallet, in one small REST API."
 ---
 
-<Info>
-**One identity. Verified everywhere.** Authenticate users and collect legally binding signatures without building your own identity stack.
-</Info>
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="UIP"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="UIP"
+/>
 
-## Get started in minutes
+**UIP (Universal Identity Protocol)** turns a government-issued credential in a
+user's digital wallet — like a US mobile driver's license in Apple Wallet or
+Google Wallet — into a verified result your app can trust: their name, that
+they're over 21, or a legally meaningful signature on your document.
 
-Everything you need to integrate biometric authentication and legally binding signatures.
+You never build a verification stack, store a document, or touch a wallet SDK.
+You **create a session**, hand the user a link, and **receive a signed webhook**
+when their wallet completes it on-device.
+
+```bash
+curl https://api.uip.digital/v1/sessions \
+  -H "Authorization: Bearer $UIP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ] }'
+```
+
+```json
+{
+  "id": "sess_abc123",
+  "url": "https://uip.digital/s/sess_abc123",
+  "status": "created",
+  "expires": "2026-06-07T12:34:56Z"
+}
+```
+
+## Start here
 
 <CardGroup cols={2}>
-  <Card
-    title="Getting Started"
-    icon="rocket"
-    href="/getting-started"
-  >
-    Set up your first authentication flow in under 5 minutes
+  <Card title="What is UIP?" icon="circle-question" href="/what-is-uip">
+    The model in two minutes: primitives, wallets, and sessions.
   </Card>
-  <Card
-    title="API Reference"
-    icon="code"
-    href="/api-reference/introduction"
-  >
-    Complete API documentation with request/response examples
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first session and receive a verified result end to end.
   </Card>
-  <Card
-    title="What is UIP?"
-    icon="circle-question"
-    href="/what-is-uip"
-  >
-    Learn how UIP works and why it's better than passwords
+  <Card title="Primitives" icon="cube" href="/core-concepts/primitives">
+    `identify`, `age_verify`, `sign`, `light_sign` — and how to chain them.
   </Card>
-  <Card
-    title="View Pricing"
-    icon="dollar-sign"
-    href="/pricing"
-  >
-    Simple, usage-based pricing with no subscriptions
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Every endpoint, request, and response.
   </Card>
 </CardGroup>
 
-## Three powerful APIs
+## What you can build
 
-Modular APIs that work together. Pick what you need.
+<CardGroup cols={2}>
+  <Card title="Identity verification" icon="id-card">
+    Government-attested name, date of birth, country, and document number — no
+    document upload, no OCR, no liveness vendor.
+  </Card>
+  <Card title="Anonymous age gates" icon="user-shield">
+    Prove a user is over 18 or 21. You receive only `true`/`false` — never the
+    birth date.
+  </Card>
+  <Card title="Document signatures" icon="signature">
+    A legally meaningful signature bound to a verified identity, with a permanent,
+    tamper-evident audit reference.
+  </Card>
+  <Card title="Terms acceptance" icon="file-signature">
+    A lightweight signature over short inline terms — consent you can prove later.
+  </Card>
+</CardGroup>
+
+## Why it's different
 
 <CardGroup cols={3}>
-  <Card
-    title="Identify API"
-    icon="fingerprint"
-    href="/api-reference/endpoint/identify"
-  >
-    Authenticate users with biometrics and get verified identity data
-
-    **$0.01** per identification
+  <Card title="Government-attested" icon="building-columns">
+    Claims come from a real issuing authority's signed credential and are verified
+    cryptographically — not self-asserted, not OCR'd.
   </Card>
-  <Card
-    title="Sign API"
-    icon="file-signature"
-    href="/api-reference/endpoint/sign"
-  >
-    Request legally binding biometric signatures
-
-    **$0.03** per signature
+  <Card title="Composable" icon="layer-group">
+    Compose `identify`, `age_verify`, and `sign` into one session. The user
+    completes them in one flow; you get one webhook per step.
   </Card>
-  <Card
-    title="Message API"
-    icon="message-check"
-    href="/api-reference/endpoint/message"
-  >
-    Send encrypted messages to users
-
-    **$0.03** per message
+  <Card title="Pay per result" icon="receipt">
+    You're charged only for steps that successfully verify — from **$0.01**. Every
+    new account starts with **$20** in launch credit.
   </Card>
 </CardGroup>
-
-<CardGroup cols={1}>
-  <Card
-    title="Audit API"
-    icon="list-check"
-    href="/api-reference/endpoint/audit"
-  >
-    Retrieve permanent, court-admissible audit trails for all actions
-
-    **Always free**
-  </Card>
-</CardGroup>
-
-## How it works
-
-A simple flow for every integration: create a session, display a QR code, poll for completion, and receive verified data.
-
-<Steps>
-  <Step title="Create a session">
-    Call the API with your intent. You get back a `session_id`, `qr_code`, and `expires_at`.
-  </Step>
-
-  <Step title="Display QR code or deep link">
-    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button that deep links into the app.
-  </Step>
-
-  <Step title="User authenticates biometrically">
-    The user opens the UIP app, reviews the request, and approves with their fingerprint or face.
-  </Step>
-
-  <Step title="Poll and get the result">
-    Poll `GET /v1/identify/:id` until the status is `approved`. The response carries the signer's identity snapshot and an `audit_id` — no separate code exchange needed.
-  </Step>
-</Steps>
-
-## Why UIP?
-
-Built for the modern web. From passwordless authentication to legally binding signatures.
-
-<AccordionGroup>
-  <Accordion title="Biometric-first authentication" icon="shield-check">
-    Mobile-only authentication with fingerprint or face recognition. No passwords to manage or reset, no phishable secrets on the server.
-  </Accordion>
-
-  <Accordion title="Government-verified identity" icon="id-card">
-    Identity verification via official documents and biometric checks. Legally binding signatures with permanent audit trails and court-admissible evidence.
-  </Accordion>
-
-  <Accordion title="Global by default" icon="globe">
-    Works across borders, governments, and businesses. One identity for authentication and signing, worldwide. GDPR compliant.
-  </Accordion>
-
-  <Accordion title="Modular API design" icon="puzzle-piece">
-    Composable APIs that work together. Pick what you need: authentication, signing, messaging, or audit lookups. Usage-based pricing, no subscriptions.
-  </Accordion>
-</AccordionGroup>
-
-## Key features
-
-Everything you need for secure identity and signatures.
-
-<CardGroup cols={2}>
-  <Card title="Biometric security" icon="fingerprint">
-    Local device biometric authentication with liveness detection
-  </Card>
-  <Card title="AES-256 encryption" icon="lock">
-    Every PII field is encrypted at rest with AES-256-GCM
-  </Card>
-  <Card title="Fast response times" icon="bolt">
-    Session creation and polling respond in well under a second
-  </Card>
-  <Card title="Permanent audit trail" icon="list-timeline">
-    Every action generates an immutable, verifiable record
-  </Card>
-  <Card title="QR code flow" icon="qrcode">
-    Simple scan-and-approve UX that users love
-  </Card>
-  <Card title="REST + webhooks" icon="webhook">
-    Plain HTTPS, JSON, and HMAC-signed webhook callbacks
-  </Card>
-</CardGroup>
-
-## Start building today
-
-<Card
-  title="Get your API keys"
-  icon="key"
-  href="https://uip.digital/identify"
->
-  Get $20 in credits on your first business. No credit card required.
-</Card>

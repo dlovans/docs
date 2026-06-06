@@ -1,0 +1,112 @@
+---
+title: "Webhooks"
+description: "How results reach you — delivery guarantees, signing, and verification."
+---
+
+Results are delivered **only by webhook**. There's no polling for outcomes: when a
+step verifies or a session concludes, UIP `POST`s a signed event to your configured
+URL. Set the URL in your dashboard before creating sessions.
+
+## Events
+
+| Event | When | Key payload |
+| --- | --- | --- |
+| `step.completed` | A step verified successfully | `stage`, `primitive`, and `claims` / `satisfied` / `signature` |
+| `session.completed` | All steps done | `session_id`, `status` |
+| `session.stopped` | You ended it at a gate | `session_id`, `reason` |
+| `session.failed` | A step failed, funds ran out, or an internal error | `session_id`, `reason` |
+
+Every delivery also echoes your `client_reference_id` and any `metadata`. See
+[the event reference](/api-reference/webhooks) for full payloads.
+
+## Delivery guarantees
+
+<CardGroup cols={2}>
+  <Card title="Ordered per step" icon="list-ol">
+    `step.completed` fires in step order (`stage` 0, 1, 2…), followed by the terminal
+    `session.*` event.
+  </Card>
+  <Card title="At-least-once" icon="rotate">
+    Delivery is retried with backoff until it succeeds. Each event has a stable
+    `X-UIP-Delivery-Id` — **dedupe on it** so a retry is harmless.
+  </Card>
+  <Card title="Off the request path" icon="bolt">
+    Webhooks are queued and sent out-of-band, so a slow endpoint never blocks
+    verification — but it does delay your delivery.
+  </Card>
+  <Card title="Fired after the result is durable" icon="database">
+    An event is only sent once the verified result + audit record are committed, so a
+    webhook you receive always reflects persisted state.
+  </Card>
+</CardGroup>
+
+## Verifying signatures
+
+Every delivery is signed with your business's **webhook secret** (`uip_whsec_...`
+from the dashboard). Always verify before trusting a payload.
+
+Each request carries:
+
+| Header | Value |
+| --- | --- |
+| `X-UIP-Event` | The event name |
+| `X-UIP-Timestamp` | Unix seconds when signed |
+| `X-UIP-Signature` | `HMAC-SHA256(secret, "{timestamp}.{raw_body}")`, hex |
+| `X-UIP-Delivery-Id` | Stable per-event id (dedupe key) |
+
+Recompute the HMAC over `timestamp + "." + raw_request_body` and compare in constant
+time. **Use the raw bytes** — re-serializing the JSON can change them and break the
+match.
+
+<CodeGroup>
+```javascript Node (Express)
+import crypto from "node:crypto";
+
+// mount with: express.raw({ type: "application/json" })
+app.post("/uip-webhook", (req, res) => {
+  const ts = req.get("X-UIP-Timestamp");
+  const sig = req.get("X-UIP-Signature");
+  const expected = crypto
+    .createHmac("sha256", process.env.UIP_WEBHOOK_SECRET)
+    .update(`${ts}.${req.body}`) // req.body is a Buffer (raw)
+    .digest("hex");
+
+  const ok =
+    sig &&
+    crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  if (!ok) return res.sendStatus(401);
+
+  // Optional: reject stale timestamps to limit replay windows.
+  const event = JSON.parse(req.body.toString());
+  // ...handle event, dedupe on X-UIP-Delivery-Id...
+  res.sendStatus(200);
+});
+```
+```python Python (Flask)
+import hmac, hashlib
+from flask import request, abort
+
+@app.post("/uip-webhook")
+def uip_webhook():
+    ts = request.headers.get("X-UIP-Timestamp", "")
+    sig = request.headers.get("X-UIP-Signature", "")
+    raw = request.get_data()  # raw bytes
+    mac = hmac.new(
+        SECRET.encode(), f"{ts}.".encode() + raw, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(mac, sig):
+        abort(401)
+    # ...handle, dedupe on X-UIP-Delivery-Id...
+    return "", 200
+```
+</CodeGroup>
+
+<Tip>
+  Respond `2xx` quickly and do heavy work asynchronously. A non-`2xx` (or timeout)
+  is treated as a failed delivery and retried.
+</Tip>
+
+## Rotating the secret
+
+Generate or rotate your webhook secret from the dashboard. Signatures are computed
+with the secret snapshotted at delivery time, so rotate, then update your verifier.

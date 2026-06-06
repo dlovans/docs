@@ -1,0 +1,85 @@
+---
+title: "Sessions"
+description: "The lifecycle of a verification — from create to a terminal result."
+---
+
+A **session** is one user-facing verification flow containing one or more
+[primitive](/core-concepts/primitives) steps. You create it server-to-server; the
+user completes it on UIP's hosted page; you receive results by webhook.
+
+## Lifecycle
+
+<Steps>
+  <Step title="created">
+    `POST /v1/sessions` returns the session and its hosted `url`. Nothing is charged.
+  </Step>
+  <Step title="in_progress">
+    The user opens the hosted page and begins; each step's wallet response is
+    verified and emits `step.completed`.
+  </Step>
+  <Step title="awaiting_decision (optional)">
+    If a step is a [gate](/core-concepts/primitives#gates-pause-for-a-decision), the
+    session pauses here until you `continue` or `stop` it.
+  </Step>
+  <Step title="completed / stopped / failed / expired">
+    A terminal state. The matching `session.*` webhook fires; any uploaded documents
+    are purged.
+  </Step>
+</Steps>
+
+| Status | Meaning |
+| --- | --- |
+| `created` | Made, not yet opened by the user |
+| `in_progress` | User is working through the steps |
+| `awaiting_decision` | Paused at a gate, awaiting your `continue`/`stop` |
+| `completed` | All steps verified |
+| `stopped` | You ended it at a gate |
+| `failed` | A step failed verification, or funds ran out |
+| `expired` | The session or a step window elapsed |
+
+## The hosted page & capability URLs
+
+The session `url` (`https://uip.digital/s/{id}`) is a **capability URL** — holding
+the link is what lets a user open the session. Treat it like a secret: deliver it
+over a channel only the intended user controls (your authenticated app, their phone).
+
+<Warning>
+  **First-open binding.** The first browser to open a session is cryptographically
+  bound to it; only that browser can submit a wallet response. A second device that
+  later opens the same link is refused. This stops a leaked link from being completed
+  by anyone but the user who started it — so don't "preview" the URL server-side
+  before handing it over.
+</Warning>
+
+## Reading a session
+
+[`GET /v1/sessions/{id}`](/api-reference/sessions/get) returns operational
+**status and progress only** — never the verified claims. Disclosed data and
+signatures are delivered exclusively by [webhook](/core-concepts/webhooks); the
+capability URL holder can't read them back out. Use the GET for polling progress or
+reconciling state, not for fetching results.
+
+## Create options
+
+Beyond `steps`, `POST /v1/sessions` accepts:
+
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `client_reference_id` | string | Your own id, echoed on every webhook and stamped into the audit |
+| `metadata` | object | Up to 50 string-valued keys; operational only (webhooks + reads), never shown to the user |
+| `return_url` | https URL | Renders a "Return to {host}" button on the hosted page after completion (never an auto-redirect) |
+| `expires_in` | seconds | Override the session TTL (60s–24h) |
+
+Plus an optional **`Idempotency-Key`** header so a retried create returns the
+original session instead of a duplicate. See
+[Create a session](/api-reference/sessions/create) for the full reference.
+
+## Expiry
+
+Sessions have an overall TTL (default capped at 1 hour, or your `expires_in`), and
+each step has its own shorter window once started. Expiry is enforced lazily — an
+expired session resolves to `expired` on next access and emits no further steps.
+
+<Card title="Next: Wallets & coverage" icon="wallet" href="/core-concepts/wallets">
+  Which wallets and countries can complete a session today.
+</Card>

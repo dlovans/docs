@@ -1,0 +1,49 @@
+---
+title: "Get a session"
+description: "GET /v1/sessions/{id}"
+---
+
+<Note>
+  `GET https://api.uip.digital/v1/sessions/{id}` · Auth: `Bearer` API key
+</Note>
+
+Returns a session's **status and progress**. Verified claims and signatures are
+**not** included here — they're delivered only by [webhook](/core-concepts/webhooks).
+Use this to track progress or reconcile state, not to fetch results.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>The session id.</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">The session id.</ResponseField>
+<ResponseField name="status" type="string">
+  `created` · `in_progress` · `awaiting_decision` · `completed` · `stopped` ·
+  `failed` · `expired`.
+</ResponseField>
+<ResponseField name="current_step" type="integer">Zero-based index of the active step.</ResponseField>
+<ResponseField name="step_count" type="integer">Total steps in the session.</ResponseField>
+<ResponseField name="primitives" type="string[]">The primitive of each step, in order.</ResponseField>
+<ResponseField name="current_primitive" type="string">The active step's primitive.</ResponseField>
+<ResponseField name="expires_at" type="string">ISO 8601 session expiry.</ResponseField>
+<ResponseField name="created_at" type="string">ISO 8601 creation time.</ResponseField>
+<ResponseField name="updated_at" type="string">ISO 8601 last update.</ResponseField>
+
+<ResponseExample>
+```json 200 OK
+{
+  "id": "sess_abc123",
+  "status": "awaiting_decision",
+  "current_step": 0,
+  "step_count": 2,
+  "primitives": ["identify", "sign"],
+  "current_primitive": "identify",
+  "created_at": "2026-06-07T12:00:00Z",
+  "updated_at": "2026-06-07T12:01:30Z",
+  "expires_at": "2026-06-07T13:00:00Z"
+}
+```
+</ResponseExample>
+
+`404` if the session doesn't exist or isn't owned by your business.

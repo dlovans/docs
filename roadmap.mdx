@@ -1,0 +1,89 @@
+---
+title: "Roadmap"
+description: "Which wallets are live, what's coming next, and the primitives ahead."
+---
+
+UIP's reach grows one **government wallet** at a time. New wallets are prioritized by
+how quickly and cheaply they can come online — **free and openly reachable rails
+ship first**, paid or jurisdiction-gated ones later. Each new wallet is "just another
+adapter" behind the same API you already use.
+
+<Note>
+  This is a forward-looking plan, not a commitment of dates. The hard part is rarely
+  the code — it's eligibility: some national systems gate access by where you're
+  legally incorporated. Live, authoritative support is always the capability matrix at
+  [`GET /v1/wallets`](/api-reference/wallets/list).
+</Note>
+
+## Stack 1 — Active today
+
+<CardGroup cols={2}>
+  <Card title="🇺🇸 Apple Wallet — US mDL" icon="apple">
+    ISO 18013-5 mobile driver's license over the W3C Digital Credentials API.
+    All primitives.
+  </Card>
+  <Card title="🇺🇸 Google Wallet — US mDL" icon="google">
+    Same ISO mdoc, verified identically. All primitives.
+  </Card>
+</CardGroup>
+
+| Wallet | Region | Primitives | Cost to you |
+| --- | --- | --- | --- |
+| Apple Wallet · Google Wallet | 🇺🇸 United States | identify · age_verify · sign · light_sign | Per [UIP pricing](/pricing) only |
+
+## Stack 2 — Coming soon
+
+Ordered by how soon and how cheaply each can come online (free/open first):
+
+| # | Wallet | Region | Primitives (planned) | Access & cost |
+| --- | --- | --- | --- | --- |
+| 1 | **Singpass — sgID** | 🇸🇬 Singapore | identify · age_verify | **Free**, openly reachable. Native over-18/over-21 flags. The first international rail. |
+| 2 | **EUDI Wallet** | 🇪🇺 European Union | identify · age_verify · sign | Government wallet over OpenID4VP; verification against EU trust lists. Rolls out as member states issue. |
+| 3 | **UAE PASS** | 🇦🇪 UAE | identify · sign | National government wallet. Planned. |
+| 4 | **Nafath** | 🇸🇦 Saudi Arabia | identify | National government identity. Planned. |
+| 5 | **DigiLocker** | 🇮🇳 India | identify · age_verify · sign (eSign) | Gated: requires an India-registered entity; eSign is paid (~₹12–15/signature). Under evaluation. |
+
+<Tip>
+  **Why Singpass first?** sgID is free, reachable by a foreign company without a local
+  entity, and exposes privacy-preserving age flags that map cleanly onto `age_verify`.
+  Lowest barrier, lowest cost — so it leads.
+</Tip>
+
+### Access realities (why the plan changed)
+
+Not every national system is open to a private, foreign company — and a few are
+closed outright. We surface this honestly rather than promising rails we can't ship:
+
+- **🇧🇷 Brazil — gov.br is not integrable** by a private/foreign company (restricted to
+  public-sector bodies by law). Brazilian coverage, if it comes, would run through
+  **private KYC bureaus + ICP-Brasil signing** — a different rail, not gov.br.
+- **🇮🇳 India — DigiLocker requires an Indian legal entity.** It stays gated until that
+  exists; eSign remains paid via a licensed provider regardless.
+
+## Transport
+
+Today's wallets use the **W3C Digital Credentials API** (`DC_API`) — the browser's
+native wallet flow. The national wallets above are **OIDC redirect** identity
+providers instead; UIP is adding an `OIDC_REDIRECT` transport (a browser redirect to
+the national IdP and back). It's the one shared prerequisite that unlocks the whole
+international stack — and once it lands, your API surface is unchanged: same
+`POST /v1/sessions`, same webhooks.
+
+## Primitives ahead
+
+<CardGroup cols={2}>
+  <Card title="envelope — multi-party signing" icon="people-group">
+    Today's primitives are single-subject. `envelope` will orchestrate **N distinct
+    signers** (Alice → Bob → Carol), each with their own verified identity, over one
+    shared document — for multi-party agreements and cross-jurisdiction signing.
+  </Card>
+  <Card title="More disclosure blocks" icon="id-card">
+    As wallets expose more attested fields, `identify` gains more blocks — requested
+    the same way you request `first_name` today.
+  </Card>
+</CardGroup>
+
+<Card title="Build on what's live" icon="rocket" href="/quickstart">
+  US mDL via Apple & Google Wallet is production-ready now. Start there; new wallets
+  arrive behind the same API.
+</Card>

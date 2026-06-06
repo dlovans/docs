@@ -1,283 +1,163 @@
 ---
 title: "Quickstart"
-description: "Integrate UIP identity verification in 5 minutes"
+description: "Create a session, send the user to verify, and receive a signed result — end to end."
 ---
 
-Get up and running with UIP's Identify API in minutes. This guide walks you through creating your first identity verification session with working code.
-
-<Info>
-**Prerequisites:** You need an API key from [uip.digital](https://uip.digital). New accounts get $20 in credits on their first business.
-</Info>
-
-## 1. Get your API key
+This walks you from zero to a verified webhook in four steps. The example runs an
+**anonymous age check** (`age_verify`), but the flow is identical for any primitive.
 
 <Steps>
-  <Step title="Sign up">
-    Visit [uip.digital](https://uip.digital) and create your account with UIP identity verification.
+  <Step title="Get your API key + set a webhook">
+    Sign up at [uip.digital](https://uip.digital), create a business, and from the
+    dashboard copy your **API key** (`uip_...`) and set your **webhook URL**.
+
+    <Warning>
+      A webhook URL is **required**. Results are delivered only by webhook — there's
+      no polling for outcomes — so a session won't be created until your business has
+      a webhook configured. You'll also need your **webhook signing secret**
+      (`uip_whsec_...`) from the dashboard to verify deliveries (step 4).
+    </Warning>
   </Step>
 
-  <Step title="Create an API key">
-    Navigate to **Settings** > **API Keys** and create a new key.
+  <Step title="Create a session">
+    Server-to-server, with your API key. List the `steps` you want verified.
+
+    <CodeGroup>
+    ```bash cURL
+    curl https://api.uip.digital/v1/sessions \
+      -H "Authorization: Bearer $UIP_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ],
+        "client_reference_id": "order_4815"
+      }'
+    ```
+    ```javascript Node
+    const res = await fetch("https://api.uip.digital/v1/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.UIP_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        steps: [{ primitive: "age_verify", params: { min_age: 21 } }],
+        client_reference_id: "order_4815"
+      })
+    });
+    const session = await res.json();
+    ```
+    </CodeGroup>
+
+    UIP returns the session and its hosted URL:
+
+    ```json
+    {
+      "id": "sess_abc123",
+      "status": "created",
+      "url": "https://uip.digital/s/sess_abc123",
+      "expires": "2026-06-07T12:34:56Z"
+    }
+    ```
   </Step>
 
-  <Step title="Save it securely">
-    Copy the key immediately and store it in an environment variable. It is only shown once.
+  <Step title="Send the user to the hosted page">
+    Hand the user `session.url`. On the **same device**, link to it directly; on a
+    **different device** (e.g. your desktop checkout → their phone), render it as a
+    QR code. UIP's hosted page drives the user's wallet over the W3C Digital
+    Credentials API — you host nothing and never touch the wallet.
+  </Step>
+
+  <Step title="Receive the signed result">
+    When the wallet responds and UIP verifies it, you get a `POST` to your webhook
+    URL — one `step.completed` per step, then a terminal `session.*` event.
+
+    ```http
+    POST /your-webhook
+    X-UIP-Event: step.completed
+    X-UIP-Timestamp: 1749300000
+    X-UIP-Signature: 9f86d081884c7d65...
+    X-UIP-Delivery-Id: sess_abc123:step.completed:0
+
+    {
+      "event": "step.completed",
+      "data": {
+        "session_id": "sess_abc123",
+        "client_reference_id": "order_4815",
+        "stage": 0,
+        "primitive": "age_verify",
+        "satisfied": true
+      }
+    }
+    ```
+
+    Always [verify the signature](/core-concepts/webhooks#verifying-signatures)
+    before trusting a delivery:
+
+    <CodeGroup>
+    ```javascript Node
+    import crypto from "node:crypto";
+
+    function verify(req, secret) {
+      const ts = req.headers["x-uip-timestamp"];
+      const sig = req.headers["x-uip-signature"];
+      const expected = crypto
+        .createHmac("sha256", secret)
+        .update(`${ts}.${req.rawBody}`) // raw bytes, not re-serialized JSON
+        .digest("hex");
+      return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    }
+    ```
+    ```python Python
+    import hmac, hashlib
+
+    def verify(timestamp: str, raw_body: bytes, signature: str, secret: str) -> bool:
+        mac = hmac.new(secret.encode(), f"{timestamp}.".encode() + raw_body, hashlib.sha256)
+        return hmac.compare_digest(mac.hexdigest(), signature)
+    ```
+    </CodeGroup>
   </Step>
 </Steps>
 
-## 2. Create an identify session
+## Compose multiple steps
 
-<CodeGroup>
-
-```bash cURL
-curl -X POST https://api.uip.digital/v1/identify \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "intent": "Sign in to My App",
-    "requested_data": ["first_name", "last_name", "date_of_birth"]
-  }'
-```
-
-```javascript Node.js
-const response = await fetch('https://api.uip.digital/v1/identify', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${process.env.UIP_API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    intent: 'Sign in to My App',
-    requested_data: ['first_name', 'last_name', 'date_of_birth']
-  })
-});
-
-const { session_id, qr_code, expires_at } = await response.json();
-```
-
-```python Python
-import requests
-
-response = requests.post(
-    'https://api.uip.digital/v1/identify',
-    headers={
-        'Authorization': f'Bearer {API_KEY}',
-        'Content-Type': 'application/json'
-    },
-    json={
-        'intent': 'Sign in to My App',
-        'requested_data': ['first_name', 'last_name', 'date_of_birth']
-    }
-)
-
-data = response.json()
-session_id = data['session_id']
-qr_code = data['qr_code']
-```
-
-</CodeGroup>
-
-**Response:**
+Real flows often need more than one verified action — for example, *identify the
+signer, then sign the contract*. List them in order; the user completes them in one
+session and you receive one webhook per step, in sequence.
 
 ```json
 {
-  "session_id": "sess_1a2b3c4d5e6f",
-  "expires_at": "2026-05-13T12:35:00Z",
-  "qr_code": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>...</svg>"
+  "steps": [
+    { "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } },
+    { "primitive": "sign" }
+  ]
 }
 ```
 
-<Warning>
-**`qr_code` is raw SVG markup, not a base64 PNG.** Inline it directly into your HTML — don't try to use it as an `<img src>`.
-</Warning>
+<Note>
+  `sign` carries documents, so its session is created as `multipart/form-data` — see
+  [Primitives → sign](/core-concepts/primitives#sign) and
+  [Create a session](/api-reference/sessions/create).
+</Note>
 
-## 3. Display the QR code or deep link
+## Test without a phone
 
-Use device detection to show the right UX:
+In development you can drive the full pipeline (verify → webhook) from the hosted
+page's **Simulate** button — no wallet required. Real wallet verification runs in
+both demo and production; see [Wallets](/core-concepts/wallets).
 
-- **Desktop users** — inline the SVG so they can scan with the UIP mobile app.
-- **Mobile users** — show an "Open UIP" button that deep-links to the UIP app via the `uip://` URL scheme.
+## Next steps
 
-```html
-<div id="uip-desktop"></div>
-<div id="uip-mobile" style="display: none;">
-  <a id="uip-link" class="button">Open UIP</a>
-</div>
-
-<script>
-  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-  const expUnix = Math.floor(new Date(session.expires_at).getTime() / 1000);
-
-  if (isMobile) {
-    document.getElementById('uip-desktop').style.display = 'none';
-    document.getElementById('uip-mobile').style.display = 'block';
-    document.getElementById('uip-link').href =
-      `uip://identify?sid=${session.session_id}&exp=${expUnix}`;
-  } else {
-    // qr_code is raw SVG markup — inline it directly.
-    document.getElementById('uip-desktop').innerHTML = session.qr_code;
-  }
-</script>
-```
-
-Framework equivalents: `{@html session.qr_code}` (Svelte), `dangerouslySetInnerHTML={{ __html: session.qr_code }}` (React), `v-html="session.qr_code"` (Vue).
-
-<Info>
-**Session lifetime:** Sessions expire after ~5 minutes (`SESSION_EXPIRY_SECONDS` defaults to 310s). Show a timer and offer to generate a new session if it expires.
-</Info>
-
-## 4. Poll for the result
-
-Poll `GET /v1/identify/:id` every 2–3 seconds. When the status changes to **`approved`**, the response carries the signer's identity snapshot and an `audit_id` you can use to look up the full audit record.
-
-<CodeGroup>
-
-```javascript Node.js
-async function pollIdentify(sessionId, apiKey) {
-  while (true) {
-    const res = await fetch(
-      `https://api.uip.digital/v1/identify/${sessionId}`,
-      { headers: { 'Authorization': `Bearer ${apiKey}` } }
-    );
-    const data = await res.json();
-
-    if (data.status === 'approved') {
-      console.log(`Verified: ${data.signer_snapshot.target.full_name}`);
-      console.log(`Audit ID: ${data.audit_id}`);
-      return data;
-    }
-    if (data.status === 'expired') {
-      throw new Error('Session expired');
-    }
-
-    await new Promise(r => setTimeout(r, 2500));
-  }
-}
-```
-
-```python Python
-import time
-
-def poll_identify(session_id, api_key):
-    while True:
-        response = requests.get(
-            f'https://api.uip.digital/v1/identify/{session_id}',
-            headers={'Authorization': f'Bearer {api_key}'}
-        )
-        data = response.json()
-
-        if data['status'] == 'approved':
-            target = data['signer_snapshot']['target']
-            print(f"Verified: {target['full_name']}")
-            print(f"Audit ID: {data['audit_id']}")
-            return data
-
-        if data['status'] == 'expired':
-            raise Exception('Session expired')
-
-        time.sleep(2.5)
-```
-
-```bash cURL
-curl -X GET "https://api.uip.digital/v1/identify/sess_1a2b3c4d5e6f" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-</CodeGroup>
-
-**Response when pending:**
-
-```json
-{
-  "status": "pending",
-  "expires_at": "2026-05-13T12:35:00Z"
-}
-```
-
-**Response when approved:**
-
-```json
-{
-  "status": "approved",
-  "expires_at": "2026-05-13T12:35:00Z",
-  "audit_id": "audit_9z8y7x6w5v4u",
-  "target_uip_id": "user_def456",
-  "signer_snapshot": {
-    "target": {
-      "uip_id": "user_def456",
-      "full_name": "John Doe",
-      "date_of_birth": "1990-05-15",
-      "nationality": "US",
-      "document_type": "passport",
-      "document_number": "P1234567",
-      "issuing_state": "US",
-      "verified_at": "2024-09-01T10:00:00Z",
-      "kyc_provider": "didit",
-      "kyc_session_id": "didit_abc123",
-      "liveness_score": 98.4,
-      "face_match_score": 99.1
-    },
-    "requester": { "business_id": "biz_acme", "business_name": "Acme Corp" }
-  }
-}
-```
-
-That's it. No webhooks, no redirect URIs, no code exchange. The polling response is your source of truth for the signer's identity. Save the `audit_id` if you need the full audit later (AdES proof, attachments) via [`GET /v1/audit/:id`](/api-reference/endpoint/audit).
-
-## Complete example
-
-```javascript Node.js
-const API_KEY = process.env.UIP_API_KEY;
-const BASE = 'https://api.uip.digital/v1';
-
-// Step 1: Create the session
-const session = await fetch(`${BASE}/identify`, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    intent: 'Sign in to My App',
-    requested_data: ['first_name', 'last_name', 'date_of_birth']
-  })
-}).then(r => r.json());
-
-console.log('Session created:', session.session_id);
-// session.qr_code is raw SVG — inline into your HTML for desktop users.
-
-// Step 2: Poll until approved or expired
-let result;
-while (true) {
-  const poll = await fetch(`${BASE}/identify/${session.session_id}`, {
-    headers: { 'Authorization': `Bearer ${API_KEY}` }
-  }).then(r => r.json());
-
-  if (poll.status === 'approved') { result = poll; break; }
-  if (poll.status === 'expired') {
-    throw new Error('Session expired — create a new one');
-  }
-  await new Promise(r => setTimeout(r, 2500));
-}
-
-// Step 3: Use the verified identity
-const { full_name, date_of_birth } = result.signer_snapshot.target;
-console.log(`Welcome, ${full_name}!`);
-console.log(`Audit trail: ${result.audit_id}`);
-```
-
-## What's next?
-
-<CardGroup cols={3}>
-  <Card title="Sign API" icon="file-signature" href="/api-reference/endpoint/sign">
-    Request legally binding biometric signatures.
+<CardGroup cols={2}>
+  <Card title="Primitives" icon="cube" href="/core-concepts/primitives">
+    Every primitive's parameters and result shape.
   </Card>
-
-  <Card title="Message API" icon="message" href="/api-reference/endpoint/message">
-    Send encrypted messages with document attachments.
+  <Card title="Sessions" icon="diagram-project" href="/core-concepts/sessions">
+    Lifecycle, gates (continue/stop), binding, and expiry.
   </Card>
-
-  <Card title="QR Integration Guide" icon="qrcode" href="/core-concepts/qr-integration">
-    Device detection, QR display best practices, and deep linking.
+  <Card title="Webhooks" icon="webhook" href="/core-concepts/webhooks">
+    Every event, payload, and signature verification.
+  </Card>
+  <Card title="Create a session" icon="code" href="/api-reference/sessions/create">
+    The full request reference, including all options.
   </Card>
 </CardGroup>

@@ -1,0 +1,160 @@
+---
+title: "Primitives"
+description: "The verified actions you compose — identify, age_verify, sign, light_sign."
+---
+
+A **primitive** is one verified action against the user's wallet credential. Each
+step in a session names a primitive and its `params`. UIP builds the right wallet
+request, verifies the signed response, and returns a normalized result.
+
+<CardGroup cols={2}>
+  <Card title="identify" icon="id-card" href="#identify">Disclose attested fields</Card>
+  <Card title="age_verify" icon="user-shield" href="#age_verify">Anonymous age threshold</Card>
+  <Card title="sign" icon="signature" href="#sign">Sign documents</Card>
+  <Card title="light_sign" icon="file-signature" href="#light_sign">Sign inline terms</Card>
+</CardGroup>
+
+---
+
+## identify
+
+Disclose specific government-attested fields, called **blocks**. You request only
+what you need; the user consents to exactly that.
+
+```json
+{ "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "dob", "country"] } }
+```
+
+**Blocks** (mapped to the credential's data elements):
+
+| Block | Meaning |
+| --- | --- |
+| `first_name` | Given name |
+| `last_name` | Family name |
+| `dob` | Date of birth (`YYYY-MM-DD`) |
+| `country` | Issuing country |
+| `document_number` | Document/license number |
+| `portrait` | Portrait image |
+
+If `blocks` is omitted, UIP requests a sensible default (`first_name`,
+`last_name`, `dob`). A requested block the credential doesn't carry comes back as
+`"unavailable"` rather than failing the step.
+
+**Result** (`step.completed` → `data.claims`):
+
+```json
+{ "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" } }
+```
+
+---
+
+## age_verify
+
+Prove the holder meets an age threshold **without disclosing their birth date**.
+UIP reads the date from the credential, computes the result, and returns only the
+boolean. The birth date never reaches your webhook.
+
+```json
+{ "primitive": "age_verify", "params": { "min_age": 21 } }
+```
+
+`min_age` is a whole number (1–120; defaults to `18`).
+
+**Result** (`step.completed` → `data.satisfied`):
+
+```json
+{ "satisfied": true }
+```
+
+<Note>
+  This is "anonymous to you, not to UIP": the full identity used to compute the
+  result is sealed in the [audit record](/core-concepts/verification#audit-ledger),
+  flagged as redacted, and never exposed on your webhook or session reads.
+</Note>
+
+---
+
+## sign
+
+The holder's device signs a hash of **one or more documents you provide** — a
+what-you-see-is-what-you-sign signature bound to their wallet credential. Because
+`sign` carries files, its session is created as `multipart/form-data`.
+
+- UIP computes the SHA-256 of each file and a single **manifest digest** over all of
+  them (in declared order). The wallet signs the manifest; you never supply a hash.
+- The user reads the exact bytes UIP hashed on the hosted page before signing.
+- Up to **50 files**, **50 MB** combined. Files are **deleted the moment the step
+  verifies** — only the hash + signature persist as the durable proof.
+
+```bash
+curl https://api.uip.digital/v1/sessions \
+  -H "Authorization: Bearer $UIP_API_KEY" \
+  -F 'steps=[{"primitive":"identify"},{"primitive":"sign"}]' \
+  -F 'file=@contract.pdf'
+```
+
+**Result** (`step.completed`):
+
+```json
+{ "primitive": "sign", "signature": "mdoc:3045...", "document_hash": "sha256:9f86..." }
+```
+
+---
+
+## light_sign
+
+The same device signature, over **short inline terms text** — no file upload. For
+consent, acceptance, and disclosure flows.
+
+```json
+{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
+```
+
+- Terms are limited to ~1,000 words (about a 5-minute read).
+- UIP canonicalizes the text (normalizes line endings), hashes it, and the wallet
+  signs that hash. The exact terms + hash + signature are kept in the audit, so the
+  signature stays provable.
+
+**Result** (`step.completed`):
+
+```json
+{ "primitive": "light_sign", "signature": "mdoc:3045...", "document_hash": "sha256:1b2c..." }
+```
+
+---
+
+## Chaining steps
+
+Chaining is not a primitive — it's the `steps[]` array. List steps in order and the
+user completes them in one session; you receive one `step.completed` per step, in
+sequence, then a terminal `session.*` event.
+
+```json
+{
+  "steps": [
+    { "primitive": "identify", "params": { "blocks": ["first_name", "country"] } },
+    { "primitive": "age_verify", "params": { "min_age": 18 } },
+    { "primitive": "sign" }
+  ]
+}
+```
+
+### Gates (pause for a decision)
+
+Set `"gate": true` on a step to **pause** the session after it completes, so your
+server can decide whether to continue. Useful when a later step should depend on an
+earlier result (e.g. only sign if the identity matched your records).
+
+```json
+{ "primitive": "identify", "gate": true }
+```
+
+On a gated step the session moves to `awaiting_decision` after `step.completed`.
+Resume with [`POST /v1/sessions/{id}/continue`](/api-reference/sessions/continue) or
+end it with [`POST /v1/sessions/{id}/stop`](/api-reference/sessions/stop). A gate on
+the final step is rejected at create (there's nothing to continue to).
+
+<Card title="Reserved: envelope (multi-party)" icon="people-group" href="/roadmap">
+  All primitives today are single-subject. Multi-party signing (Alice → Bob →
+  Carol) is a reserved primitive on the roadmap.
+</Card>

@@ -1,162 +1,79 @@
 ---
 title: "Security"
-description: "UIP's security architecture, encryption, and protection mechanisms"
+description: "How UIP protects credentials, results, and your integration."
 ---
 
-## Security architecture
+UIP's security model has two halves: **proving** a result is genuine (covered in
+[Verification & trust](/core-concepts/verification)) and **protecting** the data
+around it. This page covers the second.
 
-Biometrics stay on the user's device, personal data is encrypted with AES-256 at rest, and every critical user action is signed on-device with a private key the server never sees.
+## In transit & at rest
 
 <CardGroup cols={2}>
-  <Card title="On-device biometrics" icon="fingerprint">
-    Biometric templates never leave the user's device. Authentication happens locally; only a cryptographic signature is sent to the server.
+  <Card title="TLS everywhere" icon="lock">
+    All API calls and webhook deliveries are over HTTPS/TLS.
   </Card>
-
-  <Card title="AES-256-GCM at rest" icon="lock">
-    All personally identifiable fields are encrypted at rest with authenticated AES-256-GCM.
+  <Card title="Encrypted responses" icon="envelope">
+    The wallet encrypts its response to a **per-request key**; only UIP's server can
+    decrypt it. The hosted page relays ciphertext it cannot read.
   </Card>
-
-  <Card title="ECDSA P-256 signatures" icon="signature">
-    Every identify, sign, and message action is signed on-device with the user's ECDSA P-256 private key. The public key is registered during enrollment and used for server-side verification.
+  <Card title="PII sealed at rest" icon="vault">
+    Signer identity in the audit ledger is encrypted with envelope encryption
+    (KMS-backed in production).
   </Card>
-
-  <Card title="TLS everywhere" icon="shield-check">
-    All API traffic and webhook deliveries are HTTPS-only. Webhook endpoints with HTTP URLs are rejected.
+  <Card title="Signed webhooks" icon="webhook">
+    Every delivery is HMAC-SHA256 signed; verify it before trusting a payload (see
+    [Webhooks](/core-concepts/webhooks#verifying-signatures)).
   </Card>
 </CardGroup>
 
-## Biometric security
+## Anti-replay & binding
 
-UIP uses government-grade biometric verification with multiple layers of fraud prevention:
+- **Per-step nonce + origin.** The holder's signature covers a fresh nonce and your
+  origin, so a captured response can't be replayed against another request.
+- **First-open binding.** The first browser to open a session is bound to it; no
+  other device can submit a response for that session.
+- **Idempotency.** An `Idempotency-Key` on create makes retried creates safe; webhook
+  `X-UIP-Delivery-Id` makes retried deliveries safe to dedupe.
+
+## Data minimization
+
+UIP is designed to hold as little as possible:
+
+- **Only what you request.** `identify` discloses exactly the blocks you ask for.
+- **`age_verify` reveals a boolean** — never the birth date — to you; the underlying
+  identity is sealed in the audit and flagged redacted.
+- **Documents are ephemeral.** `sign` file bytes are deleted the moment the step
+  verifies (and on any terminal/expiry); only the hash + signature persist.
+- **No standing identity.** There's no UIP login the user maintains; each session is
+  a fresh, consented disclosure from their wallet.
+
+## Your responsibilities
 
 <AccordionGroup>
-  <Accordion title="Liveness detection" icon="video" defaultOpen>
-    The UIP app performs real-time liveness checks during biometric scans to prevent attacks using photos, videos, or masks. Users must demonstrate live presence through interactive prompts.
+  <Accordion title="Protect the session URL">
+    The hosted `url` is a [capability URL](/core-concepts/sessions#the-hosted-page--capability-urls)
+    — deliver it only to the intended user, and don't open it server-side before
+    handing it over (that would consume the binding).
   </Accordion>
-
-  <Accordion title="On-device processing" icon="mobile-screen">
-    Biometric data (fingerprint templates, facial geometry) is processed entirely on the user's device. Only cryptographic proofs are transmitted — never raw biometric data.
+  <Accordion title="Verify every webhook">
+    Recompute the HMAC over the raw body and compare in constant time. Reject stale
+    timestamps to bound replay windows. Dedupe on the delivery id.
   </Accordion>
-
-  <Accordion title="Government ID verification" icon="id-card">
-    Identity verification is performed through a government-grade verification provider. Users scan official documents (passport, driver's license, national ID) with live selfie matching.
-  </Accordion>
-
-  <Accordion title="Anti-spoofing" icon="shield-halved">
-    Multi-layer anti-spoofing combines document authenticity checks, biometric liveness detection, and cross-reference validation to prevent identity fraud.
+  <Accordion title="Guard your keys">
+    Keep your API key and webhook secret server-side. Rotate the webhook secret from
+    the dashboard if exposed. API keys are scoped to your business.
   </Accordion>
 </AccordionGroup>
 
-## API security
+## Compliance posture
 
-### Authentication
+- Tamper-evident, append-only [audit records](/core-concepts/verification#audit-ledger)
+  with independent (RFC 3161) timestamps — designed to be presentable as evidence.
+- Data-minimizing by construction (selective disclosure, anonymous age checks).
+- Government-issuer–anchored verification, not document scraping.
 
-All API requests require Bearer token authentication:
-
-```
-Authorization: Bearer YOUR_API_KEY
-```
-
-API keys have the `uip_sk_` prefix. Keys are SHA-256 hashed before storage — UIP never stores plaintext keys. You can rotate or revoke any key at any time from the dashboard.
-
-### Rate limiting
-
-UIP enforces rate limits to ensure fair usage and system stability:
-
-| Scope | Limit | Window |
-|-------|-------|--------|
-| Global (per IP) | 500 requests | 1 minute |
-| Per API Key | 300 requests | 1 minute |
-
-When rate limited, the API returns HTTP 429 with `Retry-After` and `X-RateLimit-Remaining` headers.
-
-### SSRF protection
-
-Webhook URLs are validated against SSRF attacks. UIP blocks webhook delivery to:
-
-- Private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
-- Loopback addresses (127.0.0.0/8, ::1)
-- Link-local addresses (169.254.0.0/16)
-- IPv6 unique local addresses (fc00::/7)
-
-### Webhook signature verification
-
-All webhook payloads include an `X-UIP-Signature` header containing an HMAC-SHA256 signature. Verify this signature to ensure webhook authenticity:
-
-```javascript
-const crypto = require('crypto');
-
-function verifyWebhook(payload, signature, secret) {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
-    .digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  );
-}
-```
-
-<Warning>
-**Always verify webhook signatures.** Without verification, attackers could send fake webhook payloads to your endpoint.
-</Warning>
-
-## Data protection
-
-### Encryption at rest
-
-All PII (names, dates of birth, document numbers, addresses) is encrypted using AES-256-GCM before storage. Encryption keys are managed separately from the encrypted data.
-
-### Encryption in transit
-
-All API communications use TLS 1.2+. Webhook URLs must use HTTPS — HTTP endpoints are rejected.
-
-### Data minimization
-
-UIP follows the principle of least privilege for data:
-
-- Only return identity fields explicitly requested in `requested_data`
-- Session data expires automatically (about 5 minutes for identify and sign sessions)
-- Completed session data is returned once via polling and then cleared
-- Audit records are append-only and store only what's needed for legal compliance
-
-## Compliance
-
-<CardGroup cols={2}>
-  <Card title="GDPR" icon="shield-check">
-    User-controlled data. No personal data stored without explicit consent.
-  </Card>
-
-  <Card title="eIDAS" icon="certificate">
-    Electronic signatures align with EU requirements for advanced electronic signatures with identity verification.
-  </Card>
-
-  <Card title="ESIGN Act" icon="flag-usa">
-    Signatures comply with the US Electronic Signatures in Global and National Commerce Act.
-  </Card>
-
-  <Card title="SOX" icon="building-columns">
-    Audit trails support Sarbanes-Oxley compliance with permanent, tamper-evident records.
-  </Card>
-</CardGroup>
-
-## Security best practices
-
-<CardGroup cols={2}>
-  <Card title="Store keys securely" icon="vault">
-    Use environment variables or secrets management. Never commit API keys to version control.
-  </Card>
-
-  <Card title="Verify webhooks" icon="shield-check">
-    Always validate the `X-UIP-Signature` header before processing webhook payloads.
-  </Card>
-
-  <Card title="Use HTTPS" icon="lock">
-    All webhook URLs must use HTTPS. API calls are HTTPS-only by default.
-  </Card>
-
-  <Card title="Minimize data requests" icon="minimize">
-    Only request the identity fields you need. Users are more likely to approve minimal data requests.
-  </Card>
-</CardGroup>
+<Note>
+  Have a specific regulatory requirement (GDPR data-processing terms, retention,
+  residency)? <a href="mailto:support@uip.digital">Contact us</a>.
+</Note>

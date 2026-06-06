@@ -1,0 +1,49 @@
+---
+title: "List wallets"
+description: "GET /v1/wallets"
+---
+
+<Note>
+  `GET https://api.uip.digital/v1/wallets` · No auth required
+</Note>
+
+Returns the live **wallet × primitive capability matrix** — every wallet UIP can
+verify and which primitives each supports. The booleans are derived from the active
+backend adapters, so the response is always the source of truth; never hard-code
+support. UIP also enforces this at session create (the chosen wallet must support the
+whole chain).
+
+## Response
+
+<ResponseField name="wallets" type="object[]">
+  <Expandable title="wallet">
+    <ResponseField name="id" type="string">Stable wallet id, e.g. `apple-wallet`.</ResponseField>
+    <ResponseField name="name" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
+    <ResponseField name="primitives" type="object">
+      Per-primitive support booleans (`identify`, `age_verify`, `sign`,
+      `light_sign`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 OK
+{
+  "wallets": [
+    {
+      "id": "apple-wallet",
+      "name": "Apple Wallet",
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    },
+    {
+      "id": "google-wallet",
+      "name": "Google Wallet",
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    }
+  ]
+}
+```
+</ResponseExample>
+
+See [Wallets & coverage](/core-concepts/wallets) for context and the
+[roadmap](/roadmap) for what's coming.

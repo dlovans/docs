@@ -1,298 +1,69 @@
 ---
 title: "Pricing"
-description: "Simple, usage-based pricing with no hidden fees"
+description: "Usage-based, per-successful-step. No subscriptions, no minimums."
 ---
 
-## Pay only for what you use
+UIP is **pay-as-you-go**. You're charged per **successfully verified step** — never
+for sessions you create, abandoned flows, or steps that fail verification. The proof
+is the product; if a step doesn't produce a verified result, it isn't billed.
 
-No subscriptions, no hidden fees, no surprises. Just simple, transparent usage-based pricing.
+## Per-primitive prices
 
-<Info>
-**Signup bonus:** Get $20 in credits on your first business. No credit card required.
-</Info>
-
-## API Pricing
-
-<CardGroup cols={3}>
-  <Card title="Identify API" icon="fingerprint">
-    ### $0.01
-    per successful identification
-
-    <br />
-
-    **Includes:**
-    - Biometric identification
-    - Verified identity information
-    - Age verification
-    - Location verification
-    - Global compliance
-  </Card>
-
-  <Card title="Sign API" icon="file-signature">
-    ### $0.03
-    per successful signature
-
-    <br />
-
-    **Includes:**
-    - Instant biometric signing
-    - Legally binding documents
-    - Verified identity proof
-    - Cross-border compliance
-    - Permanent audit trail
-  </Card>
-
-  <Card title="Message API" icon="message-check">
-    ### $0.03 / $0.10
-    per message
-
-    <br />
-
-    **Pricing:**
-    - $0.03 text only
-    - $0.10 with attachment (up to 20MB)
-
-    **Both support:**
-    - End-to-end encryption
-    - Signature requests
-    - Priority notification levels
-  </Card>
-</CardGroup>
-
-## What's Included
-
-Every UIP integration includes these features at no extra cost:
-
-<AccordionGroup>
-  <Accordion title="Security & Compliance" icon="shield-check">
-    - AES-256-GCM encryption for all PII
-    - On-device biometric processing
-    - GDPR compliance built-in
-    - SOX compliance support
-    - HTTPS-only API and webhook delivery
-  </Accordion>
-
-  <Accordion title="Reliability & Performance" icon="bolt">
-    - Sub-second response times
-    - Global deployment
-    - Real-time status monitoring
-  </Accordion>
-
-  <Accordion title="Audit & Verification" icon="list-check">
-    - Permanent audit trail for all actions
-    - Unlimited audit record queries
-    - Court-admissible evidence generation
-    - Tamper-evident record storage
-    - Detailed action history
-    - Reference ID system
-  </Accordion>
-
-  <Accordion title="Developer Experience" icon="code">
-    - Complete API documentation
-    - Simple polling-based flow for Identify and Sign
-    - Webhook support for the Message API
-    - Email support
-  </Accordion>
-</AccordionGroup>
-
-## Signup Bonus
-
-Perfect for development, testing, and trying out UIP.
+| Primitive | Price | What it verifies |
+| --- | --- | --- |
+| `identify` | **$0.01** | Government-attested identity fields you request |
+| `age_verify` | **$0.01** | An anonymous age-threshold boolean |
+| `light_sign` | **$0.02** | A device signature over inline terms text |
+| `sign` | **$0.03** | A device signature over one or more documents |
 
 <Note>
-**$20 in credits on your first business** to try out all APIs. Mix and match however you need.
+  A multi-step session is billed per step: an `identify` + `sign` session that
+  completes both steps costs $0.01 + $0.03 = **$0.04**. If the user stops after the
+  first step, you're billed only **$0.01**.
 </Note>
 
-### What's included:
-
-<Check>Full access to all APIs (Identify, Sign, Message)</Check>
-<Check>All security and compliance features</Check>
-<Check>Permanent audit trail storage</Check>
-<Check>Email support</Check>
-<Check>No credit card required</Check>
-
-### After using your credits:
-
-Usage is billed at the standard rates above. Pay only for what you use.
-
-## Pricing Examples
-
-See how much UIP costs for different use cases:
-
-<Tabs>
-  <Tab title="Small App">
-    **Scenario:** Authentication-only app with 5,000 monthly active users
-
-    - **Monthly authentications:** 5,000
-    - **API used:** Identify API
-    - **Cost calculation:** 5,000 × $0.01 = **$50/month**
-
-    <Note>
-    Perfect for startups and small applications. Pay less than $1 per 100 users.
-    </Note>
-  </Tab>
-
-  <Tab title="Contract Platform">
-    **Scenario:** Document signing platform with 1,000 signatures per month
-
-    - **Monthly signatures:** 1,000
-    - **Monthly authentications:** 2,000
-    - **APIs used:** Sign API + Identify API
-    - **Cost calculation:**
-      - Authentications: 2,000 × $0.01 = $20
-      - Signatures: 1,000 × $0.03 = $30
-      - **Total: $50/month**
-
-    <Note>
-    Scales predictably with your usage—no hidden fees or surprises.
-    </Note>
-  </Tab>
-
-  <Tab title="Enterprise">
-    **Scenario:** Large platform with 100,000 monthly active users
-
-    - **Monthly authentications:** 100,000
-    - **Monthly signatures:** 10,000
-    - **Monthly messages:** 5,000
-    - **Cost calculation:**
-      - Auth: 100,000 × $0.01 = $1,000
-      - Sign: 10,000 × $0.03 = $300
-      - Messages: 5,000 × $0.03 = $150
-      - **Total: $1,450/month**
-
-    <Note>
-    Scales predictably with your usage—no hidden fees or surprises.
-    </Note>
-  </Tab>
-
-  <Tab title="Age Verification">
-    **Scenario:** Age verification for 50,000 checks per month
-
-    - **Monthly verifications:** 50,000
-    - **API used:** Identify API (age verification)
-    - **Cost calculation:** 50,000 × $0.01 = **$500/month**
-
-    <Note>
-    More cost-effective than traditional age verification services while providing better privacy.
-    </Note>
-  </Tab>
-</Tabs>
-
-## Pricing Details
-
-### What Counts as a Billable Event?
-
-<CardGroup cols={3}>
-  <Card title="Identify API" icon="fingerprint">
-    Only **successful authentications** are charged. Failed attempts, user cancellations, and errors are free.
-  </Card>
-
-  <Card title="Sign API" icon="file-signature">
-    Each **completed signature**, regardless of document size. Declined or expired requests are not charged.
-  </Card>
-
-  <Card title="Message API" icon="message-check">
-    Each **message sent**, with different rates for text-only vs. messages with attachments.
-  </Card>
-</CardGroup>
-
-### Additional Benefits
-
-<Check>No setup fees or monthly minimums</Check>
-<Check>Email support</Check>
-<Check>Real-time usage analytics in dashboard</Check>
-<Check>Unlimited audit trail queries (always free)</Check>
-
-## Frequently Asked Questions
-
-<AccordionGroup>
-  <Accordion title="How is billing calculated?" icon="calculator">
-    You're only charged for successful API calls. Failed requests are not billed.
-
-    - **Identify API:** Only successful authentications
-    - **Sign API:** Only completed signatures
-    - **Message API:** Only messages successfully delivered
-  </Accordion>
-
-  <Accordion title="Do I get any credits to start?" icon="gift">
-    Yes! When you create your first business, you get $20 in credits to try out all APIs. Perfect for testing and initial implementation.
-  </Accordion>
-
-  <Accordion title="When am I billed?" icon="calendar">
-    Billing is monthly based on your usage. You'll receive an invoice at the end of each month with detailed usage statistics. Pay only for what you use at standard rates.
-  </Accordion>
-
-  <Accordion title="What payment methods do you accept?" icon="credit-card">
-    We accept all major credit cards (Visa, Mastercard, American Express). Payment is processed automatically at the end of each billing cycle.
-  </Accordion>
-
-  <Accordion title="How do I track my usage?" icon="chart-line">
-    Your dashboard provides real-time usage analytics, cost breakdowns, and usage forecasts to help you manage your spending.
-  </Accordion>
-
-  <Accordion title="Can I set spending limits?" icon="gauge">
-    Yes! You can set monthly spending limits in your dashboard. When you approach your limit, we'll send email notifications. You can choose to increase your limit or pause new requests.
-  </Accordion>
-
-  <Accordion title="Do audit queries cost extra?" icon="magnifying-glass-dollar">
-    No! All audit trail queries are completely free and unlimited. Store reference IDs forever and query them anytime at no additional cost.
-  </Accordion>
-
-  <Accordion title="What happens after I use my signup credits?" icon="arrow-trend-up">
-    Your account automatically switches to paid usage. Standard rates apply automatically -- no manual upgrade needed. You'll receive notifications as your credit balance gets low.
-  </Accordion>
-</AccordionGroup>
-
-## ROI Calculator
-
-See how much you can save by switching to UIP:
-
-<Note>
-**Average savings with UIP:**
-- **Password resets:** Save $70 per employee per year
-- **DocuSign replacement:** Save 60% on document signing costs
-- **KYC verification:** Save 80% on identity verification costs
-- **Support tickets:** Reduce auth-related tickets by 90%
-</Note>
-
-### Traditional Costs vs UIP
-
-| Cost Category | Traditional | With UIP | Annual Savings |
-|---------------|-------------|----------|----------------|
-| Password management tools | $5/user/month | $0 | $60/user/year |
-| Password reset support | $70/employee/year | $0 | $70/employee/year |
-| DocuSign (100 docs/mo) | $40/month | $36/month | $48/year |
-| KYC verification | $2/check | $0.01/check | $1.99/check |
-| Auth-related support | 10 hrs/month | 1 hr/month | $4,500/year* |
-
-<sub>*Assuming $50/hr support cost</sub>
-
-## Get Started Today
-
-<Card
-  title="Get your API keys"
-  icon="key"
-  href="https://uip.digital/identify"
->
-  Start building with $20 in credits on your first business. No credit card required.
+<Card title="$20 launch credit" icon="gift">
+  Every new account starts with **$20** in credit — enough for ~2,000 identity
+  checks or ~666 document signatures while you build.
 </Card>
 
-## Need Help?
+## How billing works
 
-<CardGroup cols={2}>
-  <Card
-    title="Contact Support"
-    icon="life-ring"
-    href="mailto:support@uip.digital"
-  >
-    Questions about pricing or implementation? We're here to help.
-  </Card>
+<Steps>
+  <Step title="Top up your balance">
+    Add funds to your business wallet from the dashboard (card payment). Your balance
+    is held in **wallet units** — `1 USD = 10,000` units — so sub-cent prices are
+    exact.
+  </Step>
+  <Step title="Spend per verified step">
+    Each step that verifies successfully deducts its price from your balance, charged
+    the moment the result is durably recorded. A failed verification charges nothing.
+  </Step>
+  <Step title="Stay within your floor">
+    Self-serve accounts can dip into a small overdraft buffer so a momentary low
+    balance never blocks a paying user; a session is cut off once you cross the floor.
+    Top up to resume.
+  </Step>
+</Steps>
 
-  <Card
-    title="View Documentation"
-    icon="book"
-    href="/api-reference/introduction"
-  >
-    See complete API documentation and integration guides
-  </Card>
-</CardGroup>
+## Enterprise
+
+Need volume pricing, invoicing, or a credit line instead of prepaid balance?
+Enterprise accounts run on an admin-set **credit limit** and are never interrupted
+mid-session. <a href="mailto:support@uip.digital">Talk to us</a>.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Am I charged when a user abandons a session?">
+    No. Creating a session is free, and only steps that produce a verified result are
+    billed. An abandoned or expired session costs nothing.
+  </Accordion>
+  <Accordion title="Is there a subscription or minimum?">
+    No subscription, no monthly minimum. You pay only for verified steps.
+  </Accordion>
+  <Accordion title="Do prices differ by wallet or country?">
+    Pricing is per primitive, not per wallet. As new wallets and countries come
+    online (see the [roadmap](/roadmap)), the same per-primitive prices apply.
+  </Accordion>
+</AccordionGroup>

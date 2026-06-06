@@ -1,0 +1,80 @@
+---
+title: "Wallets & coverage"
+description: "Which wallets complete a session today, and how the wallet flow works."
+---
+
+The user's credential lives in a **digital wallet**. UIP is wallet-agnostic: it
+builds the request, the wallet presents the credential, and UIP verifies the signed
+response. What primitives a given wallet can fulfill is exposed live by the API.
+
+## Live today
+
+<CardGroup cols={2}>
+  <Card title="Apple Wallet" icon="apple">
+    US mobile driver's license (mDL), over the W3C Digital Credentials API in Safari.
+  </Card>
+  <Card title="Google Wallet" icon="google">
+    US mobile driver's license (mDL), over the W3C Digital Credentials API in Chrome.
+  </Card>
+</CardGroup>
+
+Both present the **same ISO/IEC 18013-5 mobile document**, so UIP verifies them
+identically. Today's coverage is **United States** mDL; both wallets support every
+primitive (`identify`, `age_verify`, `sign`, `light_sign`).
+
+<Card title="Coming soon" icon="road" href="/roadmap">
+  Singapore (Singpass), the EU (EUDI Wallet), and more are on the roadmap — ordered
+  by how quickly and cheaply they can come online.
+</Card>
+
+## How the wallet flow works
+
+UIP uses the **W3C Digital Credentials API** (`DC_API`): the browser, not UIP, talks
+to the wallet on the device.
+
+<Steps>
+  <Step title="Request">
+    UIP builds an OpenID4VP request (which fields, a per-request encryption key, a
+    fresh nonce) and the hosted page hands it to `navigator.credentials.get()`.
+  </Step>
+  <Step title="Present">
+    The user approves in their wallet. The wallet returns an **encrypted, signed**
+    response to the page, which relays it to UIP.
+  </Step>
+  <Step title="Verify">
+    UIP decrypts it server-side and [verifies it
+    cryptographically](/core-concepts/verification) before emitting your webhook.
+  </Step>
+</Steps>
+
+Because it's the browser's native wallet flow, there's no app to install and the
+same-device vs cross-device choice (QR) is handled for you.
+
+## The capability matrix
+
+Never hard-code which wallet supports which primitive — read it at runtime from
+[`GET /v1/wallets`](/api-reference/wallets/list). It returns each wallet with a
+per-primitive boolean derived from the live adapters, so it can't drift from reality.
+
+```json
+{
+  "wallets": [
+    {
+      "id": "apple-wallet",
+      "name": "Apple Wallet",
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    },
+    {
+      "id": "google-wallet",
+      "name": "Google Wallet",
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    }
+  ]
+}
+```
+
+When you create a session, UIP enforces that the user's chosen wallet supports the
+**whole chain** before any step runs — so a user is never sent into a flow their
+wallet can't finish, and you're never billed for a half-completable chain. A wallet
+listed but without an active adapter returns a clear "not yet available" rather than
+a broken flow.

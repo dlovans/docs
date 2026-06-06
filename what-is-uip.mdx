@@ -1,239 +1,102 @@
 ---
 title: "What is UIP?"
-description: "Understanding the Universal Identity Protocol and how it works"
+description: "The model in two minutes — primitives, wallets, and sessions."
 ---
 
-## Overview
+UIP lets your app ask a user's **government-issued digital credential** a precise
+question and get back a **cryptographically verified answer**. The credential lives
+in the user's own wallet (today: a US mobile driver's license in Apple Wallet or
+Google Wallet). UIP builds the request, verifies the wallet's signed response
+against the issuing authority's trust anchors, and delivers the result to you.
 
-UIP (Universal Identity Protocol) is a biometric-first identity and signature protocol that replaces passwords, fragmented logins, and traditional document signing with one cryptographically secure, government-verified identity.
+Three ideas make up the whole model.
 
-<Info>
-**One identity. Verified everywhere.** Your fingerprint or face becomes your universal authentication method across all digital services.
-</Info>
+## 1. Primitives — the verbs
 
-## The problem UIP solves
+A **primitive** is one verified action. You don't call an "Identity API" or a
+"Sign API"; you compose primitives.
 
-### Identity fragmentation
+<CardGroup cols={2}>
+  <Card title="identify" icon="id-card">
+    Disclose specific government-attested fields ("blocks") — e.g. `first_name`,
+    `dob`, `country`, `document_number`.
+  </Card>
+  <Card title="age_verify" icon="user-shield">
+    Prove the holder meets an age threshold. UIP computes it from the credential's
+    birth date and returns **only** the boolean — the date never reaches you.
+  </Card>
+  <Card title="sign" icon="signature">
+    The holder's device signs a hash of one or more documents you provide
+    (what-you-see-is-what-you-sign), bound to a verified identity.
+  </Card>
+  <Card title="light_sign" icon="file-signature">
+    The same device signature over short **inline terms** text — no file upload.
+    For consent and acceptance flows.
+  </Card>
+</CardGroup>
 
-Traditional systems require users to:
-- Create dozens of username/password combinations
-- Remember and manage multiple credentials
-- Go through different verification processes for each service
-- Repeat identity verification for every new account
+<Note>
+  See [Primitives](/core-concepts/primitives) for the full parameter and result
+  shapes.
+</Note>
 
-### Security vulnerabilities
+## 2. Wallets — where the credential lives
 
-Password-based systems are inherently insecure:
-- Passwords can be stolen, guessed, or phished
-- Weak passwords are common
-- Password reuse creates cascading security risks
-- Two-factor authentication adds friction without solving the core problem
+UIP is **wallet-agnostic**. The user holds a credential issued by a government
+authority; the wallet presents it over a standard protocol. Today that's the
+**W3C Digital Credentials API** in the browser, carrying an **ISO/IEC 18013-5**
+mobile-document (mdoc) — the same shape from both Apple and Google Wallet, so UIP
+verifies them identically.
 
-### Document signing complexity
+Each wallet supports a subset of primitives, exposed live at
+[`GET /v1/wallets`](/api-reference/wallets/list). See
+[Wallets & coverage](/core-concepts/wallets) for the current map and
+[the roadmap](/roadmap) for what's coming.
 
-Traditional signing processes are inefficient:
-- Print, sign, scan, and email documents
-- Multiple platforms for different types of signatures
-- Unclear legal validity across jurisdictions
-- No permanent audit trail
+## 3. Sessions — one flow for the user
 
-## How UIP works
+A **session** bundles the steps you need into a single user experience. You create
+it server-to-server, then hand the user its **hosted URL** (as a link or QR). On
+that page the user's wallet completes each step on-device; UIP verifies each one
+and sends you a **signed webhook** as it happens.
 
 <Steps>
-  <Step title="One-time enrollment">
-    Users download the UIP app and complete government ID verification with a live biometric check. This happens once and works everywhere.
+  <Step title="Create">
+    `POST /v1/sessions` with your `steps[]`. UIP returns a session `id` and a hosted
+    `url`.
   </Step>
-
-  <Step title="Biometric authentication">
-    Your fingerprint or face becomes your password. Cryptographic keys are generated and stored securely on your device.
+  <Step title="Hand off">
+    Send the user to `url` — same-device link or cross-device QR. UIP's page drives
+    the wallet; you host nothing.
   </Step>
-
-  <Step title="QR code or deep link">
-    Businesses create a session via the API and get back a QR code. Desktop users scan it; mobile users tap a deep link. The UIP app opens with the request details.
+  <Step title="Verify & deliver">
+    The wallet responds, UIP verifies it cryptographically, and you receive a
+    `step.completed` webhook with the claims or signature — in order, one per step.
   </Step>
-
-  <Step title="Approve and done">
-    The user reviews the request in the UIP app and approves with their biometric. The business polls the API and receives the verified result instantly.
+  <Step title="Conclude">
+    On the last step (or a gate you set) the session ends with
+    `session.completed` / `session.stopped` / `session.failed`.
   </Step>
 </Steps>
 
-## Core principles
-
-<CardGroup cols={2}>
-  <Card title="Biometric-first" icon="fingerprint">
-    Your face and fingerprint can't be stolen, forgotten, or shared. No passwords, no phishable secrets.
-  </Card>
-
-  <Card title="Government-verified" icon="stamp">
-    Official document verification with live biometric matching ensures real identity.
-  </Card>
-
-  <Card title="Global interoperability" icon="earth-americas">
-    One identity that works across borders, governments, and businesses worldwide.
-  </Card>
-
-  <Card title="Legally binding" icon="gavel">
-    Signatures are cryptographically provable and court-admissible in supported jurisdictions.
-  </Card>
-</CardGroup>
-
-## UIP vs traditional systems
-
-<Tabs>
-  <Tab title="Authentication">
-    | Feature | Traditional passwords | UIP |
-    |---------|----------------------|-----|
-    | Security | Can be stolen or guessed | Biometric — impossible to phish |
-    | User experience | Remember complex passwords | Just use your face/fingerprint |
-    | Recovery | Reset via email/phone | Biometric verification |
-    | Multi-factor | Additional friction | Built into the biometric scan |
-    | Cross-platform | Different credentials everywhere | One identity for everything |
-  </Tab>
-
-  <Tab title="Document signing">
-    | Feature | DocuSign / traditional | UIP |
-    |---------|---------------------|-----|
-    | Speed | Minutes to hours | Sub-second |
-    | Process | Email, click, type signature | Scan QR, use fingerprint |
-    | Legal validity | Varies by jurisdiction | Cryptographically verifiable |
-    | Identity verification | Email verification only | Government ID verified |
-    | Audit trail | Platform-dependent | Permanent, immutable records |
-    | Cost | Per document/user fees | $0.03 per signature |
-  </Tab>
-
-  <Tab title="Identity verification">
-    | Feature | Traditional KYC | UIP |
-    |---------|----------------|-----|
-    | Frequency | Every new service | Once, works everywhere |
-    | Time required | Days to weeks | Seconds |
-    | Cross-border | Repeat for each country | Global recognition |
-    | Security level | Document scans | Live biometric matching |
-  </Tab>
-</Tabs>
-
-## Key benefits
+## What UIP is not
 
 <AccordionGroup>
-  <Accordion title="For users" icon="user">
-    - **No more passwords** — your face or fingerprint is your password
-    - **One-time verification** — verify once, use everywhere
-    - **Instant authentication** — sub-second flows
-    - **Works globally** — cross-border identity that works anywhere
+  <Accordion title="Not a document-scanning / OCR / liveness vendor">
+    UIP never sees a photo of an ID. Claims come from the **issuer's digitally
+    signed credential** in the wallet, verified by signature — not by reading a
+    picture. There is no selfie, no liveness check, no document upload to UIP.
   </Accordion>
-
-  <Accordion title="For developers" icon="code">
-    - **Simple integration** — create session, show QR, poll for result
-    - **No webhooks required** — identify and sign use simple polling
-    - **Modular design** — use only what you need (identify, sign, message, audit)
-    - **Usage-based pricing** — pay only for what you use, no subscriptions
-    - **REST + JSON** — plain HTTPS, no SDK lock-in
+  <Accordion title="Not a data broker">
+    UIP discloses only the fields your step requests, only to you, only for that
+    session. `age_verify` returns a boolean and never reveals the birth date.
   </Accordion>
-
-  <Accordion title="For businesses" icon="building">
-    - **Reduce costs** — eliminate password-reset support overhead
-    - **Increase security** — remove the entire password attack surface
-    - **Improve UX** — frictionless authentication users love
-    - **Permanent audit trails** — immutable proof for any business action
+  <Accordion title="Not an identity you store">
+    There is no UIP "account" the user logs into. The credential stays in their
+    wallet; each session is a fresh, consented disclosure.
   </Accordion>
 </AccordionGroup>
 
-## Technology stack
-
-<Note>
-UIP combines modern cryptography, biometric authentication, and government-grade identity verification.
-</Note>
-
-### Security features
-
-- **AES-256-GCM encryption** — all PII is encrypted at rest
-- **ECDSA P-256 signatures** — every critical action is signed on-device with the user's private key
-- **Local biometric processing** — biometric templates never leave the device
-- **Tamper-evident audit records** — append-only audit table with invalidation (never deletion)
-
-### Biometric technology
-
-- **Fingerprint recognition** — with liveness detection
-- **Face ID** — advanced facial recognition with anti-spoofing
-- **Multi-factor by construction** — biometric + device possession
-- **Anti-fraud** — liveness detection prevents photo/video replay attacks
-
-### Identity verification
-
-- **Government ID verification** — official document checks
-- **Live selfie matching** — real-time biometric comparison
-- **Anti-fraud detection** — fraud prevention on the verification vendor side
-- **Compliance ready** — aligned with global KYC/AML requirements
-
-## Real-world applications
-
-<CardGroup cols={2}>
-  <Card title="Financial services" icon="building-columns">
-    Account opening, wire transfers, loan applications with instant KYC
-  </Card>
-
-  <Card title="Healthcare" icon="heart-pulse">
-    Medical consent, prescriptions, sensitive messaging
-  </Card>
-
-  <Card title="Legal & contracts" icon="file-contract">
-    NDAs, employment contracts, documents with court-admissible proof
-  </Card>
-
-  <Card title="E-commerce" icon="cart-shopping">
-    Age verification, high-value purchases, fraud prevention
-  </Card>
-
-  <Card title="Travel & immigration" icon="plane">
-    Border crossings, visa applications, hotel check-ins
-  </Card>
-
-  <Card title="Government services" icon="landmark">
-    Citizen authentication, benefit claims, official documentation
-  </Card>
-
-  <Card title="Enterprise security" icon="shield-halved">
-    Employee authentication, system access, compliance reporting
-  </Card>
-
-  <Card title="B2B transactions" icon="handshake">
-    Cross-border contracts, partnership agreements, payment authorization
-  </Card>
-</CardGroup>
-
-## Getting started
-
-Ready to integrate UIP into your application?
-
-<CardGroup cols={2}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart"
-  >
-    Build your first integration in 5 minutes
-  </Card>
-
-  <Card
-    title="API Documentation"
-    icon="book"
-    href="/api-reference/introduction"
-  >
-    Explore the complete API reference
-  </Card>
-
-  <Card
-    title="Security Architecture"
-    icon="shield-halved"
-    href="/core-concepts/security"
-  >
-    Deep dive into UIP's security model
-  </Card>
-
-  <Card
-    title="Integration Patterns"
-    icon="diagram-project"
-    href="/core-concepts/integration-patterns"
-  >
-    QR, deep link, and polling patterns
-  </Card>
-</CardGroup>
+<Card title="Next: Quickstart" icon="rocket" href="/quickstart">
+  Create a session and receive your first verified result.
+</Card>

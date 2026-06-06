@@ -1,0 +1,83 @@
+---
+title: "Verification & trust"
+description: "What 'government-attested' means — and the audit trail behind every result."
+---
+
+When UIP returns a claim, it isn't self-asserted or read off a photo — it's
+extracted from the issuing authority's **digitally signed credential** and verified
+cryptographically. This page explains what that verification checks and the
+tamper-evident record it produces.
+
+## What every result is checked against
+
+For an ISO/IEC 18013-5 mobile document, UIP runs four independent checks before a
+step can succeed. If any fails, the step fails — there is no partial trust.
+
+<AccordionGroup>
+  <Accordion title="1. Issuer authenticity — it's really from the government" icon="building-columns">
+    The credential is signed by a Document Signing certificate that must chain to a
+    trusted **IACA** root (the issuing authority's published trust anchor, e.g. via
+    the AAMVA VICAL for US licenses). A credential from an untrusted issuer is
+    rejected.
+  </Accordion>
+  <Accordion title="2. Data integrity — the values weren't altered" icon="fingerprint">
+    Every disclosed field is re-hashed and matched against the issuer-signed digest
+    commitments in the credential's security object. A single altered character —
+    say, a changed birth date — fails the check.
+  </Accordion>
+  <Accordion title="3. Holder binding — it's the real holder, not a copy" icon="user-check">
+    The wallet proves possession of the device key the issuer bound to the
+    credential by signing the request. A captured or copied credential can't be
+    re-presented without that key.
+  </Accordion>
+  <Accordion title="4. Freshness — it's not a replay" icon="clock-rotate-left">
+    The holder's signature covers a fresh, per-step **nonce** and your **origin**, so
+    a response captured for one request can't be replayed against another. Validity
+    dates on the credential are checked too.
+  </Accordion>
+</AccordionGroup>
+
+### Demo vs production trust
+
+UIP runs the same cryptography in both environments — only the **trust anchors**
+differ. In **production**, the issuer chain must validate against the real
+government roots. In **demo**, issuer trust is relaxed (so you can exercise the full
+flow with sandbox/simulator credentials) while integrity, holder binding, and the
+nonce/origin anti-replay checks are **still enforced**. A demo result is flagged
+internally so it can never be mistaken for a production one.
+
+## Audit ledger
+
+Every successfully verified step writes an **immutable audit record**. This is what
+makes a UIP result legally meaningful and disputable.
+
+<CardGroup cols={2}>
+  <Card title="Hash-chained" icon="link">
+    Records form a per-session hash chain — any tampering or reordering is
+    detectable. Append-only; never edited or deleted.
+  </Card>
+  <Card title="Trusted timestamp" icon="clock">
+    Each record carries an RFC 3161 timestamp from an independent authority — proof
+    of *when*, not just *what*.
+  </Card>
+  <Card title="Sealed identity" icon="lock">
+    Signer PII is encrypted at rest (envelope encryption). For `age_verify`, the full
+    identity is sealed and flagged redacted — you get the boolean, the proof keeps the
+    detail.
+  </Card>
+  <Card title="Atomic with the result" icon="shield-check">
+    The audit record and the session state commit together — the ledger can never get
+    ahead of, or behind, what actually happened.
+  </Card>
+</CardGroup>
+
+For `sign` and `light_sign`, the audit keeps the document hash (or the exact terms
+text) plus the device signature, so the signature stays provable long after the
+ephemeral document bytes are deleted. Store your `client_reference_id` alongside it
+and you can tie any verified action back to your own records.
+
+<Note>
+  UIP minimizes what it retains: requested fields only, document **bytes deleted**
+  the moment a `sign` step verifies, and PII encrypted at rest. The durable record is
+  the cryptographic proof — not a copy of the user's identity.
+</Note>

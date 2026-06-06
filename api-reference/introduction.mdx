@@ -1,245 +1,68 @@
 ---
 title: "Introduction"
-description: "Complete technical reference for all UIP API endpoints"
+description: "Base URL, authentication, and conventions for the UIP API."
 ---
 
-## Welcome to UIP API Reference
-
-This section contains the complete technical documentation for integrating UIP's biometric identity, signature, and messaging services into your application. All endpoints are REST-based with JSON payloads and responses.
-
-<Info>
-**New to UIP?** Start with the [Getting Started Guide](/getting-started) to understand core concepts before diving into endpoint details.
-</Info>
+The UIP API is a small REST surface. You call it **server-to-server** with your API
+key to create and manage sessions; users complete those sessions on UIP's hosted
+page; results arrive at your [webhook](/core-concepts/webhooks).
 
 ## Base URL
-
-All API requests use the following base URL:
 
 ```
 https://api.uip.digital/v1
 ```
 
-<Note>
-**Production only:** UIP doesn't provide a sandbox environment. Use your $20 signup credit for testing against real biometric verification.
-</Note>
-
-## Core APIs
-
-UIP provides three primary APIs that work together to deliver complete identity and signature infrastructure:
-
-<CardGroup cols={3}>
-  <Card title="Identify API" icon="fingerprint" href="/api-reference/endpoint/identify">
-    Biometric authentication and identity verification. Request verified user information like name, age, location, and more.
-
-    **$0.01 per identification**
-  </Card>
-
-  <Card title="Sign API" icon="signature" href="/api-reference/endpoint/sign">
-    Quick biometric signatures for lightweight agreements. Perfect for TOS, policies, and attestations. 5-minute signing window.
-
-    **$0.03 per signature**
-  </Card>
-
-  <Card title="Message API (Text)" icon="message" href="/api-reference/endpoint/message">
-    Encrypted messaging without attachments. Supports signatures. Perfect for notifications and text agreements.
-
-    **$0.03 per message**
-  </Card>
-
-  <Card title="Message API (with Attachment)" icon="file-signature" href="/api-reference/endpoint/message">
-    Document messaging with attachments up to 20MB. Supports signatures. Available up to 3 months.
-
-    **$0.10 per message**
-  </Card>
-
-  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
-    Retrieve permanent audit trails for all actions. Court-admissible evidence with cryptographic proof.
-
-    **Always Free**
-  </Card>
-</CardGroup>
-
-## Supporting APIs
-
-<CardGroup cols={2}>
-  <Card title="Invalidate API" icon="ban" href="/api-reference/endpoint/invalidate">
-    Cancel pending signature requests before recipients sign. Only works for unsigned messages.
-
-    **Always Free**
-  </Card>
-
-  <Card title="Webhook Test" icon="webhook" href="/api-reference/endpoint/webhook-test">
-    Test your webhook endpoint configuration before going live.
-
-    **Always Free**
-  </Card>
-</CardGroup>
-
 ## Authentication
 
-All UIP API endpoints require authentication using Bearer tokens. Include your API key in the Authorization header of every request.
+Authenticate every request with your API key as a bearer token. Get your key from
+the dashboard at [uip.digital](https://uip.digital).
 
-**Header format:**
+```bash
+Authorization: Bearer uip_live_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
-Authorization: Bearer YOUR_API_KEY
-```
-
-API keys have the `uip_sk_` prefix and are issued from the UIP dashboard. Each key is scoped to a single business and can be rotated or revoked at any time.
 
 <Warning>
-**Keep your API keys secure.** Never expose them in client-side code, public repositories, or logs. Treat them like passwords.
+  API keys are secrets — use them only from your backend, never in browser or mobile
+  code. A key is scoped to the business that created it.
 </Warning>
 
-### Getting API Keys
+## What you call vs. what the page calls
 
-<Steps>
-  <Step title="Create UIP Identity">
-    Sign up at [uip.digital/identify](https://uip.digital/identify) and create your identity with government ID verification
-  </Step>
+The endpoints documented here are the **business API** — the ones your server calls.
+The hosted session page has its own internal transport endpoints (opening, fetching
+the wallet request, submitting the response); those are not part of the public API
+and you never call them directly.
 
-  <Step title="Receive $20 credit">
-    New accounts receive $20 in credits on their first business — plenty for testing and initial implementation
-  </Step>
+| You call (this reference) | Purpose |
+| --- | --- |
+| `POST /v1/sessions` | Create a verification session |
+| `GET /v1/sessions/{id}` | Read session status & progress |
+| `POST /v1/sessions/{id}/continue` | Resume a gated session |
+| `POST /v1/sessions/{id}/stop` | End a gated session |
+| `GET /v1/wallets` | Wallet × primitive capability matrix |
 
-  <Step title="Generate API Key">
-    Create your API key from the dashboard and start making requests
-  </Step>
-</Steps>
+## Content types
 
-## Request & Response Format
+JSON for most requests. The `sign` primitive carries files, so a session that
+includes a `sign` step is created as `multipart/form-data` — see
+[Create a session](/api-reference/sessions/create).
 
-All requests and responses use JSON format with UTF-8 encoding.
+## Idempotency
 
-**Required headers:**
-- `Authorization: Bearer YOUR_API_KEY`
-- `Content-Type: application/json`
+Pass an `Idempotency-Key` header on `POST /v1/sessions` to make retries safe: a
+repeat create with the same key returns the original session instead of a duplicate.
 
-## Session Flow
-
-The Identify and Sign APIs use a simple create-poll-complete flow. No redirect URIs, no code exchange, no webhooks needed.
-
-**Implementation flow:**
-
-<Steps>
-  <Step title="Create Session">
-    Call `POST /v1/identify` (or `POST /v1/sign`) with your intent. You receive a `session_id`, `qr_code` (raw SVG markup — inline directly into your HTML, NOT a base64 PNG), and `expires_at`.
-  </Step>
-
-  <Step title="Display QR Code or Deep Link">
-    Desktop users see a QR code to scan. Mobile users get an "Open UIP" button linking to `uip://identify?sid={session_id}&exp={unix_seconds}` (or `uip://sign?sid=…` for sign sessions).
-  </Step>
-
-  <Step title="User Scans & Authenticates">
-    User opens UIP app, scans code (or taps deep link), and authenticates with biometric.
-  </Step>
-
-  <Step title="Poll for Result">
-    Poll `GET /v1/identify/:id` (or `GET /v1/sign/:id`) every 2–3 seconds. Identify terminal status is `approved`; sign terminal status is `signed`. The polling response carries the signer's identity snapshot and an `audit_id` for retrieving the full audit record.
-  </Step>
-</Steps>
-
-<Info>
-**Device detection:** Detect mobile vs desktop and show the appropriate UX. QR code for desktop, deep link button for mobile. See the [QR Integration Guide](/core-concepts/qr-integration) for details.
-</Info>
-
-## Webhook Integration
-
-Webhooks are used for the **Message API** only. The Identify and Sign APIs use polling instead.
-
-<AccordionGroup>
-  <Accordion title="When Webhooks Are Used" icon="bolt">
-    - **Message API:** `message` event when a user signs or declines a signature-required message
-    - **Test:** `test` event from the webhook test endpoint
-  </Accordion>
-
-  <Accordion title="Webhook Security" icon="shield-check">
-    Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. Your webhook secret is a UUID v4 that you can rotate any time from the dashboard.
-
-    **Verify all webhook requests** to ensure they're from UIP and haven't been tampered with.
-  </Accordion>
-
-  <Accordion title="Testing Webhooks" icon="flask">
-    Use the [Webhook Test endpoint](/api-reference/endpoint/webhook-test) to verify your webhook handler before going live. It sends a test payload to your URL and reports the response.
-  </Accordion>
-</AccordionGroup>
-
-<Note>
-**Identify and Sign do NOT use webhooks.** Use simple polling with `GET /v1/identify/:id` or `GET /v1/sign/:id` until the status is `completed`.
-</Note>
-
-## Error Handling
-
-UIP uses standard HTTP status codes and provides detailed error information in the response body.
-
-**Check HTTP status code first:**
-- **2xx:** Success
-- **4xx:** Client error (fix your request)
-- **5xx:** Server error (retry with exponential backoff)
-
-**Then examine the error code:**
-```json
-{
-  "error": "The requested resource was not found",
-  "code": "resource/not-found"
-}
+```bash
+Idempotency-Key: 7c2e1f9a-...
 ```
 
-See the [Error Handling Guide](/core-concepts/error-handling) for complete error code reference.
+## Results, not polling
 
-## Rate Limits
+`GET /v1/sessions/{id}` returns **status and progress only** — verified claims and
+signatures are delivered exclusively by [webhook](/core-concepts/webhooks). A webhook
+URL is required before you can create a session.
 
-UIP enforces rate limits to ensure fair usage and system stability:
-
-| Scope | Limit | Window |
-|-------|-------|--------|
-| Global (per IP) | 500 requests | 1 minute |
-| Per API Key | 300 requests | 1 minute |
-
-When you exceed a rate limit, the API returns HTTP 429 with:
-- `X-RateLimit-Limit` -- Maximum requests allowed
-- `X-RateLimit-Remaining` -- Requests remaining in the current window
-- `Retry-After` -- Seconds until the window resets
-
-## Audit Trail
-
-Every UIP action generates a permanent audit record accessible via the Audit API. These records include:
-
-- Complete action details (authentication, signature, message)
-- Verified identity information
-- Cryptographic proof of action
-- Precise timestamps
-- Tamper-evident storage
-
-**Audit queries are always free and unlimited.** Store audit IDs from completed sessions and webhook responses to retrieve records anytime.
-
-## Getting Started
-
-<CardGroup cols={2}>
-  <Card title="Getting Started Guide" icon="rocket" href="/getting-started">
-    Step-by-step guide to your first UIP integration
-  </Card>
-
-  <Card title="QR Integration Guide" icon="qrcode" href="/core-concepts/qr-integration">
-    Learn how to implement the QR code and deep link flow
-  </Card>
-
-  <Card title="Integration Patterns" icon="diagram-project" href="/core-concepts/integration-patterns">
-    Common integration patterns for identify, sign, and messaging
-  </Card>
-
-  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
-    Complete guide to handling errors effectively
-  </Card>
-</CardGroup>
-
-## Need Help?
-
-<CardGroup cols={2}>
-  <Card title="Contact Support" icon="life-ring" href="mailto:support@uip.digital">
-    Questions about implementation or integration? We're here to help.
-  </Card>
-
-  <Card title="Security Architecture" icon="shield-halved" href="/core-concepts/security">
-    Learn about UIP's security architecture and encryption
-  </Card>
-</CardGroup>
+<Card title="Errors" icon="triangle-exclamation" href="/api-reference/errors">
+  Error format and status codes.
+</Card>

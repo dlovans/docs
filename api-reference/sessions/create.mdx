@@ -1,0 +1,108 @@
+---
+title: "Create a session"
+description: "POST /v1/sessions"
+---
+
+<Note>
+  `POST https://api.uip.digital/v1/sessions` · Auth: `Bearer` API key
+</Note>
+
+Creates a verification session from an ordered list of [primitive](/core-concepts/primitives)
+steps and returns its hosted URL. Creating a session is free; you're billed per
+verified step. A webhook URL must be configured for your business first.
+
+## Headers
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer YOUR_API_KEY`
+</ParamField>
+
+<ParamField header="Idempotency-Key" type="string">
+  Optional. A repeat create with the same key returns the original session instead of
+  creating a duplicate.
+</ParamField>
+
+## Body
+
+<ParamField body="steps" type="object[]" required>
+  Ordered steps to verify. Each has a `primitive`, optional `params`, and optional
+  `gate`.
+  <Expandable title="step">
+    <ParamField body="primitive" type="string" required>
+      One of `identify`, `age_verify`, `sign`, `light_sign`.
+    </ParamField>
+    <ParamField body="params" type="object">
+      Primitive-specific: `identify` → `{ "blocks": [...] }`; `age_verify` →
+      `{ "min_age": 21 }`; `light_sign` → `{ "terms": "..." }`; `sign` takes its
+      documents as multipart file parts (no params).
+    </ParamField>
+    <ParamField body="gate" type="boolean" default="false">
+      Pause the session after this step for your `continue`/`stop` decision. Not
+      allowed on the final step.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="client_reference_id" type="string">
+  Your own identifier, echoed on every webhook and stamped into the audit record.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Up to 50 string-valued keys. Operational only (webhooks + reads); never shown to
+  the user.
+</ParamField>
+
+<ParamField body="return_url" type="string">
+  An `https` URL. Renders a "Return to {host}" button on the hosted page after the
+  flow completes (never an automatic redirect).
+</ParamField>
+
+<ParamField body="expires_in" type="integer">
+  Session TTL in seconds (60–86400). Defaults to the standard cap.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">The session id, e.g. `sess_abc123`.</ResponseField>
+<ResponseField name="status" type="string">`created`.</ResponseField>
+<ResponseField name="url" type="string">The hosted page URL to hand the user.</ResponseField>
+<ResponseField name="expires" type="string">ISO 8601 expiry timestamp.</ResponseField>
+
+<RequestExample>
+```bash identify + age_verify (JSON)
+curl https://api.uip.digital/v1/sessions \
+  -H "Authorization: Bearer $UIP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "steps": [
+      { "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } },
+      { "primitive": "age_verify", "params": { "min_age": 21 } }
+    ],
+    "client_reference_id": "order_4815",
+    "return_url": "https://shop.example.com/verified"
+  }'
+```
+```bash with a sign step (multipart)
+curl https://api.uip.digital/v1/sessions \
+  -H "Authorization: Bearer $UIP_API_KEY" \
+  -F 'steps=[{"primitive":"identify","gate":true},{"primitive":"sign"}]' \
+  -F 'file=@contract.pdf'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 Created
+{
+  "id": "sess_abc123",
+  "status": "created",
+  "url": "https://uip.digital/s/sess_abc123",
+  "expires": "2026-06-07T12:34:56Z"
+}
+```
+</ResponseExample>
+
+## Errors
+
+`400` invalid `steps[]` / unknown primitive / bad params · `401` bad key ·
+`402` insufficient balance · `422` no webhook configured · `409` idempotency
+conflict. See [Errors](/api-reference/errors).

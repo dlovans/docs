@@ -1,416 +1,103 @@
 ---
-title: 'Webhooks'
-description: 'Receive real-time notifications when users sign messages'
+title: "Webhook events"
+description: "Every event UIP sends, with payloads and headers."
 ---
 
-## Overview
+UIP delivers results to the webhook URL configured for your business. For the
+delivery model and **signature verification**, see
+[Webhooks](/core-concepts/webhooks); this page is the event payload reference.
 
-Webhooks let your application receive real-time notifications for specific UIP events. UIP sends a POST request to your configured webhook URL with a cryptographically signed JSON payload.
+## Headers (every delivery)
 
-<Note>
-**Webhooks are only used for:**
-- **Message API** — when a user signs or declines a signature-required message
-- **Webhook testing** — when you call the test endpoint
+| Header | Description |
+| --- | --- |
+| `X-UIP-Event` | Event name (e.g. `step.completed`) |
+| `X-UIP-Timestamp` | Unix seconds when signed |
+| `X-UIP-Signature` | `HMAC-SHA256(webhook_secret, "{timestamp}.{raw_body}")`, hex |
+| `X-UIP-Delivery-Id` | Stable per-event id — dedupe on this |
 
-**Identify and Sign APIs do NOT use webhooks.** Use polling with `GET /v1/identify/:id` or `GET /v1/sign/:id` instead.
-</Note>
+Every payload is `{ "event": "...", "data": { ... } }`, and `data` always echoes
+`session_id`, plus your `client_reference_id` and `metadata` when set.
 
-## Setting up webhooks
+## `step.completed`
 
-### 1. Configure the webhook URL
-
-1. Log into the [Business Dashboard](https://uip.digital)
-2. Open **Settings** > **Webhooks**
-3. Enter your webhook endpoint URL (HTTPS in production)
-4. Save
-
-<Warning>
-**HTTPS required.** Production webhook URLs must use HTTPS.
-</Warning>
-
-### 2. Retrieve the webhook secret
-
-Your webhook secret is used to verify that requests came from UIP and weren't tampered with in transit.
-
-1. In the dashboard, go to **Settings** > **Webhooks**
-2. Copy your **Webhook Secret** (shown after saving your webhook URL)
-3. Store it in your application's environment variables
-
-You can rotate the secret at any time from the dashboard. All subsequent webhook deliveries will use the new secret.
-
-<Warning>
-**Keep the secret secure.** Never commit it to version control or expose it in client-side code.
-</Warning>
-
-## Verifying webhook signatures
-
-Every webhook request includes an `X-UIP-Signature` header containing an HMAC SHA-256 signature. You **must** verify this signature to ensure requests are from UIP.
-
-### Algorithm
-
-1. Get the `X-UIP-Signature` header from the request
-2. Calculate HMAC SHA-256 of the raw request body using your webhook secret
-3. Compare the calculated signature with the header value
-4. Reject the request if signatures don't match
-
-### Implementation examples
+Fires once per step, in order, the moment it verifies. The result fields depend on
+the step's primitive.
 
 <CodeGroup>
-
-```javascript Node.js
-const crypto = require('crypto');
-
-app.post('/webhook', (req, res) => {
-  const signature = req.headers['x-uip-signature'];
-  const webhookSecret = process.env.UIP_WEBHOOK_SECRET;
-
-  const hmac = crypto.createHmac('sha256', webhookSecret);
-  hmac.update(JSON.stringify(req.body));
-  const expectedSignature = hmac.digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(401).send('Invalid signature');
+```json identify
+{
+  "event": "step.completed",
+  "data": {
+    "session_id": "sess_abc123",
+    "client_reference_id": "order_4815",
+    "stage": 0,
+    "primitive": "identify",
+    "claims": { "first_name": "Jane", "last_name": "Doe", "country": "US" }
   }
-
-  const { event, data } = req.body;
-
-  res.status(200).send('OK');
-});
-```
-
-```python Python
-import hmac
-import hashlib
-from flask import Flask, request
-
-app = Flask(__name__)
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    signature = request.headers.get('X-UIP-Signature')
-    webhook_secret = os.environ.get('UIP_WEBHOOK_SECRET')
-
-    body_bytes = request.get_data()
-    expected_signature = hmac.new(
-        webhook_secret.encode('utf-8'),
-        body_bytes,
-        hashlib.sha256
-    ).hexdigest()
-
-    if signature != expected_signature:
-        return 'Invalid signature', 401
-
-    data = request.get_json()
-    event = data.get('event')
-
-    return 'OK', 200
-```
-
-```go Go
-package main
-
-import (
-    "crypto/hmac"
-    "crypto/sha256"
-    "encoding/hex"
-    "encoding/json"
-    "io/ioutil"
-    "net/http"
-    "os"
-)
-
-func webhookHandler(w http.ResponseWriter, r *http.Request) {
-    signature := r.Header.Get("X-UIP-Signature")
-    webhookSecret := os.Getenv("UIP_WEBHOOK_SECRET")
-
-    body, err := ioutil.ReadAll(r.Body)
-    if err != nil {
-        http.Error(w, "Failed to read body", http.StatusBadRequest)
-        return
-    }
-
-    h := hmac.New(sha256.New, []byte(webhookSecret))
-    h.Write(body)
-    expectedSignature := hex.EncodeToString(h.Sum(nil))
-
-    if signature != expectedSignature {
-        http.Error(w, "Invalid signature", http.StatusUnauthorized)
-        return
-    }
-
-    var payload map[string]interface{}
-    json.Unmarshal(body, &payload)
-
-    w.WriteHeader(http.StatusOK)
 }
 ```
-
+```json age_verify
+{
+  "event": "step.completed",
+  "data": {
+    "session_id": "sess_abc123",
+    "stage": 0,
+    "primitive": "age_verify",
+    "satisfied": true
+  }
+}
+```
+```json sign / light_sign
+{
+  "event": "step.completed",
+  "data": {
+    "session_id": "sess_abc123",
+    "stage": 1,
+    "primitive": "sign",
+    "signature": "mdoc:3045...",
+    "document_hash": "sha256:9f86..."
+  }
+}
+```
 </CodeGroup>
 
-## Webhook events
+<ResponseField name="stage" type="integer">Zero-based index of the completed step.</ResponseField>
+<ResponseField name="primitive" type="string">The step's primitive.</ResponseField>
+<ResponseField name="claims" type="object">`identify` only — the disclosed blocks.</ResponseField>
+<ResponseField name="satisfied" type="boolean">`age_verify` only — the threshold result. The birth date is never included.</ResponseField>
+<ResponseField name="signature" type="string">`sign`/`light_sign` only — the device signature.</ResponseField>
+<ResponseField name="document_hash" type="string">`sign`/`light_sign` only — the hash that was signed.</ResponseField>
 
-### Event: `message`
+## `session.completed`
 
-Sent when a user signs or declines a signature-required message via the [Message API](/api-reference/endpoint/message).
-
-```json
-{
-  "event": "message",
-  "data": {
-    "signing_uip_id": "user_abc123def456",
-    "message_id": "msg_xyz789abc123",
-    "audit_id": "audit_9z8y7x6w5v4u"
-  }
-}
-```
-
-**Fields:**
-- `signing_uip_id` — UIP ID of the user who signed or declined
-- `message_id` — Message ID from your original request
-- `audit_id` — Permanent audit trail reference (save for compliance)
-
-<Info>
-**Determining action:** The webhook structure is identical for both signed and declined messages. Query the [Audit API](/api-reference/endpoint/audit) using the `audit_id` to determine the outcome.
-</Info>
-
-### Event: `test`
-
-Sent when you test your webhook configuration via the [Test Webhook endpoint](/api-reference/endpoint/webhook-test).
+All steps verified.
 
 ```json
-{
-  "event": "test",
-  "timestamp": "2025-01-11T12:30:00Z",
-  "test": true
-}
+{ "event": "session.completed", "data": { "session_id": "sess_abc123", "status": "completed" } }
 ```
 
-**Purpose:** Verify your webhook endpoint is reachable and correctly validates signatures.
+## `session.stopped`
 
-## When webhooks are sent
+You ended the session at a gate via [stop](/api-reference/sessions/stop).
 
-<AccordionGroup>
-  <Accordion title="Message API" icon="envelope">
-    **Webhook sent when:** User signs or declines a signature-required message (`signature_required: true`)
+```json
+{ "event": "session.stopped", "data": { "session_id": "sess_abc123", "reason": "stopped" } }
+```
 
-    **No webhook sent when:**
-    - Message does not require signature (`signature_required: false`)
-    - User doesn't respond and the signature window expires
-    - Message is invalidated before the user responds
-  </Accordion>
+## `session.failed`
 
-  <Accordion title="Test Webhook" icon="flask">
-    **Webhook sent when:** You call the [Test Webhook endpoint](/api-reference/endpoint/webhook-test)
+A step failed verification, funds ran out, or an internal error occurred.
 
-    **Purpose:** Verify your webhook configuration before production use
-  </Accordion>
-</AccordionGroup>
+```json
+{ "event": "session.failed", "data": { "session_id": "sess_abc123", "reason": "insufficient_funds" } }
+```
 
-## Best practices
-
-<CardGroup cols={2}>
-  <Card title="Always verify signatures" icon="shield-check">
-    Validate the `X-UIP-Signature` header on every request to prevent spoofing and tampering
-  </Card>
-
-  <Card title="Return 200 quickly" icon="bolt">
-    Process webhooks asynchronously and return 200 immediately to avoid timeouts
-  </Card>
-
-  <Card title="Store audit IDs" icon="database">
-    Save `audit_id` from every webhook for permanent proof, compliance, and legal verification
-  </Card>
-
-  <Card title="Handle idempotency" icon="rotate">
-    UIP may send the same webhook multiple times. Use `audit_id` or `message_id` to detect duplicates
-  </Card>
-
-  <Card title="Use HTTPS" icon="lock">
-    Production webhook URLs must use HTTPS. HTTP is not allowed for security reasons.
-  </Card>
-
-  <Card title="Test before production" icon="flask">
-    Use the Test Webhook endpoint during development to verify your setup works correctly
-  </Card>
-</CardGroup>
-
-## Error handling
-
-If your webhook endpoint returns an error (non-2xx status code) or times out, UIP will retry the webhook with exponential backoff.
-
-**Retry schedule:**
-UIP retries webhook delivery once after a short delay. If both attempts fail, the webhook is marked as failed.
-
-- Attempt 1: Immediate
-- Attempt 2: After a short delay
+<ResponseField name="reason" type="string">
+  e.g. a verification error message, `insufficient_funds`, or `internal_error`.
+</ResponseField>
 
 <Warning>
-**Handle retries.** Design your webhook handler to be idempotent. Use `audit_id` or `message_id` to detect duplicate deliveries.
+  Always [verify the signature](/core-concepts/webhooks#verifying-signatures) over the
+  raw body and dedupe on `X-UIP-Delivery-Id` before acting — delivery is at-least-once.
 </Warning>
-
-## Webhook handler template
-
-```javascript
-const express = require('express');
-const crypto = require('crypto');
-
-const app = express();
-app.use(express.json());
-
-app.post('/webhook', async (req, res) => {
-  // 1. Verify signature
-  const signature = req.headers['x-uip-signature'];
-  const webhookSecret = process.env.UIP_WEBHOOK_SECRET;
-
-  const hmac = crypto.createHmac('sha256', webhookSecret);
-  hmac.update(JSON.stringify(req.body));
-  const expectedSignature = hmac.digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(401).send('Invalid signature');
-  }
-
-  // 2. Return 200 immediately
-  res.status(200).send('OK');
-
-  // 3. Process webhook asynchronously
-  const { event, data } = req.body;
-
-  try {
-    switch (event) {
-      case 'message':
-        await handleMessage(data);
-        break;
-      case 'test':
-        console.log('Test webhook received');
-        break;
-      default:
-        console.warn(`Unknown event type: ${event}`);
-    }
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-  }
-});
-
-async function handleMessage(data) {
-  const { signing_uip_id, message_id, audit_id } = data;
-
-  // Check for duplicate
-  const existing = await db.messageSignatures.findOne({ audit_id });
-  if (existing) {
-    console.log('Duplicate webhook, skipping');
-    return;
-  }
-
-  // Query audit API to check if signed or declined
-  const auditResponse = await fetch(
-    `https://api.uip.digital/v1/audit/${audit_id}`,
-    {
-      headers: { 'Authorization': `Bearer ${process.env.UIP_API_KEY}` }
-    }
-  );
-
-  const { audit } = await auditResponse.json();
-  const wasSigned = audit.signed_accepted;
-
-  // Save to database
-  await db.messageSignatures.create({
-    signing_uip_id,
-    message_id,
-    audit_id,
-    was_signed: wasSigned,
-    received_at: new Date()
-  });
-
-  // Handle based on outcome
-  if (wasSigned) {
-    await handleMessageSigned(message_id);
-  } else {
-    await handleMessageDeclined(message_id);
-  }
-}
-
-app.listen(3000, () => {
-  console.log('Webhook server listening on port 3000');
-});
-```
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="Webhook unreachable error" icon="globe">
-    **Problem:** API requests fail with `request/webhook-unreachable` error
-
-    **Causes:**
-    - Webhook URL is not publicly accessible
-    - Firewall blocking UIP servers
-    - Webhook handler not returning 200 status code
-    - HTTPS certificate issues
-
-    **Solutions:**
-    - Verify webhook URL is publicly accessible
-    - Check firewall rules allow incoming requests
-    - Ensure webhook returns 200 status for all events
-    - Use a valid HTTPS certificate
-  </Accordion>
-
-  <Accordion title="Invalid signature" icon="key">
-    **Problem:** Webhook receives requests but signature validation fails
-
-    **Causes:**
-    - Using wrong webhook secret
-    - Calculating signature on a modified body
-    - Character encoding issues
-
-    **Solutions:**
-    - Copy the webhook secret from the dashboard settings
-    - Calculate the signature on the raw request body (before parsing)
-    - Use UTF-8 encoding for all strings
-  </Accordion>
-
-  <Accordion title="Webhook not configured" icon="link-slash">
-    **Problem:** API requests fail with `request/webhook-missing` error
-
-    **Causes:**
-    - No webhook URL configured in the dashboard
-    - Webhook URL field is empty
-
-    **Solutions:**
-    - Log into the dashboard
-    - Navigate to Settings > Webhooks
-    - Add your webhook endpoint URL
-  </Accordion>
-
-  <Accordion title="Duplicate webhooks" icon="clone">
-    **Problem:** Receiving the same webhook multiple times
-
-    **Causes:**
-    - UIP retries webhooks if your server returns errors or times out
-    - Network issues causing automatic retries
-
-    **Solutions:**
-    - Use `audit_id` or `message_id` to detect duplicates
-    - Make your webhook handler idempotent
-    - Store processed webhook IDs in a database to skip duplicates
-  </Accordion>
-</AccordionGroup>
-
-## Related resources
-
-<CardGroup cols={2}>
-  <Card title="Test Webhook" icon="flask" href="/api-reference/endpoint/webhook-test">
-    Test your webhook configuration
-  </Card>
-
-  <Card title="Message API" icon="envelope" href="/api-reference/endpoint/message">
-    Messages with webhook signature events
-  </Card>
-
-  <Card title="Audit API" icon="list-check" href="/api-reference/endpoint/audit">
-    Query audit records from webhooks
-  </Card>
-
-  <Card title="Error Handling" icon="triangle-exclamation" href="/core-concepts/error-handling">
-    Handle API and webhook errors
-  </Card>
-</CardGroup>
