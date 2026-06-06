@@ -56,6 +56,7 @@ of the **dashboard UI**, not the endpoints behind them.
 - Nav lives in `docs.json`; every page listed there must exist (and vice versa).
 - **Don't claim features that aren't in the code.** Real wallet verification +
   encrypted transport are done; the international/OIDC wallets and `envelope` are
-  roadmap (`/roadmap`), not shipped — frame them as such.
+  not shipped (planned) — frame them as such. (There is no public roadmap page —
+  it was removed; keep "coming soon / planned" as de-linked prose, don't re-add `/roadmap`.)
 - **Avoid v1 ghosts:** no "biometric", "Didit", "liveness", "Message API", "QR
   polling", "Identify/Sign/Message API" split, "self-sovereign", or "zero-knowledge".

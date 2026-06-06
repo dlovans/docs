@@ -36,12 +36,6 @@
               "core-concepts/webhooks",
               "core-concepts/security"
             ]
-          },
-          {
-            "group": "Roadmap",
-            "pages": [
-              "roadmap"
-            ]
           }
         ]
       },
