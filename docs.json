@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "UIP Documentation",
   "colors": {
-    "primary": "#1E3A8A",
-    "light": "#3B82F6",
-    "dark": "#60A5FA"
+    "primary": "#E34234",
+    "light": "#F4604E",
+    "dark": "#B22F22"
   },
   "favicon": {
     "light": "/favicon.svg",

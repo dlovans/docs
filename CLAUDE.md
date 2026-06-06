@@ -41,9 +41,12 @@ old guidance.) API keys, webhook secrets, and balance top-ups are described in t
 of the **dashboard UI**, not the endpoints behind them.
 
 ## Branding
-- **Primary:** Black (#000000) · **Secondary:** White (#FFFFFF) · **Accent:**
-  Midnight blue (#1E3A8A). Domain: `uip.digital`; docs at `docs.uip.digital`;
-  API base `https://api.uip.digital/v1`; support `support@uip.digital`.
+- **Accent / brand color: Vermillion `#E34234`** (bright `#F4604E`, deep `#B22F22`)
+  — the "hanko seal / legally-binding" accent. Ink `#0A0A0B`, paper `#F4F2EC`.
+  Mirror `uipv2-web/src/app.css` (`--color-accent`) — it's the source of truth; the
+  old midnight-blue/cyan is retired. Domain: `uip.digital`; docs at
+  `docs.uip.digital`; API base `https://api.uip.digital/v1`; support
+  `support@uip.digital`.
 
 ## Style
 - Use Mintlify components: `Card`/`CardGroup`, `Steps`/`Step`, `CodeGroup`,
