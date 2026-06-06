@@ -32,9 +32,10 @@ verified step. A webhook URL must be configured for your business first.
       One of `identify`, `age_verify`, `sign`, `light_sign`.
     </ParamField>
     <ParamField body="params" type="object">
-      Primitive-specific: `identify` → `{ "blocks": [...] }`; `age_verify` →
-      `{ "min_age": 21 }`; `light_sign` → `{ "terms": "..." }`; `sign` takes its
-      documents as multipart file parts (no params).
+      Primitive-specific — see [Primitives](/api-reference/primitives) for each.
+      `identify` → `{ "blocks": [...] }`; `age_verify` → `{ "min_age": 21 }`;
+      `light_sign` → `{ "terms": "..." }`; `sign` → `{ "document_ids": [...] }`
+      (the ids name multipart file parts sent in the same request).
     </ParamField>
     <ParamField body="gate" type="boolean" default="false">
       Pause the session after this step for your `continue`/`stop` decision. Not
@@ -85,8 +86,8 @@ curl https://api.uip.digital/v1/sessions \
 ```bash with a sign step (multipart)
 curl https://api.uip.digital/v1/sessions \
   -H "Authorization: Bearer $UIP_API_KEY" \
-  -F 'steps=[{"primitive":"identify","gate":true},{"primitive":"sign"}]' \
-  -F 'file=@contract.pdf'
+  -F 'steps=[{"primitive":"identify","gate":true},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
+  -F 'contract=@contract.pdf'
 ```
 </RequestExample>
 

@@ -1,0 +1,154 @@
+---
+title: "Primitives"
+description: "What each primitive verifies, the params it accepts, and what you get back."
+---
+
+A **primitive** is one verification verb. Every step in a session's
+[`steps[]`](/api-reference/sessions/create) names exactly one primitive plus optional
+`params`. This is the per-primitive parameter reference; for the design philosophy see
+[Primitives](/core-concepts/primitives).
+
+Every primitive verifies against the government credential in the user's wallet. You're
+billed only for steps that **successfully verify**, and results arrive by
+[webhook](/api-reference/webhooks) (one `step.completed` per step) — never in the create
+response.
+
+| Primitive | Verifies | Price |
+| --- | --- | --- |
+| [`identify`](#identify) | Government-attested identity attributes | $0.01 |
+| [`age_verify`](#age-verify) | An age threshold, without revealing the birth date | $0.01 |
+| [`light_sign`](#light-sign) | A signature over short inline terms | $0.02 |
+| [`sign`](#sign) | A signature over one or more uploaded documents | $0.03 |
+
+---
+
+## identify
+
+Returns selected, government-signed identity attributes. The wallet shows the user
+exactly which fields are requested, and only those signed fields come back — no document
+upload, no OCR.
+
+### Params
+
+<ParamField body="blocks" type="string[]">
+  The attributes to request. **Omit** to request the default set (`first_name`,
+  `last_name`, `dob`). An unknown block is returned as `"unavailable"` rather than
+  erroring.
+</ParamField>
+
+Supported blocks:
+
+| Block | Returns |
+| --- | --- |
+| `first_name` | Given name |
+| `last_name` | Family name |
+| `dob` | Date of birth (ISO 8601) |
+| `country` | Issuing country |
+| `document_number` | Credential / document number |
+| `portrait` | Portrait image, when the wallet exposes it |
+
+<Note>
+  ISO mDL has no single full-name element — request `first_name` + `last_name` and
+  compose. `full_name` is intentionally unmapped (returns `unavailable`).
+</Note>
+
+### Result
+
+`claims` — an object of the disclosed blocks, on the `step.completed`
+[webhook](/api-reference/webhooks#step-completed) and via
+[`GET /v1/sessions/{id}`](/api-reference/sessions/get).
+
+```json step
+{ "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } }
+```
+
+---
+
+## age_verify
+
+Proves the holder meets an age threshold **without disclosing their birth date**. UIP
+reads the DOB from the verified credential, computes `age ≥ min_age`, and returns only the
+boolean. The full identity is sealed in the audit (flagged redacted) and never sent to you.
+
+### Params
+
+<ParamField body="min_age" type="integer" default="18">
+  The age threshold to check (`age ≥ min_age`). A whole number, 1–120.
+</ParamField>
+
+### Result
+
+`satisfied` — a boolean. No claims, ever — not even the age.
+
+```json step
+{ "primitive": "age_verify", "params": { "min_age": 21 } }
+```
+
+---
+
+## sign
+
+Produces a government-attested signature over one or more documents you upload. UIP hashes
+each file **server-side** (you never supply a hash — WYSIWYS), the wallet signs the
+manifest, and the file bytes are **deleted** once the step verifies. The durable proof
+(hash + signature) lives in the audit.
+
+Because it carries files, a session containing a `sign` step must be created as
+**`multipart/form-data`**: a `steps` JSON part plus one file part per document. **The file
+field name is the document id** the step references.
+
+### Params
+
+<ParamField body="document_ids" type="string[]" required>
+  The ids of the documents to sign. Each must match a multipart **file field name** in
+  the same request. 1–50 ids; combined upload ≤ 50&nbsp;MiB.
+</ParamField>
+
+### Result
+
+`document_hash` (the signed manifest digest) + `signature`. For a multi-file sign, the
+audit also keeps a per-file `{ id, hash }` manifest, so any single file stays provable
+after the bytes are deleted.
+
+```bash multipart
+curl https://api.uip.digital/v1/sessions \
+  -H "Authorization: Bearer $UIP_API_KEY" \
+  -F 'steps=[{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
+  -F 'contract=@contract.pdf'
+```
+
+---
+
+## light_sign
+
+A lightweight signature over **short inline terms** — no file upload. Use it for consent,
+terms acceptance, or a disclosure you want to prove later. The exact terms text is retained
+in the audit (it's your content, not user PII), so "they signed THESE terms" needs nothing
+else.
+
+### Params
+
+<ParamField body="terms" type="string" required>
+  The exact terms to sign. Up to **1000 words** (~5 minutes of reading); shown to the user
+  verbatim on the hosted page.
+</ParamField>
+
+### Result
+
+`document_hash` (hash of the canonicalized terms) + `signature`.
+
+```json step
+{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
+```
+
+---
+
+## Composition & reserved
+
+- **Chaining:** to verify several things in one flow, list multiple steps in `steps[]` —
+  the user completes them in one session and you get one webhook per step. Add a `gate` to
+  a step to pause for your [continue](/api-reference/sessions/continue) /
+  [stop](/api-reference/sessions/stop) decision. See
+  [Create a session](/api-reference/sessions/create).
+- **`envelope`** (multi-party signing — N signers across N wallets) is a **reserved**
+  primitive: named in the model but **not yet available**.

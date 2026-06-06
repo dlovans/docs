@@ -46,6 +46,7 @@
             "group": "Overview",
             "pages": [
               "api-reference/introduction",
+              "api-reference/primitives",
               "api-reference/errors"
             ]
           },
