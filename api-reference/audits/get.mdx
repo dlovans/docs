@@ -40,7 +40,7 @@ in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
     <ResponseField name="document_hash" type="string">`sign`/`light_sign` — the hash the wallet signed.</ResponseField>
     <ResponseField name="signature" type="string">`sign`/`light_sign` — the device signature.</ResponseField>
     <ResponseField name="terms" type="string">`light_sign` — the exact terms text attested to.</ResponseField>
-    <ResponseField name="documents" type="object[]">`sign` — per-file `{ id, hash }` manifest, so any one file stays provable after the bytes are deleted.</ResponseField>
+    <ResponseField name="documents" type="object[]">`sign` — per-file `{ id, hash }` manifest, so any one file stays provable after the bytes are purged.</ResponseField>
   </Expandable>
 </ResponseField>
 <ResponseField name="record_hash" type="string">This record's content hash (`sha256:…`), the head of the chain link.</ResponseField>

@@ -89,9 +89,9 @@ boolean. The full identity is sealed in the audit (flagged redacted) and never s
 ## sign
 
 Produces a government-attested signature over one or more documents you upload. UIP hashes
-each file **server-side** (you never supply a hash — WYSIWYS), the wallet signs the
-manifest, and the file bytes are **deleted** once the step verifies. The durable proof
-(hash + signature) lives in the audit.
+each file **server-side** (you never supply a hash — WYSIWYS), and the wallet signs the
+manifest. The durable proof (hash + signature) lives in the audit; the uploaded file bytes
+are retained briefly, then purged after the session ends.
 
 Because it carries files, a session containing a `sign` step must be created as
 **`multipart/form-data`**: a `steps` JSON part plus one file part per document. **The file
@@ -108,7 +108,7 @@ field name is the document id** the step references.
 
 `document_hash` (the signed manifest digest) + `signature`. For a multi-file sign, the
 audit also keeps a per-file `{ id, hash }` manifest, so any single file stays provable
-after the bytes are deleted.
+after the bytes are purged.
 
 ```bash multipart
 curl https://api.uip.digital/v1/sessions \

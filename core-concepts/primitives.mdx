@@ -83,8 +83,8 @@ what-you-see-is-what-you-sign signature bound to their wallet credential. Becaus
 - UIP computes the SHA-256 of each file and a single **manifest digest** over all of
   them (in declared order). The wallet signs the manifest; you never supply a hash.
 - The user reads the exact bytes UIP hashed on the hosted page before signing.
-- Up to **50 files**, **50 MB** combined. Files are **deleted the moment the step
-  verifies** — only the hash + signature persist as the durable proof.
+- Up to **50 files**, **50 MB** combined. The file bytes are purged after the session
+  ends — only the hash + signature persist as the durable proof.
 
 ```bash
 curl https://api.uip.digital/v1/sessions \

@@ -43,8 +43,8 @@ UIP is designed to hold as little as possible:
 - **Only what you request.** `identify` discloses exactly the blocks you ask for.
 - **`age_verify` reveals a boolean** — never the birth date — to you; the underlying
   identity is sealed in the audit and flagged redacted.
-- **Documents are ephemeral.** `sign` file bytes are deleted the moment the step
-  verifies (and on any terminal/expiry); only the hash + signature persist.
+- **Documents are ephemeral.** `sign` file bytes are purged after the session ends;
+  only the hash + signature persist.
 - **No standing identity.** There's no UIP login the user maintains; each session is
   a fresh, consented disclosure from their wallet.
 

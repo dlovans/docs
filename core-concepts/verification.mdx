@@ -73,11 +73,11 @@ makes a UIP result legally meaningful and disputable.
 
 For `sign` and `light_sign`, the audit keeps the document hash (or the exact terms
 text) plus the device signature, so the signature stays provable long after the
-ephemeral document bytes are deleted. Store your `client_reference_id` alongside it
+ephemeral document bytes are purged. Store your `client_reference_id` alongside it
 and you can tie any verified action back to your own records.
 
 <Note>
-  UIP minimizes what it retains: requested fields only, document **bytes deleted**
-  the moment a `sign` step verifies, and PII encrypted at rest. The durable record is
+  UIP minimizes what it retains: requested fields only, document **bytes purged**
+  after the session ends, and PII encrypted at rest. The durable record is
   the cryptographic proof — not a copy of the user's identity.
 </Note>
