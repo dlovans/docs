@@ -66,8 +66,9 @@
             ]
           },
           {
-            "group": "Wallets",
+            "group": "Discovery",
             "pages": [
+              "api-reference/catalog/get",
               "api-reference/wallets/list"
             ]
           },

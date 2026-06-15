@@ -1,0 +1,88 @@
+---
+title: "Catalog"
+description: "GET /v1/catalog"
+---
+
+<Note>
+  `GET https://api.uip.digital/v1/catalog` · Auth: `Bearer` API key · Free (no charge)
+</Note>
+
+The **discovery catalog**: the countries, wallets, and primitives the platform
+supports right now, in one call — so your backend can resolve support
+deterministically instead of hard-coding it. Authenticated with your API key, but
+**free** — it never charges wallet units.
+
+<Tip>
+  This is the server-side counterpart to the public
+  [`GET /v1/wallets`](/api-reference/wallets/list) that UIP's hosted page uses. Same
+  wallet-capability data, plus `countries` and a top-level `primitives` list, behind
+  your API key.
+</Tip>
+
+## Response
+
+<ResponseField name="countries" type="object[]">
+  Jurisdictions UIP covers today. Discovery metadata only — UIP routes by wallet, not
+  country.
+  <Expandable title="country">
+    <ResponseField name="code" type="string">ISO 3166-1 alpha-2 code, e.g. `US`.</ResponseField>
+    <ResponseField name="name" type="string">Display name, e.g. `United States`.</ResponseField>
+    <ResponseField name="wallets" type="string[]">Ids of the wallets available in this country.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="wallets" type="object[]">
+  <Expandable title="wallet">
+    <ResponseField name="id" type="string">Stable wallet id, e.g. `apple-wallet`.</ResponseField>
+    <ResponseField name="label" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
+    <ResponseField name="available" type="boolean">
+      Whether an active adapter can verify this wallet today.
+    </ResponseField>
+    <ResponseField name="primitives" type="object">
+      Per-primitive support booleans (`identify`, `age_verify`, `sign`, `light_sign`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="primitives" type="object[]">
+  <Expandable title="primitive">
+    <ResponseField name="id" type="string">Primitive slug, e.g. `identify`.</ResponseField>
+    <ResponseField name="available" type="boolean">
+      Whether any active adapter can fulfill this primitive today.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 OK
+{
+  "countries": [
+    { "code": "US", "name": "United States", "wallets": ["apple-wallet", "google-wallet"] }
+  ],
+  "wallets": [
+    {
+      "id": "apple-wallet",
+      "label": "Apple Wallet",
+      "available": true,
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    },
+    {
+      "id": "google-wallet",
+      "label": "Google Wallet",
+      "available": true,
+      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+    }
+  ],
+  "primitives": [
+    { "id": "identify", "available": true },
+    { "id": "age_verify", "available": true },
+    { "id": "sign", "available": true },
+    { "id": "light_sign", "available": true }
+  ]
+}
+```
+</ResponseExample>
+
+The booleans are derived from the live backend adapters, so the response is always
+the source of truth — never hard-code support. See
+[Wallets & coverage](/core-concepts/wallets) for context.

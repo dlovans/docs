@@ -7,6 +7,13 @@ description: "GET /v1/wallets"
   `GET https://api.uip.digital/v1/wallets` · No auth required
 </Note>
 
+<Tip>
+  Calling from your backend? Use the authenticated
+  [`GET /v1/catalog`](/api-reference/catalog/get) instead — it returns the same
+  wallet capabilities plus `countries` and a `primitives` list. This unauthenticated
+  endpoint exists for UIP's own hosted page (the user's browser has no API key).
+</Tip>
+
 Returns the live **wallet × primitive capability matrix** — every wallet UIP can
 verify and which primitives each supports. The booleans are derived from the active
 backend adapters, so the response is always the source of truth; never hard-code
@@ -18,7 +25,10 @@ whole chain).
 <ResponseField name="wallets" type="object[]">
   <Expandable title="wallet">
     <ResponseField name="id" type="string">Stable wallet id, e.g. `apple-wallet`.</ResponseField>
-    <ResponseField name="name" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
+    <ResponseField name="label" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
+    <ResponseField name="available" type="boolean">
+      Whether an active adapter can verify this wallet today.
+    </ResponseField>
     <ResponseField name="primitives" type="object">
       Per-primitive support booleans (`identify`, `age_verify`, `sign`,
       `light_sign`).
@@ -32,12 +42,14 @@ whole chain).
   "wallets": [
     {
       "id": "apple-wallet",
-      "name": "Apple Wallet",
+      "label": "Apple Wallet",
+      "available": true,
       "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
     },
     {
       "id": "google-wallet",
-      "name": "Google Wallet",
+      "label": "Google Wallet",
+      "available": true,
       "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
     }
   ]
