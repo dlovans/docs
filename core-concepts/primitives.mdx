@@ -32,13 +32,26 @@ what you need; the user consents to exactly that.
 | `first_name` | Given name |
 | `last_name` | Family name |
 | `dob` | Date of birth (`YYYY-MM-DD`) |
-| `country` | Issuing country |
-| `document_number` | Document/license number |
+| `gender` | Gender |
 | `portrait` | Portrait image |
+| `document_number` | Document/license number |
+| `issue_date` | Issue date (`YYYY-MM-DD`) |
+| `expiry_date` | Expiry date (`YYYY-MM-DD`) |
+| `issuing_authority` | Issuing authority |
+| `country` | Issuing country (always `"US"`) |
+| `state` | Issuing jurisdiction (e.g. `US-CA`) |
+| `address` | Residence address |
+| `resident_state` | Residence state |
 
 If `blocks` is omitted, UIP requests a sensible default (`first_name`,
-`last_name`, `dob`). A requested block the credential doesn't carry comes back as
-`"unavailable"` rather than failing the step.
+`last_name`, `dob`, `country`). A requested block the credential doesn't carry
+comes back as `"unavailable"` rather than failing the step.
+
+<Note>
+  v2 covers the US mDL only, so `country` is always `"US"`. `personal_number` and
+  `full_name` are intentionally unmapped (they return null) — the US mDL carries no
+  national ID number and no single full-name element.
+</Note>
 
 **Result** (`step.completed` → `data.claims`):
 
@@ -89,8 +102,8 @@ what-you-see-is-what-you-sign signature bound to their wallet credential. Becaus
 ```bash
 curl https://api.uip.digital/v1/sessions \
   -H "Authorization: Bearer $UIP_API_KEY" \
-  -F 'steps=[{"primitive":"identify"},{"primitive":"sign"}]' \
-  -F 'file=@contract.pdf'
+  -F 'steps=[{"primitive":"identify"},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
+  -F 'contract=@contract.pdf'
 ```
 
 **Result** (`step.completed`):
@@ -134,7 +147,7 @@ sequence, then a terminal `session.*` event.
   "steps": [
     { "primitive": "identify", "params": { "blocks": ["first_name", "country"] } },
     { "primitive": "age_verify", "params": { "min_age": 18 } },
-    { "primitive": "sign" }
+    { "primitive": "sign", "params": { "document_ids": ["contract"] } }
   ]
 }
 ```

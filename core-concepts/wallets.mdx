@@ -3,9 +3,10 @@ title: "Wallets & coverage"
 description: "Which wallets complete a session today, and how the wallet flow works."
 ---
 
-The user's credential lives in a **digital wallet**. UIP is wallet-agnostic: it
-builds the request, the wallet presents the credential, and UIP verifies the signed
-response. What primitives a given wallet can fulfill is exposed live by the API.
+The user's credential lives in a **digital wallet**. Today that credential is the
+**US mobile driver's license**, presented from Apple Wallet (Safari) or Google Wallet
+(Chrome). UIP builds the request, the wallet presents the credential, and UIP verifies
+the signed response. What primitives a given wallet can fulfill is exposed live by the API.
 
 ## Live today
 
@@ -21,11 +22,6 @@ response. What primitives a given wallet can fulfill is exposed live by the API.
 Both present the **same ISO/IEC 18013-5 mobile document**, so UIP verifies them
 identically. Today's coverage is **United States** mDL; both wallets support every
 primitive (`identify`, `age_verify`, `sign`, `light_sign`).
-
-<Card title="Coming soon" icon="road">
-  Singapore (Singpass), the EU (EUDI Wallet), and more are coming — ordered
-  by how quickly and cheaply they can come online.
-</Card>
 
 ## How the wallet flow works
 
@@ -48,13 +44,13 @@ to the wallet on the device.
 </Steps>
 
 Because it's the browser's native wallet flow, there's no app to install and the
-same-device vs cross-device choice (QR) is handled for you.
+same-device vs cross-device choice is handled for you by the browser's native flow.
 
 ## The capability matrix
 
 Never hard-code which wallet supports which primitive — read it at runtime. From your
 backend, call the authenticated [`GET /v1/catalog`](/api-reference/catalog/get), which
-returns wallet capabilities plus the countries and primitives the platform supports.
+returns wallet capabilities plus the primitives the platform supports.
 The hosted page uses the public, no-auth [`GET /v1/wallets`](/api-reference/wallets/list)
 (the user's browser has no API key). Both derive the per-primitive booleans from the
 live adapters, so they can't drift from reality.

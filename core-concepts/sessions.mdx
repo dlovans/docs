@@ -22,8 +22,9 @@ user completes it on UIP's hosted page; you receive results by webhook.
     session pauses here until you `continue` or `stop` it.
   </Step>
   <Step title="completed / stopped / failed / expired">
-    A terminal state. The matching `session.*` webhook fires; any uploaded documents
-    are purged after a short retention window.
+    A terminal state. The matching `session.*` webhook fires; any uploaded sign
+    documents are deleted once signing verifies or the session reaches this terminal
+    state — UIP does not persist them.
   </Step>
 </Steps>
 
@@ -56,8 +57,9 @@ over a channel only the intended user controls (your authenticated app, their ph
 [`GET /v1/sessions/{id}`](/api-reference/sessions/get) returns operational
 **status and progress only** — never the verified claims. Disclosed data and
 signatures are delivered exclusively by [webhook](/core-concepts/webhooks); the
-capability URL holder can't read them back out. Use the GET for polling progress or
-reconciling state, not for fetching results.
+capability URL holder can't read them back out. Use the GET to reconcile state after
+a missed webhook, not as a polling loop — every transition is pushed to your signed
+webhook.
 
 ## Create options
 

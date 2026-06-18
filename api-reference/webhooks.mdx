@@ -46,7 +46,8 @@ the step's primitive.
     "stage": 0,
     "primitive": "age_verify",
     "audit_id": "sess_abc123_0",
-    "satisfied": true
+    "satisfied": true,
+    "min_age": 21
   }
 }
 ```
@@ -70,6 +71,7 @@ the step's primitive.
 <ResponseField name="audit_id" type="string">Id of this step's audit record — fetch the proof via [`GET /v1/audits/{id}`](/api-reference/audits/get).</ResponseField>
 <ResponseField name="claims" type="object">`identify` only — the disclosed blocks.</ResponseField>
 <ResponseField name="satisfied" type="boolean">`age_verify` only — the threshold result. The birth date is never included.</ResponseField>
+<ResponseField name="min_age" type="integer">`age_verify` only — the threshold that was checked.</ResponseField>
 <ResponseField name="signature" type="string">`sign`/`light_sign` only — the device signature.</ResponseField>
 <ResponseField name="document_hash" type="string">`sign`/`light_sign` only — the hash that was signed.</ResponseField>
 
@@ -86,7 +88,7 @@ All steps verified.
 You ended the session at a gate via [stop](/api-reference/sessions/stop).
 
 ```json
-{ "event": "session.stopped", "data": { "session_id": "sess_abc123", "reason": "stopped" } }
+{ "event": "session.stopped", "data": { "session_id": "sess_abc123", "status": "stopped" } }
 ```
 
 ## `session.failed`

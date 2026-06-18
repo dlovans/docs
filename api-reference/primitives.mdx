@@ -32,8 +32,8 @@ upload, no OCR.
 
 <ParamField body="blocks" type="string[]">
   The attributes to request. **Omit** to request the default set (`first_name`,
-  `last_name`, `dob`). An unknown block is returned as `"unavailable"` rather than
-  erroring.
+  `last_name`, `dob`, `country`). A block the credential lacks is returned as
+  `"unavailable"`/`null` rather than erroring.
 </ParamField>
 
 Supported blocks:
@@ -43,13 +43,29 @@ Supported blocks:
 | `first_name` | Given name |
 | `last_name` | Family name |
 | `dob` | Date of birth (ISO 8601) |
-| `country` | Issuing country |
+| `gender` | Sex/gender, when present (nullable) |
+| `portrait` | Portrait image, when the wallet exposes it (nullable) |
 | `document_number` | Credential / document number |
-| `portrait` | Portrait image, when the wallet exposes it |
+| `issue_date` | Date the credential was issued |
+| `expiry_date` | Date the credential expires |
+| `issuing_authority` | Authority that issued the credential |
+| `country` | Issuing country (always `"US"`) |
+| `state` | Issuing jurisdiction, e.g. `US-CA` |
+| `address` | Residence address (nullable) |
+| `resident_state` | Residence state (nullable) |
+
+<Note>
+  `country` and `state` describe where the credential was **issued** (always US;
+  e.g. `US-CA`). `address` and `resident_state` describe the holder's **residence**.
+  Nullable fields (`gender`, `portrait`, `address`, `resident_state`) return
+  `null`/`unavailable` when the credential doesn't carry them.
+</Note>
 
 <Note>
   ISO mDL has no single full-name element — request `first_name` + `last_name` and
-  compose. `full_name` is intentionally unmapped (returns `unavailable`).
+  compose. `full_name` and `personal_number` are intentionally unmapped for US mDL
+  (no single full-name element; no national identification number) and return
+  `unavailable`.
 </Note>
 
 ### Result

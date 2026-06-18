@@ -7,9 +7,11 @@ description: "GET /v1/sessions/{id}"
   `GET https://api.uip.digital/v1/sessions/{id}` · Auth: `Bearer` API key
 </Note>
 
-Returns a session's **status and progress**. Verified claims and signatures are
-**not** included here — they're delivered only by [webhook](/core-concepts/webhooks).
-Use this to track progress or reconcile state, not to fetch results.
+Returns a session's **status, progress, and the derived per-step results** already
+produced — the same verdicts delivered by [webhook](/core-concepts/webhooks). The
+underlying identity PII is **never** returned here; it stays sealed in the audit.
+Webhooks remain the push delivery mechanism — use `GET` for one-off reconciliation,
+not as a polling loop.
 
 ## Path parameters
 
@@ -24,10 +26,32 @@ Use this to track progress or reconcile state, not to fetch results.
 </ResponseField>
 <ResponseField name="current_step" type="integer">Zero-based index of the active step.</ResponseField>
 <ResponseField name="step_count" type="integer">Total steps in the session.</ResponseField>
-<ResponseField name="primitives" type="string[]">The primitive of each step, in order.</ResponseField>
-<ResponseField name="current_primitive" type="string">The active step's primitive.</ResponseField>
-<ResponseField name="expires_at" type="string">ISO 8601 session expiry.</ResponseField>
-<ResponseField name="created_at" type="string">ISO 8601 creation time.</ResponseField>
+<ResponseField name="results" type="object[]">
+  The derived verdicts produced so far, one per completed step — the same payloads
+  delivered by webhook. Results expose only derived verdicts; the underlying PII is
+  never returned, it stays sealed in the audit.
+  <Expandable title="result">
+    <ResponseField name="step" type="integer">Zero-based index of the step this verdict belongs to.</ResponseField>
+    <ResponseField name="primitive" type="string">The step's primitive (`identify` · `age_verify` · `sign` · `light_sign`).</ResponseField>
+    <ResponseField name="verified_at" type="string">ISO 8601 time the verdict was produced.</ResponseField>
+    <ResponseField name="audit_id" type="string">Id of the append-only audit record. Fetch the redacted proof via `GET /v1/audits/{id}`.</ResponseField>
+    <ResponseField name="satisfied" type="boolean">`age_verify` only — whether `age >= min_age`.</ResponseField>
+    <ResponseField name="min_age" type="integer">`age_verify` only — the threshold checked.</ResponseField>
+    <ResponseField name="claims" type="object">`identify` only — the disclosed attribute blocks.</ResponseField>
+    <ResponseField name="document_hash" type="string">`sign` / `light_sign` only — the hash the wallet device-signed.</ResponseField>
+    <ResponseField name="signature" type="string">`sign` / `light_sign` only — the wallet signature over the hash.</ResponseField>
+  </Expandable>
+</ResponseField>
+<ResponseField name="outcome" type="string">
+  Terminal reason — `completed` · `stopped` · `failed` · `expired`. Empty while the
+  session is still in progress.
+</ResponseField>
+<ResponseField name="client_reference_id" type="string">
+  Optional — echoed back if you supplied it at create.
+</ResponseField>
+<ResponseField name="metadata" type="object">
+  Optional — echoed back if you supplied it at create.
+</ResponseField>
 <ResponseField name="updated_at" type="string">ISO 8601 last update.</ResponseField>
 
 <ResponseExample>
@@ -35,13 +59,26 @@ Use this to track progress or reconcile state, not to fetch results.
 {
   "id": "sess_abc123",
   "status": "awaiting_decision",
-  "current_step": 0,
+  "current_step": 1,
   "step_count": 2,
-  "primitives": ["identify", "sign"],
-  "current_primitive": "identify",
-  "created_at": "2026-06-07T12:00:00Z",
-  "updated_at": "2026-06-07T12:01:30Z",
-  "expires_at": "2026-06-07T13:00:00Z"
+  "results": [
+    {
+      "step": 0,
+      "primitive": "identify",
+      "verified_at": "2026-06-07T12:01:30Z",
+      "audit_id": "aud_9f2c1e",
+      "claims": {
+        "first_name": "Ada",
+        "last_name": "Lovelace",
+        "dob": "1815-12-10",
+        "country": "US"
+      }
+    }
+  ],
+  "outcome": "",
+  "client_reference_id": "order_4417",
+  "metadata": { "checkout": "abc" },
+  "updated_at": "2026-06-07T12:01:30Z"
 }
 ```
 </ResponseExample>

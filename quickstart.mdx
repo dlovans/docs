@@ -128,7 +128,7 @@ session and you receive one webhook per step, in sequence.
 {
   "steps": [
     { "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } },
-    { "primitive": "sign" }
+    { "primitive": "sign", "params": { "document_ids": ["contract"] } }
   ]
 }
 ```

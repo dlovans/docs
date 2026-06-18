@@ -17,8 +17,8 @@ description: "GET /v1/wallets"
 Returns the live **wallet × primitive capability matrix** — every wallet UIP can
 verify and which primitives each supports. The booleans are derived from the active
 backend adapters, so the response is always the source of truth; never hard-code
-support. UIP also enforces this at session create (the chosen wallet must support the
-whole chain).
+support. UIP also enforces this at session create (the chosen wallet must support
+every primitive in the session's `steps[]`).
 
 ## Response
 

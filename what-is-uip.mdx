@@ -42,11 +42,11 @@ A **primitive** is one verified action. You don't call an "Identity API" or a
 
 ## 2. Wallets — where the credential lives
 
-UIP is **wallet-agnostic**. The user holds a credential issued by a government
-authority; the wallet presents it over a standard protocol. Today that's the
-**W3C Digital Credentials API** in the browser, carrying an **ISO/IEC 18013-5**
-mobile-document (mdoc) — the same shape from both Apple and Google Wallet, so UIP
-verifies them identically.
+Today the credential is a **US mobile driver's license** (an **ISO/IEC 18013-5**
+mdoc), presented from **Apple Wallet** (Safari) or **Google Wallet** (Chrome) over
+the **W3C Digital Credentials API** in the browser. Both wallets return the same
+mdoc shape, so UIP verifies them identically against the issuing authority's
+(AAMVA) trust anchors.
 
 Each wallet supports a subset of primitives, exposed live at
 [`GET /v1/wallets`](/api-reference/wallets/list). See
