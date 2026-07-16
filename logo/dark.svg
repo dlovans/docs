@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-	<!-- QR-finder mark — matches uipv2-web favicon.svg exactly. Dark mode: white (paper). -->
+	<!-- QR-finder mark — matches alentra-web favicon.svg exactly. Dark mode: white (paper). -->
 	<!-- Top-left: thick square border + inner dot -->
 	<rect x="0" y="0" width="11" height="11" fill="none" stroke="#F4F2EC" stroke-width="2"/>
 	<rect x="3" y="3" width="5" height="5" fill="#F4F2EC"/>

@@ -107,7 +107,7 @@ billing-frozen business's API key is rejected during authentication (`401`).
 
 Download the public keys from
 `https://api.alentra.app/.well-known/alentra-audit-jwks.json`, save this response, and use
-`cmd/verify-audit` from the `uipv2-services` source tree. It reproduces the record
+`cmd/verify-audit` from the `alentra-services` source tree. It reproduces the record
 hash and verifies the required sandbox/production Alentra signature; when
 `wallet_evidence` is present, it also re-runs the ISO mdoc proof against roots you
 supply. See

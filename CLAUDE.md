@@ -25,10 +25,10 @@ issuer's trust anchors, and delivers results by webhook.
 
 ## Source of truth
 The **code** is authoritative — verify claims against it before documenting:
-- `uipv2-services` — the Go `/v1` API (`internal/server/router.go`), primitives
+- `alentra-services` — the Go `/v1` API (`internal/server/router.go`), primitives
   (`internal/mdl`, `internal/wallet`), webhooks (`internal/webhook`).
-- `uipv2-services/internal/catalog/ledger.go` — canonical credential coverage.
-- `uipv2-web/src/lib/{primitive,pricing}.js` — canonical labels and prices.
+- `alentra-services/internal/catalog/ledger.go` — canonical credential coverage.
+- `alentra-web/src/lib/{primitive,pricing}.js` — canonical labels and prices.
 - Repo root `ARCHITECTURE.md` / `PRIMITIVES.md` — design + the primitive philosophy.
 
 ## The doc surface (IMPORTANT — this inverted from v1)
@@ -46,7 +46,7 @@ of the **dashboard UI**, not the endpoints behind them.
 ## Branding
 - **Accent / brand color: Vermillion `#E34234`** (bright `#F4604E`, deep `#B22F22`)
   — the evidence-led "hanko seal" accent. Ink `#0A0A0B`, paper `#F4F2EC`.
-  Mirror `uipv2-web/src/app.css` (`--color-accent`) — it's the source of truth; the
+  Mirror `alentra-web/src/app.css` (`--color-accent`) — it's the source of truth; the
   docs theme uses deep `#B22F22` as its light-background primary for WCAG contrast.
   The old midnight-blue/cyan is retired. Domain: `alentra.app`; docs at
   `docs.alentra.app`; API base `https://api.alentra.app/v1`; support
