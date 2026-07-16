@@ -3,14 +3,14 @@ title: "Verification & trust"
 description: "What 'government-attested' means — and the audit trail behind every result."
 ---
 
-When UIP returns a claim, it isn't self-asserted or read off a photo — it's
+When Alentra returns a claim, it isn't self-asserted or read off a photo — it's
 extracted from the issuing authority's **digitally signed credential** and verified
 cryptographically. This page explains what that verification checks and the
 tamper-evident record it produces.
 
 ## What every wallet result is checked against
 
-For an ISO/IEC 18013-5 mobile document, UIP runs four independent checks before a
+For an ISO/IEC 18013-5 mobile document, Alentra runs four independent checks before a
 wallet-backed step can succeed. If any fails, the step fails — there is no partial
 trust.
 
@@ -80,13 +80,13 @@ depends on the transaction, notices, consent, jurisdiction, and applicable law.
   </Card>
 </CardGroup>
 
-Every production/sandbox record also carries `uip_signature`: UIP's ES256 signature
+Every production/sandbox record also carries `alentra_signature`: Alentra's ES256 signature
 over the canonical `record_hash`, identified by an exact key-version `kid`. Current
 and retained public keys are published at
-`https://api.uip.digital/.well-known/uip-audit-jwks.json` with CORS enabled.
+`https://api.alentra.app/.well-known/alentra-audit-jwks.json` with CORS enabled.
 
 For `sign`, the audit has the signed manifest digest and every per-file hash, while
-UIP retains the exact original bytes as immutable evidence. `light_sign` retains the
+Alentra retains the exact original bytes as immutable evidence. `light_sign` retains the
 exact canonical terms. Persist the `audit_id` alongside your own
 `client_reference_id` to retrieve the record later.
 
@@ -98,12 +98,12 @@ give it an audit JSON file, a downloaded JWKS file, and trusted issuer roots:
 ```bash
 go run ./cmd/verify-audit \
   -record audit.json \
-  -jwks uip-audit-jwks.json \
+  -jwks alentra-audit-jwks.json \
   -iaca-dir ./trusted-iaca
 ```
 
 For a Google Utopia test record, add `-google-sandbox`. The verifier reproduces the
-canonical record hash, verifies UIP's public signature, checks the wallet-evidence
+canonical record hash, verifies Alentra's public signature, checks the wallet-evidence
 digest, reconstructs the signed transcript/content nonce, and re-runs issuer, MSO,
 disclosure, and DeviceAuth verification when decrypted `wallet_evidence` is present.
 
@@ -119,12 +119,12 @@ disclosure, and DeviceAuth verification when decrypted `wallet_evidence` is pres
   For wallet-backed results, the business audit response includes decrypted wallet
   evidence for `identify`, `sign`, and `light_sign`. It deliberately withholds it for `age_verify` because the
   DeviceResponse contains the identity used to derive the boolean. An age record can
-  still be checked for audit hash/UIP signature integrity; re-running its wallet
+  still be checked for audit hash/Alentra signature integrity; re-running its wallet
   proof requires an authorized legal-tier disclosure.
 </Note>
 
 <Note>
-  Neither the public UIP signature nor the audit format alone guarantees court
+  Neither the public Alentra signature nor the audit format alone guarantees court
   admissibility, legal enforceability, notarization, or suitability for a particular
   transaction. Those conclusions require the full evidence and a legal assessment.
 </Note>

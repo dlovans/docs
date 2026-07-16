@@ -1,17 +1,17 @@
-# UIP Documentation — context for editing these docs
+# Alentra Documentation — context for editing these docs
 
-This is the **Mintlify** docs site for UIP (Universal Identity Protocol). It is
+This is the **Mintlify** docs site for Alentra. It is
 external, developer-facing documentation for the **public v2 API**.
 
 > ⚠️ These docs were rewritten for **v2** (June 2026). The old v1 product
 > (biometric/Didit verification, an "Identify / Sign / Message API" split, QR
 > polling, on-device ECDSA) **no longer exists** — do not reintroduce those concepts.
 
-## What UIP v2 actually is
+## What Alentra v2 actually is
 Government-attested identity **primitives** verified from the user's own **digital
 wallet**. Coverage is a canonical jurisdiction + credential profile + presentation
 provider ledger; Google Utopia is the active sandbox route and production Google,
-Apple, and EUDI routes remain individually gated. UIP builds the request,
+Apple, and EUDI routes remain individually gated. Alentra builds the request,
 cryptographically verifies the wallet's signed (encrypted) response against the
 issuer's trust anchors, and delivers results by webhook.
 
@@ -38,7 +38,7 @@ Document the **business API** (what a customer's server calls):
 `GET /v1/wallets`, the public audit JWKS, and webhooks.
 
 **Do NOT document the hosted-page transport** — `/sessions/{id}/open`, `/request`,
-`/response`, `/report`, `/documents`. Those are called by UIP's hosted page, not by
+`/response`, `/report`, `/documents`. Those are called by Alentra's hosted page, not by
 the business; treat them as internal. (In v1 the rule was the opposite — ignore the
 old guidance.) API keys, webhook secrets, and balance top-ups are described in terms
 of the **dashboard UI**, not the endpoints behind them.
@@ -48,9 +48,9 @@ of the **dashboard UI**, not the endpoints behind them.
   — the evidence-led "hanko seal" accent. Ink `#0A0A0B`, paper `#F4F2EC`.
   Mirror `uipv2-web/src/app.css` (`--color-accent`) — it's the source of truth; the
   docs theme uses deep `#B22F22` as its light-background primary for WCAG contrast.
-  The old midnight-blue/cyan is retired. Domain: `uip.digital`; docs at
-  `docs.uip.digital`; API base `https://api.uip.digital/v1`; support
-  `support@uip.digital`.
+  The old midnight-blue/cyan is retired. Domain: `alentra.app`; docs at
+  `docs.alentra.app`; API base `https://api.alentra.app/v1`; support
+  `support@alentra.app`.
 
 ## Style
 - Use Mintlify components: `Card`/`CardGroup`, `Steps`/`Step`, `CodeGroup`,
@@ -76,8 +76,8 @@ of the **dashboard UI**, not the endpoints behind them.
   with provisioned provider credentials and profile-specific IACA roots. Never describe
   development or coming-soon routes as production.
 - **Audit claims:** records use RFC 8785 canonical hashing, a per-session hash chain,
-  explicit RFC 3161 synchronous/backfill status, and a UIP ES256 signature verifiable from
-  `/.well-known/uip-audit-jwks.json`. Wallet evidence is separately encrypted and
+  explicit RFC 3161 synchronous/backfill status, and an Alentra ES256 signature verifiable from
+  `/.well-known/alentra-audit-jwks.json`. Wallet evidence is separately encrypted and
   available only where the disclosure tier permits it. Say "designed to support
   evidence"; do not promise legal enforceability, admissibility, or an HSM unless
   the deployed key's protection level independently proves that claim.

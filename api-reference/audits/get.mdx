@@ -4,11 +4,11 @@ description: "GET /v1/audits/{id}"
 ---
 
 <Note>
-  `GET https://api.uip.digital/v1/audits/{id}` · Auth: `Bearer` API key
+  `GET https://api.alentra.app/v1/audits/{id}` · Auth: `Bearer` API key
 </Note>
 
 Returns the owning business's audit disclosure for one verified step. It includes
-the canonical record hash, per-session chain link, UIP public signature, RFC 3161
+the canonical record hash, per-session chain link, Alentra public signature, RFC 3161
 status/token, primitive proof, and the encrypted blocks required to reproduce the
 hash. For `identify`, `sign`, and `light_sign`, it also decrypts `signer` and
 the available `wallet_evidence` so you can re-run wallet verification. A simulated
@@ -57,7 +57,7 @@ result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 <ResponseField name="wallet_evidence_sealed" type="object">Encrypted wallet-evidence block retained for canonical hash reproduction.</ResponseField>
 <ResponseField name="prev_hash" type="string">Previous stage's `record_hash`, or `0x000` at stage 0.</ResponseField>
 <ResponseField name="record_hash" type="string">SHA-256 over the RFC 8785 canonical record content.</ResponseField>
-<ResponseField name="uip_signature" type="object">Sandbox/production only. UIP's P-256/SHA-256 signature over the record digest: `{ version, alg: "ES256", kid, issuer, signed, value }`. `value` is base64url ASN.1 DER ECDSA, not a compact JWS.</ResponseField>
+<ResponseField name="alentra_signature" type="object">Sandbox/production only. Alentra's P-256/SHA-256 signature over the record digest: `{ version, alg: "ES256", kid, issuer, signed, value }`. `value` is base64url ASN.1 DER ECDSA, not a compact JWS.</ResponseField>
 <ResponseField name="ts_status" type="string">Present when trusted timestamping is configured. Immutable synchronous outcome: `ok` when the initial RFC 3161 request returned a validated token; `deferred` when it failed. A recovered record keeps `deferred` and adds `ts_backfilled`.</ResponseField>
 <ResponseField name="ts_token" type="string">Base64 RFC 3161 token captured initially or merged after recovery.</ResponseField>
 <ResponseField name="ts_backfilled" type="boolean">`true` when a deferred token was recovered in the append-only timestamp collection.</ResponseField>
@@ -86,11 +86,11 @@ result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
   "occurred_at": "2026-07-13T12:01:30.000000000Z",
   "prev_hash": "0x000",
   "record_hash": "sha256:9f86d081...",
-  "uip_signature": {
-    "version": "uip-audit-signature/v1",
+  "alentra_signature": {
+    "version": "alentra-audit-signature/v1",
     "alg": "ES256",
     "kid": "projects/.../cryptoKeyVersions/3",
-    "issuer": "https://uip.digital",
+    "issuer": "https://alentra.app",
     "signed": "record_hash",
     "value": "MEUCIQ..."
   },
@@ -106,9 +106,9 @@ billing-frozen business's API key is rejected during authentication (`401`).
 ## Offline verification
 
 Download the public keys from
-`https://api.uip.digital/.well-known/uip-audit-jwks.json`, save this response, and use
+`https://api.alentra.app/.well-known/alentra-audit-jwks.json`, save this response, and use
 `cmd/verify-audit` from the `uipv2-services` source tree. It reproduces the record
-hash and verifies the required sandbox/production UIP signature; when
+hash and verifies the required sandbox/production Alentra signature; when
 `wallet_evidence` is present, it also re-runs the ISO mdoc proof against roots you
 supply. See
 [Verification & trust](/core-concepts/verification#verify-a-record-offline).

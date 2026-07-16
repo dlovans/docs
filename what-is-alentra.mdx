@@ -1,11 +1,11 @@
 ---
-title: "What is UIP?"
+title: "What is Alentra?"
 description: "The model in two minutes — primitives, wallets, and sessions."
 ---
 
-UIP lets your app ask a user's **government-issued digital credential** a precise
+Alentra lets your app ask a user's **government-issued digital credential** a precise
 question and get back a **cryptographically verified answer**. The credential lives
-in the user's own wallet. UIP resolves one country, credential profile, and
+in the user's own wallet. Alentra resolves one country, credential profile, and
 presentation provider from its canonical ledger, then verifies the signed response
 against the issuing authority's trust anchors, and delivers the result to you.
 
@@ -22,7 +22,7 @@ A **primitive** is one verified action. You don't call an "Identity API" or a
     `dob`, `country`, `document_number`.
   </Card>
   <Card title="age_verify" icon="user-shield">
-    Prove the holder meets an age threshold. UIP computes it from the credential's
+    Prove the holder meets an age threshold. Alentra computes it from the credential's
     birth date; this primitive returns only the boolean and threshold, not the date.
   </Card>
   <Card title="sign" icon="signature">
@@ -42,7 +42,7 @@ A **primitive** is one verified action. You don't call an "Identity API" or a
 
 ## 2. Credential routes — what is trusted and how it arrives
 
-UIP keeps the issuing jurisdiction and credential trust profile separate from the
+Alentra keeps the issuing jurisdiction and credential trust profile separate from the
 wallet provider. Google Wallet can carry several countries' credentials; the US can
 offer several Apple/Google routes. The exact tuple is server-validated and locked for
 the session.
@@ -55,20 +55,20 @@ Read current route status and provider capabilities from public
 
 A **session** bundles the steps you need into a single user experience. You create
 it server-to-server, then hand the user its **hosted URL**. On
-that page the user's wallet completes each step on-device; UIP verifies each one
+that page the user's wallet completes each step on-device; Alentra verifies each one
 and sends you a **signed webhook** as it happens.
 
 <Steps>
   <Step title="Create">
-    `POST /v1/sessions` with your `steps[]`. UIP returns a session `id` and a hosted
+    `POST /v1/sessions` with your `steps[]`. Alentra returns a session `id` and a hosted
     `url`.
   </Step>
   <Step title="Hand off">
-    Send the user to `url`. UIP's page and the browser's native Digital Credentials
+    Send the user to `url`. Alentra's page and the browser's native Digital Credentials
     flow handle same-device or cross-device presentation; you host no wallet UI.
   </Step>
   <Step title="Verify & deliver">
-    The wallet responds, UIP verifies it cryptographically, and you receive a
+    The wallet responds, Alentra verifies it cryptographically, and you receive a
     logical `step.completed` event with the claims or signature — one per step.
     Delivery is at-least-once, so order results by `stage`.
   </Step>
@@ -78,24 +78,24 @@ and sends you a **signed webhook** as it happens.
   </Step>
 </Steps>
 
-## What UIP is not
+## What Alentra is not
 
 <AccordionGroup>
   <Accordion title="Not a document-scanning / OCR / liveness vendor">
-    UIP does not ingest a photograph of the physical ID. Claims come from the
+    Alentra does not ingest a photograph of the physical ID. Claims come from the
     **issuer's digitally signed credential** in the wallet, verified by signature —
     not by OCR. There is no selfie or liveness check. A customer may explicitly
     request the credential's signed `portrait` claim. (`sign` separately uploads the
     document being signed and retains a completed original as evidence.)
   </Accordion>
   <Accordion title="Not a data broker">
-    UIP returns only the fields your step requests. `age_verify` returns a boolean
+    Alentra returns only the fields your step requests. `age_verify` returns a boolean
     to your business and withholds the birth date; the underlying identity is kept
     encrypted as audit evidence and is available only through the legal-review tier.
   </Accordion>
   <Accordion title="Not an identity you store">
-    There is no UIP "account" the user logs into. The credential stays in their
-    wallet; each session is a fresh, consented disclosure. UIP deliberately retains
+    There is no Alentra "account" the user logs into. The credential stays in their
+    wallet; each session is a fresh, consented disclosure. Alentra deliberately retains
     the completed result and its encrypted evidence; the evidence period and legal-
     hold process must be fixed in the signed production schedule.
   </Accordion>

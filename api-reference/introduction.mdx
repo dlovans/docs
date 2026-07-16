@@ -1,25 +1,25 @@
 ---
 title: "Introduction"
-description: "Base URL, authentication, and conventions for the UIP API."
+description: "Base URL, authentication, and conventions for the Alentra API."
 ---
 
-The UIP API is a small REST surface. You call it **server-to-server** with your API
-key to create and manage sessions; users complete those sessions on UIP's hosted
+The Alentra API is a small REST surface. You call it **server-to-server** with your API
+key to create and manage sessions; users complete those sessions on Alentra's hosted
 page; results arrive at your [webhook](/core-concepts/webhooks).
 
 ## Base URL
 
 ```
-https://api.uip.digital/v1
+https://api.alentra.app/v1
 ```
 
 ## Authentication
 
 Authenticate every request with your API key as a bearer token. Get your key from
-the dashboard at [uip.digital](https://uip.digital).
+the dashboard at [alentra.app](https://alentra.app).
 
 ```bash
-Authorization: Bearer uip_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Authorization: Bearer alentra_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 <Warning>
@@ -43,7 +43,7 @@ and you never call them directly.
 | `GET /v1/audits/{id}` | Retrieve the business-authorized audit record |
 | `GET /v1/catalog` | Public country/profile/provider route ledger, onboarding requirements, and runtime availability |
 | `GET /v1/wallets` | Wallet × primitive capability matrix (public, no auth) |
-| `GET /.well-known/uip-audit-jwks.json` | Sandbox/production ES256 keys for audit verification (no auth) |
+| `GET /.well-known/alentra-audit-jwks.json` | Sandbox/production ES256 keys for audit verification (no auth) |
 
 ## Content types
 

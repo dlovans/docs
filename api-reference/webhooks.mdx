@@ -1,9 +1,9 @@
 ---
 title: "Webhook events"
-description: "Every event UIP sends, with payloads and headers."
+description: "Every event Alentra sends, with payloads and headers."
 ---
 
-UIP delivers results to the webhook URL configured for your business. For the
+Alentra delivers results to the webhook URL configured for your business. For the
 delivery model and **signature verification**, see
 [Webhooks](/core-concepts/webhooks); this page is the event payload reference.
 
@@ -11,10 +11,10 @@ delivery model and **signature verification**, see
 
 | Header | Description |
 | --- | --- |
-| `X-UIP-Event` | Event name (e.g. `step.completed`) |
-| `X-UIP-Timestamp` | Unix seconds when signed |
-| `X-UIP-Signature` | `HMAC-SHA256(webhook_secret, "{timestamp}.{raw_body}")`, hex |
-| `X-UIP-Delivery-Id` | Stable per-event id — dedupe on this |
+| `X-Alentra-Event` | Event name (e.g. `step.completed`) |
+| `X-Alentra-Timestamp` | Unix seconds when signed |
+| `X-Alentra-Signature` | `HMAC-SHA256(webhook_secret, "{timestamp}.{raw_body}")`, hex |
+| `X-Alentra-Delivery-Id` | Stable per-event id — dedupe on this |
 
 Every payload is `{ "event": "...", "data": { ... } }`, and `data` always echoes
 `session_id`, plus your `client_reference_id` and `metadata` when set.
@@ -128,7 +128,7 @@ logically (transport retries remain at-least-once).
 
 <Warning>
   Always [verify the signature](/core-concepts/webhooks#verifying-signatures) over the
-  raw body and dedupe on `X-UIP-Delivery-Id` before acting — delivery is at-least-once.
+  raw body and dedupe on `X-Alentra-Delivery-Id` before acting — delivery is at-least-once.
   After eight failed attempts the delivery is dead-lettered; use a one-off session
   GET for reconciliation rather than polling continuously.
 </Warning>

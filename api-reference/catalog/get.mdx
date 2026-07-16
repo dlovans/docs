@@ -4,7 +4,7 @@ description: "GET /v1/catalog"
 ---
 
 <Note>
-  `GET https://api.uip.digital/v1/catalog` · Public · No API key · No charge
+  `GET https://api.alentra.app/v1/catalog` · Public · No API key · No charge
 </Note>
 
 The canonical discovery ledger for jurisdiction, credential profile, presentation
@@ -47,8 +47,8 @@ The endpoint is public, CORS-readable, and cached for up to five minutes.
 
 <ResponseField name="onboarding_requirements" type="object[]">
   Fixed requirement records referenced by routes. Each includes a stable id, provider,
-  label, `mode` (`uip_managed`, `uip_managed_provider_review`, or `waitlist`), whether
-  customer action is required, customer/UIP summaries, and an official source URL.
+  label, `mode` (`alentra_managed`, `alentra_managed_provider_review`, or `waitlist`), whether
+  customer action is required, customer/Alentra summaries, and an official source URL.
   These records explain onboarding; they do not make a route available.
 </ResponseField>
 
@@ -99,7 +99,7 @@ The endpoint is public, CORS-readable, and cached for up to five minutes.
     "id": "google-verifier-registrar-client",
     "provider_id": "google-wallet",
     "label": "Google Wallet relying-party enrollment",
-    "mode": "uip_managed",
+    "mode": "alentra_managed",
     "customer_action_required": false
   }],
   "providers": [{

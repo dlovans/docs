@@ -28,13 +28,13 @@ The same record is disclosed at **two very different levels**, by design.
 <CardGroup cols={2}>
   <Card title="Business — authorized" icon="code">
     What the owning business can fetch with its API key: the proof, chain, timestamp
-    status, UIP signature, and encrypted blocks needed to reproduce the record hash.
+    status, Alentra signature, and encrypted blocks needed to reproduce the record hash.
     `identify`, `sign`, and `light_sign` also disclose their signer and any captured
     wallet evidence. `age_verify` remains redacted to its boolean and threshold.
   </Card>
   <Card title="Legal — full" icon="scale-balanced">
     The complete, **decrypted** record, including signer and wallet evidence for an
-    `age_verify` step. It is reached only through UIP's internal, role-gated legal
+    `age_verify` step. It is reached only through Alentra's internal, role-gated legal
     workflow after review — not with a customer API key.
   </Card>
 </CardGroup>
@@ -49,7 +49,7 @@ blocks remain encrypted at rest.
 Call [`GET /v1/audits/{id}`](/api-reference/audits/get) with your API key. It is
 scoped to your active business. The response includes the canonical hash context,
 timestamp status/token, and sealed ciphertext; sandbox/production records also carry
-`uip_signature`. For non-age primitives it includes decrypted `signer` and, for a
+`alentra_signature`. For non-age primitives it includes decrypted `signer` and, for a
 wallet-backed completion, `wallet_evidence`.
 
 <Note>
@@ -77,11 +77,11 @@ runs through a dedicated, human-reviewed channel, never a customer-facing API.
 
 <Steps>
   <Step title="Submit a request">
-    The requester files at [uip.digital/legal](https://uip.digital/legal) with
+    The requester files at [alentra.app/legal](https://alentra.app/legal) with
     the audit id(s), the matter reference, and the legal basis for disclosure.
   </Step>
   <Step title="Review">
-    UIP's authorized staff review the request against the proceeding.
+    Alentra's authorized staff review the request against the proceeding.
     Submitting a request does not by itself compel disclosure.
   </Step>
   <Step title="Disclosure">
@@ -92,7 +92,7 @@ runs through a dedicated, human-reviewed channel, never a customer-facing API.
 </Steps>
 
 <Tip>
-  A legal request does not guarantee disclosure or any legal outcome. UIP reviews
+  A legal request does not guarantee disclosure or any legal outcome. Alentra reviews
   the requester's asserted identity, authority, and basis, then records the decision.
   Customers remain responsible for their own copies, notices, and legal obligations.
 </Tip>

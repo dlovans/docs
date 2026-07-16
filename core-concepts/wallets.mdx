@@ -3,14 +3,14 @@ title: "Credential routes & coverage"
 description: "How countries, credential profiles, and wallet providers fit together."
 ---
 
-UIP treats a credential route as three separate facts:
+Alentra treats a credential route as three separate facts:
 
 1. **Jurisdiction** — the issuing country or test jurisdiction.
 2. **Credential profile** — the signed format, doctype/namespace, claims, and issuer trust policy.
 3. **Presentation provider** — the wallet rail that carries the credential to the browser.
 
 A country can expose several profiles/providers, and a provider can carry credentials
-from several countries. UIP validates the exact tuple server-side and locks it for the
+from several countries. Alentra validates the exact tuple server-side and locks it for the
 whole session. The provider brand is never used as a substitute for issuer trust.
 
 <Warning>
@@ -28,39 +28,39 @@ It currently tracks:
 - **EUDI Wallets:** EU Person Identification Data routes for all 27 EU Member States, with gradual rollout.
 - **Google Sandbox:** fictional Utopia ID Pass.
 
-Production routes remain `coming_soon` until UIP has the exact provider/issuer approval,
+Production routes remain `coming_soon` until Alentra has the exact provider/issuer approval,
 trust material, browser path, claim mapping, and real-presentation acceptance evidence.
 US state mDL routes are marked `partial`; country support never implies every issuer or
 every resident has an accepted credential.
 
 ## Enable coverage for your business
 
-Global availability and business availability are separate. In the UIP dashboard,
+Global availability and business availability are separate. In the Alentra dashboard,
 open **Coverage**, select every country/wallet route you want, choose the primitives
-you intend to use, and submit one organization packet. UIP deduplicates that selection:
+you intend to use, and submit one organization packet. Alentra deduplicates that selection:
 
-- Google routes become one Verifier Registrar client enrollment managed by UIP. You
+- Google routes become one Verifier Registrar client enrollment managed by Alentra. You
   create no Google key, account, or direct integration.
-- Apple routes use the UIP-managed verifier path only after Apple confirms that model;
-  they remain coming soon meanwhile. UIP will expose a guided per-brand path only if
+- Apple routes use the Alentra-managed verifier path only after Apple confirms that model;
+  they remain coming soon meanwhile. Alentra will expose a guided per-brand path only if
   Apple requires it.
 - Aadhaar and EUDI selections create waitlist requirements until their exact
   issuer/conformance path is ready.
 
 A new session can use only the intersection of a globally available route, your saved
-selection, and approved provider requirements. UIP snapshots that set when the session
+selection, and approved provider requirements. Alentra snapshots that set when the session
 is created, so removing coverage affects new sessions without changing an in-progress
 one. The hosted page receives only those non-sensitive route ids and never offers the
 signer a wallet choice your business cannot use.
 
 ## How the wallet flow works
 
-UIP's implemented presentation rail uses the **W3C Digital Credentials API**. The
+Alentra's implemented presentation rail uses the **W3C Digital Credentials API**. The
 browser, not your application, talks to the wallet.
 
 <Steps>
   <Step title="Resolve">
-    UIP's hosted page reads the public catalog and offers only routes whose exact
+    Alentra's hosted page reads the public catalog and offers only routes whose exact
     `available` value is true, whose provider can complete every session step, and
     whose route is in the session's create-time business coverage snapshot.
   </Step>
@@ -71,10 +71,10 @@ browser, not your application, talks to the wallet.
   </Step>
   <Step title="Present">
     The user approves in their wallet. The wallet returns an encrypted, signed response
-    to the hosted page, which relays it to UIP.
+    to the hosted page, which relays it to Alentra.
   </Step>
   <Step title="Verify">
-    UIP decrypts the response and verifies the profile's doctype, issuer chain, signed
+    Alentra decrypts the response and verifies the profile's doctype, issuer chain, signed
     claims, device signature, nonce/transcript, validity, and disclosure allow-list.
   </Step>
 </Steps>
@@ -91,7 +91,7 @@ page's internal request/response routes or implement wallet polling.
     sandbox route remains usable for end-to-end development.
   </Accordion>
   <Accordion title="Google Sandbox (ENVIRONMENT=SANDBOX)">
-    Exactly one route is available: `UT / utopia-id-pass / google-wallet`. UIP uses
+    Exactly one route is available: `UT / utopia-id-pass / google-wallet`. Alentra uses
     Google's published sandbox request signer, RP metadata, Utopia IACA, signed
     OpenID4VP request, encrypted response, and strict issuer/device verification.
     Production signer/root material must be absent.

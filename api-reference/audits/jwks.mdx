@@ -1,18 +1,18 @@
 ---
 title: "Audit public keys"
-description: "GET /.well-known/uip-audit-jwks.json"
+description: "GET /.well-known/alentra-audit-jwks.json"
 ---
 
 <Note>
-  `GET https://api.uip.digital/.well-known/uip-audit-jwks.json` · Public · CORS-readable
+  `GET https://api.alentra.app/.well-known/alentra-audit-jwks.json` · Public · CORS-readable
 </Note>
 
-Returns UIP's current audit-signing public key and explicitly retained verification
-keys. Use the key whose `kid` exactly matches `uip_signature.kid` in the audit
+Returns Alentra's current audit-signing public key and explicitly retained verification
+keys. Use the key whose `kid` exactly matches `alentra_signature.kid` in the audit
 record. The endpoint is cacheable for five minutes; refresh it when a new `kid`
 appears.
 
-`uip_signature` is a detached audit field, not a JWS object. Its `value` is a
+`alentra_signature` is a detached audit field, not a JWS object. Its `value` is a
 base64url-encoded ASN.1 DER ECDSA signature over the 32-byte record digest.
 
 <ResponseField name="keys" type="object[]">
@@ -36,7 +36,7 @@ base64url-encoded ASN.1 DER ECDSA signature over the 32-byte record digest.
       "crv": "P-256",
       "alg": "ES256",
       "use": "sig",
-      "kid": "projects/uip/locations/global/keyRings/audit/cryptoKeys/sign/cryptoKeyVersions/3",
+      "kid": "projects/alentra/locations/global/keyRings/audit/cryptoKeys/sign/cryptoKeyVersions/3",
       "x": "...",
       "y": "..."
     }
@@ -45,7 +45,7 @@ base64url-encoded ASN.1 DER ECDSA signature over the 32-byte record digest.
 ```
 </ResponseExample>
 
-The public key proves that the holder of UIP's configured signing key signed the
+The public key proves that the holder of Alentra's configured signing key signed the
 canonical audit hash. It is separate from the symmetric key used to encrypt private
 data. The endpoint makes no claim about whether a particular deployed key version is
 software- or hardware-protected.

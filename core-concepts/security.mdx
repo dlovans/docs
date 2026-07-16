@@ -1,9 +1,9 @@
 ---
 title: "Security"
-description: "How UIP protects credentials, results, and your integration."
+description: "How Alentra protects credentials, results, and your integration."
 ---
 
-UIP's security model has two halves: **proving** a result is genuine (covered in
+Alentra's security model has two halves: **proving** a result is genuine (covered in
 [Verification & trust](/core-concepts/verification)) and **protecting** the data
 around it. This page covers the second.
 
@@ -14,7 +14,7 @@ around it. This page covers the second.
     All API calls and webhook deliveries are over HTTPS/TLS.
   </Card>
   <Card title="Encrypted responses" icon="envelope">
-    The wallet encrypts its response to a **per-request key**; only UIP's server can
+    The wallet encrypts its response to a **per-request key**; only Alentra's server can
     decrypt it. The hosted page relays ciphertext it cannot read.
   </Card>
   <Card title="PII sealed at rest" icon="vault">
@@ -35,11 +35,11 @@ around it. This page covers the second.
 - **First-open binding.** The first browser to open a session is bound to it; no
   other device can submit a response for that session.
 - **Idempotency.** An `Idempotency-Key` on create makes retried creates safe; webhook
-  `X-UIP-Delivery-Id` makes retried deliveries safe to dedupe.
+  `X-Alentra-Delivery-Id` makes retried deliveries safe to dedupe.
 
 ## Data handling & retention
 
-UIP minimizes each disclosure, but it deliberately preserves completed evidence:
+Alentra minimizes each disclosure, but it deliberately preserves completed evidence:
 
 - **Only what you request.** `identify` discloses exactly the blocks you ask for.
 - **`age_verify` reveals a boolean and threshold** to you, not the birth date; the
@@ -51,7 +51,7 @@ UIP minimizes each disclosure, but it deliberately preserves completed evidence:
   because no sign result completed may be removed by scheduled cleanup. Terminal
   webhook-delivery copies expire after their operational window; they are not the
   canonical result.
-- **No standing identity.** There's no UIP login the user maintains; each session is
+- **No standing identity.** There's no Alentra login the user maintains; each session is
   a fresh, consented disclosure from their wallet.
 
 ## Your responsibilities
@@ -75,11 +75,11 @@ UIP minimizes each disclosure, but it deliberately preserves completed evidence:
 ## Compliance posture
 
 - Tamper-evident, append-only [audit records](/core-concepts/verification#audit-ledger)
-  with sandbox/production UIP signatures and independently checkable RFC 3161 status
+  with sandbox/production Alentra signatures and independently checkable RFC 3161 status
   — designed to support evidentiary review, without promising admissibility or legal
   effect.
 - Data-minimizing disclosure (selective fields; `age_verify` is anonymous to the
-  business, not to UIP).
+  business, not to Alentra).
 - Production government-issuer–anchored verification, not document scraping;
   sandbox uses Google's fictional test issuer.
 
@@ -90,5 +90,5 @@ does not erase completed evidence.
 
 <Note>
   Have a specific regulatory requirement (GDPR data-processing terms, retention,
-  residency)? <a href="mailto:support@uip.digital">Contact us</a>.
+  residency)? <a href="mailto:support@alentra.app">Contact us</a>.
 </Note>

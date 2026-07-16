@@ -4,7 +4,7 @@ description: "GET /v1/wallets"
 ---
 
 <Note>
-  `GET https://api.uip.digital/v1/wallets` · No auth required
+  `GET https://api.alentra.app/v1/wallets` · No auth required
 </Note>
 
 <Tip>
@@ -18,7 +18,7 @@ deployment's catalog, whether its adapter is active, and which primitives an act
 adapter supports. The booleans are derived from the backend registry, so the response
 is the capability source of truth, but it does not prove a country/profile route is
 available. Session create checks that every
-primitive is available somewhere; when the hosted flow selects a wallet, UIP checks
+primitive is available somewhere; when the hosted flow selects a wallet, Alentra checks
 that adapter against the **whole chain** before issuing the first wallet request.
 
 ## Response

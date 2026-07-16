@@ -4,7 +4,7 @@ description: "POST /v1/sessions"
 ---
 
 <Note>
-  `POST https://api.uip.digital/v1/sessions` · Auth: `Bearer` API key
+  `POST https://api.alentra.app/v1/sessions` · Auth: `Bearer` API key
 </Note>
 
 Creates a verification session from an ordered list of [primitive](/core-concepts/primitives)
@@ -81,8 +81,8 @@ verified step. A webhook URL must be configured for your business first.
 
 <RequestExample>
 ```bash identify + age_verify (JSON)
-curl https://api.uip.digital/v1/sessions \
-  -H "Authorization: Bearer $UIP_API_KEY" \
+curl https://api.alentra.app/v1/sessions \
+  -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "steps": [
@@ -94,8 +94,8 @@ curl https://api.uip.digital/v1/sessions \
   }'
 ```
 ```bash with a sign step (multipart)
-curl https://api.uip.digital/v1/sessions \
-  -H "Authorization: Bearer $UIP_API_KEY" \
+curl https://api.alentra.app/v1/sessions \
+  -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -F 'steps=[{"primitive":"identify","gate":true},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
   -F 'contract=@contract.pdf'
 ```
@@ -106,7 +106,7 @@ curl https://api.uip.digital/v1/sessions \
 {
   "id": "sess_abc123",
   "status": "created",
-  "url": "https://uip.digital/s/sess_abc123",
+  "url": "https://alentra.app/s/sess_abc123",
   "expires": "2026-06-07T12:34:56Z"
 }
 ```

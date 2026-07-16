@@ -1,26 +1,26 @@
 ---
-title: "UIP Documentation"
+title: "Alentra Documentation"
 description: "Government-attested identity, age checks, and document signatures — from the user's own digital wallet, in one small REST API."
 ---
 
 <Warning>
-  UIP is in private beta. Google Sandbox exercises the real encrypted wallet path
+  Alentra is in private beta. Google Sandbox exercises the real encrypted wallet path
   with fictional Utopia credentials. Every production country/profile/provider route
-  stays coming soon until verifier/issuer enrollment, trust, acceptance, and UIP approval.
+  stays coming soon until verifier/issuer enrollment, trust, acceptance, and Alentra approval.
 </Warning>
 
-**UIP (Universal Identity Protocol)** turns a government-issued credential in a
+**Alentra** turns a government-issued credential in a
 user's digital wallet into a verified result your app can trust: their name, that
 they're over 21, or a device signature tied to your document and retained evidence.
 
 You never build a wallet-verification stack or touch a wallet SDK. You **create a
 session**, hand the user a link, and **receive a signed webhook** when their wallet
-completes it in the browser. For `sign`, UIP stores the exact uploaded originals as
+completes it in the browser. For `sign`, Alentra stores the exact uploaded originals as
 immutable evidence after the result completes.
 
 ```bash
-curl https://api.uip.digital/v1/sessions \
-  -H "Authorization: Bearer $UIP_API_KEY" \
+curl https://api.alentra.app/v1/sessions \
+  -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ] }'
 ```
@@ -28,7 +28,7 @@ curl https://api.uip.digital/v1/sessions \
 ```json
 {
   "id": "sess_abc123",
-  "url": "https://uip.digital/s/sess_abc123",
+  "url": "https://alentra.app/s/sess_abc123",
   "status": "created",
   "expires": "2026-06-07T12:34:56Z"
 }
@@ -37,7 +37,7 @@ curl https://api.uip.digital/v1/sessions \
 ## Start here
 
 <CardGroup cols={2}>
-  <Card title="What is UIP?" icon="circle-question" href="/what-is-uip">
+  <Card title="What is Alentra?" icon="circle-question" href="/what-is-alentra">
     The model in two minutes: primitives, wallets, and sessions.
   </Card>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
@@ -60,7 +60,7 @@ curl https://api.uip.digital/v1/sessions \
   </Card>
   <Card title="Business-redacted age gates" icon="user-shield">
     Prove a user is over 18 or 21. The age result contains only `true`/`false` and
-    the threshold, not the birth date; UIP retains the encrypted underlying evidence.
+    the threshold, not the birth date; Alentra retains the encrypted underlying evidence.
   </Card>
   <Card title="Document signatures" icon="signature">
     A device signature bound to a verified identity, with the original signed bytes

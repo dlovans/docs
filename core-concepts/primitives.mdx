@@ -5,7 +5,7 @@ description: "The verified actions you compose — identify, age_verify, sign, l
 
 A **primitive** is one verified action against the user's wallet credential. Each
 step in a session names a primitive and its `params`. In a wallet-backed completion,
-UIP builds the request, verifies the signed response, and returns a normalized
+Alentra builds the request, verifies the signed response, and returns a normalized
 result.
 
 <CardGroup cols={2}>
@@ -44,7 +44,7 @@ what you need; the user consents to exactly that.
 | `address` | Residence address |
 | `resident_state` | Residence state |
 
-If `blocks` is omitted, UIP requests a sensible default (`first_name`,
+If `blocks` is omitted, Alentra requests a sensible default (`first_name`,
 `last_name`, `dob`, `country`). A requested block the credential doesn't carry
 comes back as JSON `null` rather than failing the step.
 
@@ -66,7 +66,7 @@ comes back as JSON `null` rather than failing the step.
 ## age_verify
 
 Prove the holder meets an age threshold **without disclosing their birth date**.
-UIP reads the date from the credential, computes the result, and returns only the
+Alentra reads the date from the credential, computes the result, and returns only the
 boolean verdict plus the requested threshold. The birth date never reaches your
 age-result webhook.
 
@@ -83,7 +83,7 @@ age-result webhook.
 ```
 
 <Note>
-  This is "anonymous to you, not to UIP": the signer claims and wallet evidence used
+  This is "anonymous to you, not to Alentra": the signer claims and wallet evidence used
   to compute the result are sealed in the
   [audit record](/core-concepts/verification#audit-ledger), flagged as redacted, and
   never exposed on your webhook or session reads.
@@ -97,9 +97,9 @@ The holder's device signs a hash of **one or more documents you provide** — a
 what-you-see-is-what-you-sign signature bound to their wallet credential. Because
 `sign` carries files, its session is created as `multipart/form-data`.
 
-- UIP computes the SHA-256 of each file and a single **manifest digest** over all of
+- Alentra computes the SHA-256 of each file and a single **manifest digest** over all of
   them (in declared order). The wallet signs the manifest; you never supply a hash.
-- The user reads the exact bytes UIP hashed on the hosted page before signing.
+- The user reads the exact bytes Alentra hashed on the hosted page before signing.
 - Up to **50 files**, **50 MB** combined. When the step verifies, every referenced
   original is promoted atomically to immutable evidence alongside the result and
   audit. Customers cannot delete those completed originals. An upload that never
@@ -107,8 +107,8 @@ what-you-see-is-what-you-sign signature bound to their wallet credential. Becaus
   cleanup window.
 
 ```bash
-curl https://api.uip.digital/v1/sessions \
-  -H "Authorization: Bearer $UIP_API_KEY" \
+curl https://api.alentra.app/v1/sessions \
+  -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -F 'steps=[{"primitive":"identify"},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
   -F 'contract=@contract.pdf'
 ```
@@ -131,7 +131,7 @@ consent, acceptance, and disclosure flows.
 ```
 
 - Terms are limited to ~1,000 words (about a 5-minute read).
-- UIP canonicalizes the text (normalizes line endings), hashes it, and the wallet
+- Alentra canonicalizes the text (normalizes line endings), hashes it, and the wallet
   signs that hash. The exact terms + hash + signature are kept in the audit, so the
   signature stays provable.
 
@@ -151,7 +151,7 @@ consent, acceptance, and disclosure flows.
 ## Chaining steps
 
 Chaining is not a primitive — it's the `steps[]` array. List steps in order and the
-user completes them in one session. UIP creates one logical `step.completed` event
+user completes them in one session. Alentra creates one logical `step.completed` event
 per step and then a terminal `session.*` event; delivery retries can arrive late or
 out of order, so use `stage` and the delivery id.
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "UIP Documentation",
+  "name": "Alentra Documentation",
   "colors": {
     "primary": "#B22F22",
     "light": "#F4604E",
@@ -20,7 +20,7 @@
             "group": "Getting Started",
             "pages": [
               "index",
-              "what-is-uip",
+              "what-is-alentra",
               "quickstart",
               "pricing"
             ]
@@ -85,13 +85,13 @@
     "global": {
       "anchors": [
         {
-          "anchor": "UIP Platform",
-          "href": "https://uip.digital",
+          "anchor": "Alentra Platform",
+          "href": "https://alentra.app",
           "icon": "globe"
         },
         {
           "anchor": "Support",
-          "href": "mailto:support@uip.digital",
+          "href": "mailto:support@alentra.app",
           "icon": "life-ring"
         }
       ]
@@ -105,13 +105,13 @@
     "links": [
       {
         "label": "Get API Keys",
-        "href": "https://uip.digital/signup"
+        "href": "https://alentra.app/signup"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://uip.digital"
+      "href": "https://alentra.app"
     }
   },
   "contextual": {

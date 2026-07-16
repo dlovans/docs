@@ -5,7 +5,7 @@ description: "The lifecycle of a verification — from create to a terminal resu
 
 A **session** is one user-facing verification flow containing one or more
 [primitive](/core-concepts/primitives) steps. You create it server-to-server; the
-user completes it on UIP's hosted page; you receive results by webhook.
+user completes it on Alentra's hosted page; you receive results by webhook.
 
 ## Lifecycle
 
@@ -40,7 +40,7 @@ user completes it on UIP's hosted page; you receive results by webhook.
 
 ## The hosted page & capability URLs
 
-The session `url` (`https://uip.digital/s/{id}`) is a **capability URL** — holding
+The session `url` (`https://alentra.app/s/{id}`) is a **capability URL** — holding
 the link is what lets a user open the session. Treat it like a secret: deliver it
 over a channel only the intended user controls (your authenticated app, their phone).
 
@@ -90,7 +90,7 @@ Expiry is enforced on the next state access, persisted, and enqueued as one logi
 
 Completed results and their audit records are legally significant service records.
 They are immutable and are not customer-deletable. For a completed `sign`, this also
-includes the exact original document bytes UIP hashed and presented to the signer.
+includes the exact original document bytes Alentra hashed and presented to the signer.
 Stopping or deleting a customer account does not erase them. Any account/data request
 is reviewed for disposable data and legal holds; cleanup jobs may remove only data
 explicitly classified as transient, such as an upload that never joined a completed

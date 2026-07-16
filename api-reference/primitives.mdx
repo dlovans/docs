@@ -82,7 +82,7 @@ Supported blocks:
 
 ## age_verify
 
-Proves the holder meets an age threshold **without disclosing their birth date**. UIP
+Proves the holder meets an age threshold **without disclosing their birth date**. Alentra
 reads the DOB from the verified credential, computes `age ≥ min_age`, and returns only the
 boolean. The signer claims and wallet evidence are sealed in the audit (flagged redacted)
 and never sent to you.
@@ -106,7 +106,7 @@ and never sent to you.
 ## sign
 
 Produces a wallet-device signature bound to a government-attested signer identity
-and one or more documents you upload. UIP hashes each file **server-side** (you never
+and one or more documents you upload. Alentra hashes each file **server-side** (you never
 supply a hash — WYSIWYS), and the wallet signs the manifest. On successful
 verification, the result, audit, charge, and retention promotion commit atomically.
 The exact original files become immutable evidence: they are not customer-deletable
@@ -138,8 +138,8 @@ manifest, so any single file stays provable against its retained original.
 </Note>
 
 ```bash multipart
-curl https://api.uip.digital/v1/sessions \
-  -H "Authorization: Bearer $UIP_API_KEY" \
+curl https://api.alentra.app/v1/sessions \
+  -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -F 'steps=[{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
   -F 'contract=@contract.pdf'
 ```
@@ -155,7 +155,7 @@ terms text is retained in the audit, so the signed text stays self-contained.
 ### Params
 
 <ParamField body="terms" type="string" required>
-  The terms to sign. Up to **1000 words** (~5 minutes of reading). UIP normalizes
+  The terms to sign. Up to **1000 words** (~5 minutes of reading). Alentra normalizes
   line endings, then shows and hashes that same canonical text.
 </ParamField>
 

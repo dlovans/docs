@@ -8,14 +8,14 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
 <Steps>
   <Step title="Get your API key + set a webhook">
-    Sign up at [uip.digital](https://uip.digital), create a business, and from the
-    dashboard copy your **API key** (`uip_...`) and set your **webhook URL**.
+    Sign up at [alentra.app](https://alentra.app), create a business, and from the
+    dashboard copy your **API key** (`alentra_...`) and set your **webhook URL**.
 
     <Warning>
       A webhook URL is **required**. Webhooks are the primary result channel; the
       session GET exists only for one-off reconciliation, not polling. A session won't
       be created until your business has a webhook configured. You'll also need your **webhook signing secret**
-      (`uip_whsec_...`) from the dashboard to verify deliveries (step 4).
+      (`alentra_whsec_...`) from the dashboard to verify deliveries (step 4).
     </Warning>
   </Step>
 
@@ -24,8 +24,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
     <CodeGroup>
     ```bash cURL
-    curl https://api.uip.digital/v1/sessions \
-      -H "Authorization: Bearer $UIP_API_KEY" \
+    curl https://api.alentra.app/v1/sessions \
+      -H "Authorization: Bearer $ALENTRA_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ],
@@ -33,10 +33,10 @@ This walks you from zero to a verified webhook in four steps. The example runs a
       }'
     ```
     ```javascript Node
-    const res = await fetch("https://api.uip.digital/v1/sessions", {
+    const res = await fetch("https://api.alentra.app/v1/sessions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.UIP_API_KEY}`,
+        Authorization: `Bearer ${process.env.ALENTRA_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -48,13 +48,13 @@ This walks you from zero to a verified webhook in four steps. The example runs a
     ```
     </CodeGroup>
 
-    UIP returns the session and its hosted URL:
+    Alentra returns the session and its hosted URL:
 
     ```json
     {
       "id": "sess_abc123",
       "status": "created",
-      "url": "https://uip.digital/s/sess_abc123",
+      "url": "https://alentra.app/s/sess_abc123",
       "expires": "2026-06-07T12:34:56Z",
       "client_reference_id": "order_4815"
     }
@@ -62,23 +62,23 @@ This walks you from zero to a verified webhook in four steps. The example runs a
   </Step>
 
   <Step title="Send the user to the hosted page">
-    Hand the user `session.url`. UIP's hosted page invokes the W3C Digital
+    Hand the user `session.url`. Alentra's hosted page invokes the W3C Digital
     Credentials API; the browser owns the same-device or cross-device handoff. Do
-    not call UIP's hosted-page transport endpoints or build a polling/QR protocol of
+    not call Alentra's hosted-page transport endpoints or build a polling/QR protocol of
     your own.
   </Step>
 
   <Step title="Receive the signed result">
-    When the wallet responds and UIP verifies it, you get a `POST` to your webhook
+    When the wallet responds and Alentra verifies it, you get a `POST` to your webhook
     URL — one logical `step.completed` per step plus a terminal `session.*` event.
     Network retries can change arrival order.
 
     ```http
     POST /your-webhook
-    X-UIP-Event: step.completed
-    X-UIP-Timestamp: 1749300000
-    X-UIP-Signature: 9f86d081884c7d65...
-    X-UIP-Delivery-Id: sess_abc123:step.completed:0
+    X-Alentra-Event: step.completed
+    X-Alentra-Timestamp: 1749300000
+    X-Alentra-Signature: 9f86d081884c7d65...
+    X-Alentra-Delivery-Id: sess_abc123:step.completed:0
 
     {
       "event": "step.completed",
@@ -104,8 +104,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
     import crypto from "node:crypto";
 
     function verify(req, secret) {
-      const ts = req.headers["x-uip-timestamp"];
-      const sig = req.headers["x-uip-signature"];
+      const ts = req.headers["x-alentra-timestamp"];
+      const sig = req.headers["x-alentra-signature"];
       const expected = crypto
         .createHmac("sha256", secret)
         .update(`${ts}.`)
@@ -131,7 +131,7 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
 Real flows often need more than one verified action — for example, *identify the
 signer, then sign the contract*. List them in order; the user completes them in one
-session and UIP creates one logical webhook per step. Use `stage` and the stable
+session and Alentra creates one logical webhook per step. Use `stage` and the stable
 delivery id because retries can arrive late or out of order.
 
 ```json
@@ -151,9 +151,9 @@ delivery id because retries can arrive late or out of order.
 
 ## Choose a test mode
 
-Before creating a deployed session, open the business's **Coverage** page in the UIP
+Before creating a deployed session, open the business's **Coverage** page in the Alentra
 dashboard. Sandbox businesses begin with Utopia selected. Production businesses begin
-with no usable route: select the routes and submit the reusable provider packet; UIP
+with no usable route: select the routes and submit the reusable provider packet; Alentra
 handles Google registration and keeps every unapproved route fail-closed.
 
 - **Local development:** run the service with `ENVIRONMENT` unset and the web app in

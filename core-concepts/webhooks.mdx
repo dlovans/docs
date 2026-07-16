@@ -4,7 +4,7 @@ description: "How results reach you — delivery guarantees, signing, and verifi
 ---
 
 Webhooks are the primary result-delivery channel: when a step verifies or a session
-concludes, UIP `POST`s a signed event to your configured URL. There is no supported
+concludes, Alentra `POST`s a signed event to your configured URL. There is no supported
 polling loop. If a delivery is missed or dead-lettered, reconcile once with
 [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 
@@ -31,7 +31,7 @@ Every delivery also echoes your `client_reference_id` and any `metadata`. See
   </Card>
   <Card title="At-least-once" icon="rotate">
     Delivery gets up to eight attempts with persisted exponential backoff, then
-    becomes `failed`. Each event has a stable `X-UIP-Delivery-Id` — **dedupe on it**
+    becomes `failed`. Each event has a stable `X-Alentra-Delivery-Id` — **dedupe on it**
     so a retry is harmless.
   </Card>
   <Card title="Off the request path" icon="bolt">
@@ -46,17 +46,17 @@ Every delivery also echoes your `client_reference_id` and any `metadata`. See
 
 ## Verifying signatures
 
-Every delivery is signed with your business's **webhook secret** (`uip_whsec_...`
+Every delivery is signed with your business's **webhook secret** (`alentra_whsec_...`
 from the dashboard). Always verify before trusting a payload.
 
 Each request carries:
 
 | Header | Value |
 | --- | --- |
-| `X-UIP-Event` | The event name |
-| `X-UIP-Timestamp` | Unix seconds when signed |
-| `X-UIP-Signature` | `HMAC-SHA256(secret, "{timestamp}.{raw_body}")`, hex |
-| `X-UIP-Delivery-Id` | Stable per-event id (dedupe key) |
+| `X-Alentra-Event` | The event name |
+| `X-Alentra-Timestamp` | Unix seconds when signed |
+| `X-Alentra-Signature` | `HMAC-SHA256(secret, "{timestamp}.{raw_body}")`, hex |
+| `X-Alentra-Delivery-Id` | Stable per-event id (dedupe key) |
 
 Recompute the HMAC over `timestamp + "." + raw_request_body` and compare in constant
 time. **Use the raw bytes** — re-serializing the JSON can change them and break the
@@ -67,11 +67,11 @@ match.
 import crypto from "node:crypto";
 
 // mount with: express.raw({ type: "application/json" })
-app.post("/uip-webhook", (req, res) => {
-  const ts = req.get("X-UIP-Timestamp");
-  const sig = req.get("X-UIP-Signature");
+app.post("/alentra-webhook", (req, res) => {
+  const ts = req.get("X-Alentra-Timestamp");
+  const sig = req.get("X-Alentra-Signature");
   const expected = crypto
-    .createHmac("sha256", process.env.UIP_WEBHOOK_SECRET)
+    .createHmac("sha256", process.env.ALENTRA_WEBHOOK_SECRET)
     .update(`${ts}.`)
     .update(req.body) // req.body is the raw Buffer
     .digest();
@@ -84,7 +84,7 @@ app.post("/uip-webhook", (req, res) => {
 
   // Optional: reject stale timestamps to limit replay windows.
   const event = JSON.parse(req.body.toString());
-  // ...handle event, dedupe on X-UIP-Delivery-Id...
+  // ...handle event, dedupe on X-Alentra-Delivery-Id...
   res.sendStatus(200);
 });
 ```
@@ -92,17 +92,17 @@ app.post("/uip-webhook", (req, res) => {
 import hmac, hashlib
 from flask import request, abort
 
-@app.post("/uip-webhook")
-def uip_webhook():
-    ts = request.headers.get("X-UIP-Timestamp", "")
-    sig = request.headers.get("X-UIP-Signature", "")
+@app.post("/alentra-webhook")
+def alentra_webhook():
+    ts = request.headers.get("X-Alentra-Timestamp", "")
+    sig = request.headers.get("X-Alentra-Signature", "")
     raw = request.get_data()  # raw bytes
     mac = hmac.new(
         SECRET.encode(), f"{ts}.".encode() + raw, hashlib.sha256
     ).hexdigest()
     if not hmac.compare_digest(mac, sig):
         abort(401)
-    # ...handle, dedupe on X-UIP-Delivery-Id...
+    # ...handle, dedupe on X-Alentra-Delivery-Id...
     return "", 200
 ```
 </CodeGroup>
