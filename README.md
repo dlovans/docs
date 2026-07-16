@@ -50,7 +50,7 @@ Completed `sign` results include the original signed document bytes as immutable
 - [Quickstart](https://docs.uip.digital/quickstart) -- Create a session and receive a result
 - [API Reference](https://docs.uip.digital/api-reference/introduction) -- Complete API docs
 - [Pricing](https://docs.uip.digital/pricing) -- Usage-based pricing
-- [Get API Keys](https://uip.digital) — create a business, fund its wallet, and mint a key
+- [Open UIP](https://uip.digital) — create a business, select Coverage, fund its wallet, and mint a key
 
 ---
 

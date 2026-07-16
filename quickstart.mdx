@@ -151,6 +151,11 @@ delivery id because retries can arrive late or out of order.
 
 ## Choose a test mode
 
+Before creating a deployed session, open the business's **Coverage** page in the UIP
+dashboard. Sandbox businesses begin with Utopia selected. Production businesses begin
+with no usable route: select the routes and submit the reusable provider packet; UIP
+handles Google registration and keeps every unapproved route fail-closed.
+
 - **Local development:** run the service with `ENVIRONMENT` unset and the web app in
   its development build. The hosted page then exposes **Simulate**, and backend
   issuer trust is relaxed. These results are for development only.

@@ -33,6 +33,26 @@ trust material, browser path, claim mapping, and real-presentation acceptance ev
 US state mDL routes are marked `partial`; country support never implies every issuer or
 every resident has an accepted credential.
 
+## Enable coverage for your business
+
+Global availability and business availability are separate. In the UIP dashboard,
+open **Coverage**, select every country/wallet route you want, choose the primitives
+you intend to use, and submit one organization packet. UIP deduplicates that selection:
+
+- Google routes become one Verifier Registrar client enrollment managed by UIP. You
+  create no Google key, account, or direct integration.
+- Apple routes use the UIP-managed verifier path only after Apple confirms that model;
+  they remain coming soon meanwhile. UIP will expose a guided per-brand path only if
+  Apple requires it.
+- Aadhaar and EUDI selections create waitlist requirements until their exact
+  issuer/conformance path is ready.
+
+A new session can use only the intersection of a globally available route, your saved
+selection, and approved provider requirements. UIP snapshots that set when the session
+is created, so removing coverage affects new sessions without changing an in-progress
+one. The hosted page receives only those non-sensitive route ids and never offers the
+signer a wallet choice your business cannot use.
+
 ## How the wallet flow works
 
 UIP's implemented presentation rail uses the **W3C Digital Credentials API**. The
@@ -41,7 +61,8 @@ browser, not your application, talks to the wallet.
 <Steps>
   <Step title="Resolve">
     UIP's hosted page reads the public catalog and offers only routes whose exact
-    `available` value is true and whose provider can complete every session step.
+    `available` value is true, whose provider can complete every session step, and
+    whose route is in the session's create-time business coverage snapshot.
   </Step>
   <Step title="Request">
     The server resolves the selected country/profile/provider tuple, pins it to the

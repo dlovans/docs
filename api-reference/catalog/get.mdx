@@ -8,7 +8,7 @@ description: "GET /v1/catalog"
 </Note>
 
 The canonical discovery ledger for jurisdiction, credential profile, presentation
-provider, rollout state, and runtime availability. Use it instead of hard-coding a
+provider, onboarding requirements, rollout state, and runtime availability. Use it instead of hard-coding a
 country-to-wallet relationship: one country may have several routes, and one wallet
 provider may present credentials from several countries.
 
@@ -29,18 +29,27 @@ The endpoint is public, CORS-readable, and cached for up to five minutes.
     <ResponseField name="test" type="boolean">True only for a fictional test jurisdiction.</ResponseField>
     <ResponseField name="routes" type="object[]">
       <Expandable title="route">
+        <ResponseField name="route_key" type="string">Stable business-selection key: `country/provider/profile`.</ResponseField>
         <ResponseField name="provider_id" type="string">Presentation provider, e.g. `google-wallet`.</ResponseField>
         <ResponseField name="credential_profile_id" type="string">Credential/trust profile, e.g. `utopia-id-pass`.</ResponseField>
         <ResponseField name="status" type="string">`sandbox`, `live`, or `coming_soon`.</ResponseField>
         <ResponseField name="coverage" type="string">`national`, `partial`, or `test`.</ResponseField>
         <ResponseField name="regions" type="string[]">Optional sub-jurisdictions for partial coverage, such as supported US mDL issuers.</ResponseField>
         <ResponseField name="registration_required" type="boolean">Whether provider/issuer onboarding is still required.</ResponseField>
+        <ResponseField name="requirement_ids" type="string[]">Deduplicated provider/issuer requirements this route needs.</ResponseField>
         <ResponseField name="source_url" type="string">Official source used to verify the route.</ResponseField>
         <ResponseField name="note" type="string">A route-specific limitation, when present.</ResponseField>
         <ResponseField name="available" type="boolean">The only field that means this exact route can start in the current environment.</ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="onboarding_requirements" type="object[]">
+  Fixed requirement records referenced by routes. Each includes a stable id, provider,
+  label, `mode` (`uip_managed`, `uip_managed_provider_review`, or `waitlist`), whether
+  customer action is required, customer/UIP summaries, and an official source URL.
+  These records explain onboarding; they do not make a route available.
 </ResponseField>
 
 <ResponseField name="providers" type="object[]">
@@ -75,6 +84,7 @@ The endpoint is public, CORS-readable, and cached for up to five minutes.
       "name": "Utopia",
       "test": true,
       "routes": [{
+        "route_key": "UT/google-wallet/utopia-id-pass",
         "provider_id": "google-wallet",
         "credential_profile_id": "utopia-id-pass",
         "status": "sandbox",
@@ -85,6 +95,13 @@ The endpoint is public, CORS-readable, and cached for up to five minutes.
       }]
     }
   ],
+  "onboarding_requirements": [{
+    "id": "google-verifier-registrar-client",
+    "provider_id": "google-wallet",
+    "label": "Google Wallet relying-party enrollment",
+    "mode": "uip_managed",
+    "customer_action_required": false
+  }],
   "providers": [{
     "id": "google-wallet",
     "label": "Google Wallet",
