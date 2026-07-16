@@ -9,9 +9,10 @@ description: "GET /v1/sessions/{id}"
 
 Returns a session's **status, progress, and the derived per-step results** already
 produced — the same verdicts delivered by [webhook](/core-concepts/webhooks). The
-underlying identity PII is **never** returned here; it stays sealed in the audit.
-Webhooks remain the push delivery mechanism — use `GET` for one-off reconciliation,
-not as a polling loop.
+requested claims are returned for non-anonymous primitives. `age_verify` is the one
+business-redacted result: it returns only `satisfied` and `min_age`; its identity
+stays sealed in the audit. Webhooks remain the push mechanism — use `GET` for
+one-off reconciliation, not as a polling loop.
 
 ## Path parameters
 
@@ -27,17 +28,19 @@ not as a polling loop.
 <ResponseField name="current_step" type="integer">Zero-based index of the active step.</ResponseField>
 <ResponseField name="step_count" type="integer">Total steps in the session.</ResponseField>
 <ResponseField name="results" type="object[]">
-  The derived verdicts produced so far, one per completed step — the same payloads
-  delivered by webhook. Results expose only derived verdicts; the underlying PII is
-  never returned, it stays sealed in the audit.
+  Results produced so far, one per completed step — the same business disclosure
+  delivered by webhook. `age_verify` alone withholds its signer claims.
   <Expandable title="result">
     <ResponseField name="step" type="integer">Zero-based index of the step this verdict belongs to.</ResponseField>
     <ResponseField name="primitive" type="string">The step's primitive (`identify` · `age_verify` · `sign` · `light_sign`).</ResponseField>
+    <ResponseField name="country" type="string">Non-anonymous results — route jurisdiction.</ResponseField>
+    <ResponseField name="wallet" type="string">Non-anonymous results — presentation provider id.</ResponseField>
+    <ResponseField name="credential_profile" type="string">Non-anonymous results — verified credential profile id.</ResponseField>
     <ResponseField name="verified_at" type="string">ISO 8601 time the verdict was produced.</ResponseField>
-    <ResponseField name="audit_id" type="string">Id of the append-only audit record. Fetch the redacted proof via `GET /v1/audits/{id}`.</ResponseField>
+    <ResponseField name="audit_id" type="string">Id of the immutable audit record. Fetch the business-authorized record via `GET /v1/audits/{id}`.</ResponseField>
     <ResponseField name="satisfied" type="boolean">`age_verify` only — whether `age >= min_age`.</ResponseField>
     <ResponseField name="min_age" type="integer">`age_verify` only — the threshold checked.</ResponseField>
-    <ResponseField name="claims" type="object">`identify` only — the disclosed attribute blocks.</ResponseField>
+    <ResponseField name="claims" type="object">`identify`, `sign`, and `light_sign` — disclosed identity attributes. Signing steps request the default signer fields.</ResponseField>
     <ResponseField name="document_hash" type="string">`sign` / `light_sign` only — the hash the wallet device-signed.</ResponseField>
     <ResponseField name="signature" type="string">`sign` / `light_sign` only — the wallet signature over the hash.</ResponseField>
   </Expandable>
@@ -65,8 +68,11 @@ not as a polling loop.
     {
       "step": 0,
       "primitive": "identify",
+	  "country": "US",
+	  "wallet": "google-wallet",
+	  "credential_profile": "us-mdl",
       "verified_at": "2026-06-07T12:01:30Z",
-      "audit_id": "aud_9f2c1e",
+      "audit_id": "sess_abc123_0",
       "claims": {
         "first_name": "Ada",
         "last_name": "Lovelace",
@@ -83,4 +89,5 @@ not as a polling loop.
 ```
 </ResponseExample>
 
-`404` if the session doesn't exist or isn't owned by your business.
+`404` if the session doesn't exist; `403` if it belongs to another active business.
+An archived/billing-frozen business's key is rejected during authentication (`401`).

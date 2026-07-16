@@ -1,78 +1,110 @@
 ---
-title: "Catalog"
+title: "Credential route catalog"
 description: "GET /v1/catalog"
 ---
 
 <Note>
-  `GET https://api.uip.digital/v1/catalog` · Auth: `Bearer` API key · Free (no charge)
+  `GET https://api.uip.digital/v1/catalog` · Public · No API key · No charge
 </Note>
 
-The **discovery catalog**: the countries, wallets, and primitives the platform
-supports right now, in one call — so your backend can resolve support
-deterministically instead of hard-coding it. Authenticated with your API key, but
-**free** — it never charges wallet units.
+The canonical discovery ledger for jurisdiction, credential profile, presentation
+provider, rollout state, and runtime availability. Use it instead of hard-coding a
+country-to-wallet relationship: one country may have several routes, and one wallet
+provider may present credentials from several countries.
 
-<Tip>
-  This is the server-side counterpart to the public
-  [`GET /v1/wallets`](/api-reference/wallets/list) that UIP's hosted page uses. Same
-  wallet-capability data, plus `countries` and a top-level `primitives` list, behind
-  your API key.
-</Tip>
+The endpoint is public, CORS-readable, and cached for up to five minutes.
 
 ## Response
 
+<ResponseField name="schema_version" type="string">Catalog response schema version.</ResponseField>
+<ResponseField name="ledger_updated_at" type="string">Date the source-controlled coverage ledger was last verified.</ResponseField>
+<ResponseField name="environment" type="string">`development`, `sandbox`, or `production`.</ResponseField>
+
 <ResponseField name="countries" type="object[]">
-  Jurisdictions UIP covers today. Discovery metadata only — UIP routes by wallet, not
-  country.
+  Every tracked jurisdiction. Coming-soon routes remain visible so absence and pending
+  onboarding are distinguishable.
   <Expandable title="country">
-    <ResponseField name="code" type="string">ISO 3166-1 alpha-2 code, e.g. `US`.</ResponseField>
-    <ResponseField name="name" type="string">Display name, e.g. `United States`.</ResponseField>
-    <ResponseField name="wallets" type="string[]">Ids of the wallets available in this country.</ResponseField>
+    <ResponseField name="code" type="string">ISO 3166-1 alpha-2 code; `UT` is the explicit fictional Utopia sandbox jurisdiction.</ResponseField>
+    <ResponseField name="name" type="string">Display name.</ResponseField>
+    <ResponseField name="test" type="boolean">True only for a fictional test jurisdiction.</ResponseField>
+    <ResponseField name="routes" type="object[]">
+      <Expandable title="route">
+        <ResponseField name="provider_id" type="string">Presentation provider, e.g. `google-wallet`.</ResponseField>
+        <ResponseField name="credential_profile_id" type="string">Credential/trust profile, e.g. `utopia-id-pass`.</ResponseField>
+        <ResponseField name="status" type="string">`sandbox`, `live`, or `coming_soon`.</ResponseField>
+        <ResponseField name="coverage" type="string">`national`, `partial`, or `test`.</ResponseField>
+        <ResponseField name="regions" type="string[]">Optional sub-jurisdictions for partial coverage, such as supported US mDL issuers.</ResponseField>
+        <ResponseField name="registration_required" type="boolean">Whether provider/issuer onboarding is still required.</ResponseField>
+        <ResponseField name="source_url" type="string">Official source used to verify the route.</ResponseField>
+        <ResponseField name="note" type="string">A route-specific limitation, when present.</ResponseField>
+        <ResponseField name="available" type="boolean">The only field that means this exact route can start in the current environment.</ResponseField>
+      </Expandable>
+    </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="providers" type="object[]">
+  Provider labels plus `enabled` (allowed by this deployment) and
+  `adapter_available` (transport code registered at runtime).
+</ResponseField>
+
+<ResponseField name="credential_profiles" type="object[]">
+  Stable profile ids and their format, doctype, namespace, and fallback issuing
+  country. Blank protocol fields mean onboarding/acceptance is incomplete and the
+  profile cannot become available.
 </ResponseField>
 
 <ResponseField name="wallets" type="object[]">
-  <Expandable title="wallet">
-    <ResponseField name="id" type="string">Stable wallet id, e.g. `apple-wallet`.</ResponseField>
-    <ResponseField name="label" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
-    <ResponseField name="available" type="boolean">
-      Whether an active adapter can verify this wallet today.
-    </ResponseField>
-    <ResponseField name="primitives" type="object">
-      Per-primitive support booleans (`identify`, `age_verify`, `sign`, `light_sign`).
-    </ResponseField>
-  </Expandable>
+  Legacy provider capability projection: provider id/label, adapter availability,
+  and per-primitive booleans. Route selection must still use `countries[].routes`.
 </ResponseField>
 
 <ResponseField name="primitives" type="object[]">
-  <Expandable title="primitive">
-    <ResponseField name="id" type="string">Primitive slug, e.g. `identify`.</ResponseField>
-    <ResponseField name="available" type="boolean">
-      Whether any active adapter can fulfill this primitive today.
-    </ResponseField>
-  </Expandable>
+  Shipped primitive ids and whether any registered provider adapter implements them.
 </ResponseField>
 
 <ResponseExample>
 ```json 200 OK
 {
+  "schema_version": "1",
+  "ledger_updated_at": "2026-07-16",
+  "environment": "sandbox",
   "countries": [
-    { "code": "US", "name": "United States", "wallets": ["apple-wallet", "google-wallet"] }
-  ],
-  "wallets": [
     {
-      "id": "apple-wallet",
-      "label": "Apple Wallet",
-      "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
-    },
-    {
-      "id": "google-wallet",
-      "label": "Google Wallet",
-      "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+      "code": "UT",
+      "name": "Utopia",
+      "test": true,
+      "routes": [{
+        "provider_id": "google-wallet",
+        "credential_profile_id": "utopia-id-pass",
+        "status": "sandbox",
+        "coverage": "test",
+        "registration_required": false,
+        "source_url": "https://developers.google.com/wallet/identity/verify/supported-issuers-iaca-certs",
+        "available": true
+      }]
     }
   ],
+  "providers": [{
+    "id": "google-wallet",
+    "label": "Google Wallet",
+    "enabled": true,
+    "adapter_available": true
+  }],
+  "credential_profiles": [{
+    "id": "utopia-id-pass",
+    "label": "Utopia ID Pass",
+    "format": "mdoc",
+    "doc_type": "com.google.wallet.idcard.1",
+    "namespace": "org.iso.18013.5.1",
+    "default_country": "UT"
+  }],
+  "wallets": [{
+    "id": "google-wallet",
+    "label": "Google Wallet",
+    "available": true,
+    "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+  }],
   "primitives": [
     { "id": "identify", "available": true },
     { "id": "age_verify", "available": true },
@@ -83,6 +115,6 @@ deterministically instead of hard-coding it. Authenticated with your API key, bu
 ```
 </ResponseExample>
 
-The booleans are derived from the live backend adapters, so the response is always
-the source of truth — never hard-code support. See
-[Wallets & coverage](/core-concepts/wallets) for context.
+The real response includes the full ledger, not only the Utopia excerpt above. Never
+offer a route unless its own `available` value is `true`; provider adapter availability
+alone is insufficient.

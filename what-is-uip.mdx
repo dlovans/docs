@@ -5,8 +5,8 @@ description: "The model in two minutes — primitives, wallets, and sessions."
 
 UIP lets your app ask a user's **government-issued digital credential** a precise
 question and get back a **cryptographically verified answer**. The credential lives
-in the user's own wallet (today: a US mobile driver's license in Apple Wallet or
-Google Wallet). UIP builds the request, verifies the wallet's signed response
+in the user's own wallet. UIP resolves one country, credential profile, and
+presentation provider from its canonical ledger, then verifies the signed response
 against the issuing authority's trust anchors, and delivers the result to you.
 
 Three ideas make up the whole model.
@@ -23,7 +23,7 @@ A **primitive** is one verified action. You don't call an "Identity API" or a
   </Card>
   <Card title="age_verify" icon="user-shield">
     Prove the holder meets an age threshold. UIP computes it from the credential's
-    birth date and returns **only** the boolean — the date never reaches you.
+    birth date; this primitive returns only the boolean and threshold, not the date.
   </Card>
   <Card title="sign" icon="signature">
     The holder's device signs a hash of one or more documents you provide
@@ -40,22 +40,21 @@ A **primitive** is one verified action. You don't call an "Identity API" or a
   shapes.
 </Note>
 
-## 2. Wallets — where the credential lives
+## 2. Credential routes — what is trusted and how it arrives
 
-Today the credential is a **US mobile driver's license** (an **ISO/IEC 18013-5**
-mdoc), presented from **Apple Wallet** (Safari) or **Google Wallet** (Chrome) over
-the **W3C Digital Credentials API** in the browser. Both wallets return the same
-mdoc shape, so UIP verifies them identically against the issuing authority's
-(AAMVA) trust anchors.
+UIP keeps the issuing jurisdiction and credential trust profile separate from the
+wallet provider. Google Wallet can carry several countries' credentials; the US can
+offer several Apple/Google routes. The exact tuple is server-validated and locked for
+the session.
 
-Each wallet supports a subset of primitives, exposed live at
-[`GET /v1/wallets`](/api-reference/wallets/list). See
-[Wallets & coverage](/core-concepts/wallets) for the current map.
+Read current route status and provider capabilities from public
+[`GET /v1/catalog`](/api-reference/catalog/get). See
+[Credential routes & coverage](/core-concepts/wallets) for the current map.
 
 ## 3. Sessions — one flow for the user
 
 A **session** bundles the steps you need into a single user experience. You create
-it server-to-server, then hand the user its **hosted URL** (as a link or QR). On
+it server-to-server, then hand the user its **hosted URL**. On
 that page the user's wallet completes each step on-device; UIP verifies each one
 and sends you a **signed webhook** as it happens.
 
@@ -65,16 +64,17 @@ and sends you a **signed webhook** as it happens.
     `url`.
   </Step>
   <Step title="Hand off">
-    Send the user to `url` — same-device link or cross-device QR. UIP's page drives
-    the wallet; you host nothing.
+    Send the user to `url`. UIP's page and the browser's native Digital Credentials
+    flow handle same-device or cross-device presentation; you host no wallet UI.
   </Step>
   <Step title="Verify & deliver">
     The wallet responds, UIP verifies it cryptographically, and you receive a
-    `step.completed` webhook with the claims or signature — in order, one per step.
+    logical `step.completed` event with the claims or signature — one per step.
+    Delivery is at-least-once, so order results by `stage`.
   </Step>
   <Step title="Conclude">
-    On the last step (or a gate you set) the session ends with
-    `session.completed` / `session.stopped` / `session.failed`.
+    The last step completes the session. A stop, failure, or deadline instead ends it
+    as `session.stopped`, `session.failed`, or `session.expired`.
   </Step>
 </Steps>
 
@@ -82,17 +82,22 @@ and sends you a **signed webhook** as it happens.
 
 <AccordionGroup>
   <Accordion title="Not a document-scanning / OCR / liveness vendor">
-    UIP never sees a photo of an ID. Claims come from the **issuer's digitally
-    signed credential** in the wallet, verified by signature — not by reading a
-    picture. There is no selfie, no liveness check, no document upload to UIP.
+    UIP does not ingest a photograph of the physical ID. Claims come from the
+    **issuer's digitally signed credential** in the wallet, verified by signature —
+    not by OCR. There is no selfie or liveness check. A customer may explicitly
+    request the credential's signed `portrait` claim. (`sign` separately uploads the
+    document being signed and retains a completed original as evidence.)
   </Accordion>
   <Accordion title="Not a data broker">
-    UIP discloses only the fields your step requests, only to you, only for that
-    session. `age_verify` returns a boolean and never reveals the birth date.
+    UIP returns only the fields your step requests. `age_verify` returns a boolean
+    to your business and withholds the birth date; the underlying identity is kept
+    encrypted as audit evidence and is available only through the legal-review tier.
   </Accordion>
   <Accordion title="Not an identity you store">
     There is no UIP "account" the user logs into. The credential stays in their
-    wallet; each session is a fresh, consented disclosure.
+    wallet; each session is a fresh, consented disclosure. UIP deliberately retains
+    the completed result and its encrypted evidence; the evidence period and legal-
+    hold process must be fixed in the signed production schedule.
   </Accordion>
 </AccordionGroup>
 

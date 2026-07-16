@@ -22,9 +22,9 @@ user completes it on UIP's hosted page; you receive results by webhook.
     session pauses here until you `continue` or `stop` it.
   </Step>
   <Step title="completed / stopped / failed / expired">
-    A terminal state. The matching `session.*` webhook fires; any uploaded sign
-    documents are deleted once signing verifies or the session reaches this terminal
-    state — UIP does not persist them.
+    A terminal state. The matching `session.*` webhook fires. Original files that
+    participated in a completed `sign` step remain immutable evidence; only explicit
+    transient uploads from uncompleted sign steps become cleanup-eligible.
   </Step>
 </Steps>
 
@@ -34,8 +34,8 @@ user completes it on UIP's hosted page; you receive results by webhook.
 | `in_progress` | User is working through the steps |
 | `awaiting_decision` | Paused at a gate, awaiting your `continue`/`stop` |
 | `completed` | All steps verified |
-| `stopped` | You ended it at a gate |
-| `failed` | A step failed verification, or funds ran out |
+| `stopped` | You ended the active session before completion |
+| `failed` | A step failed verification, funds ran out, or an internal failure ended it |
 | `expired` | The session or a step window elapsed |
 
 ## The hosted page & capability URLs
@@ -54,12 +54,12 @@ over a channel only the intended user controls (your authenticated app, their ph
 
 ## Reading a session
 
-[`GET /v1/sessions/{id}`](/api-reference/sessions/get) returns operational
-**status and progress only** — never the verified claims. Disclosed data and
-signatures are delivered exclusively by [webhook](/core-concepts/webhooks); the
-capability URL holder can't read them back out. Use the GET to reconcile state after
-a missed webhook, not as a polling loop — every transition is pushed to your signed
-webhook.
+[`GET /v1/sessions/{id}`](/api-reference/sessions/get), authenticated with your API
+key, returns status plus results already produced: requested `identify` claims,
+`age_verify`'s boolean and threshold, and signing hashes/signatures. The unauthenticated
+hosted page sees only its status projection and cannot read these results. Webhooks
+remain the primary push channel; use GET to reconcile a missed event, not as a polling
+loop.
 
 ## Create options
 
@@ -67,8 +67,8 @@ Beyond `steps`, `POST /v1/sessions` accepts:
 
 | Field | Type | Purpose |
 | --- | --- | --- |
-| `client_reference_id` | string | Your own id, echoed on every webhook and stamped into the audit |
-| `metadata` | object | Up to 50 string-valued keys; operational only (webhooks + reads), never shown to the user |
+| `client_reference_id` | string (≤200 chars) | Your own id, echoed on every webhook and stamped into the audit |
+| `metadata` | object | Up to 50 string-valued keys (key ≤40 chars, value ≤500); operational only, never shown to the user |
 | `return_url` | https URL | Renders a "Return to {host}" button on the hosted page after completion (never an auto-redirect) |
 | `expires_in` | seconds | Override the session TTL (60s–24h) |
 
@@ -76,11 +76,25 @@ Plus an optional **`Idempotency-Key`** header so a retried create returns the
 original session instead of a duplicate. See
 [Create a session](/api-reference/sessions/create) for the full reference.
 
+Keep `client_reference_id` non-PII because it is cleartext in the immutable audit.
+Treat `metadata` as retained operational data, not a secret store.
+
 ## Expiry
 
-Sessions have an overall TTL (default capped at 1 hour, or your `expires_in`), and
-each step has its own shorter window once started. Expiry is enforced lazily — an
-expired session resolves to `expired` on next access and emits no further steps.
+Sessions have an overall TTL (1 hour by default, or a 60-second–24-hour
+`expires_in` override), and each step has its own shorter window once started.
+Expiry is enforced on the next state access, persisted, and enqueued as one logical
+`session.expired` event (transport retries remain at-least-once).
+
+## Result retention
+
+Completed results and their audit records are legally significant service records.
+They are immutable and are not customer-deletable. For a completed `sign`, this also
+includes the exact original document bytes UIP hashed and presented to the signer.
+Stopping or deleting a customer account does not erase them. Any account/data request
+is reviewed for disposable data and legal holds; cleanup jobs may remove only data
+explicitly classified as transient, such as an upload that never joined a completed
+sign result.
 
 <Card title="Next: Wallets & coverage" icon="wallet" href="/core-concepts/wallets">
   Which wallets and countries can complete a session today.

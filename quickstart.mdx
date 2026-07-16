@@ -3,8 +3,8 @@ title: "Quickstart"
 description: "Create a session, send the user to verify, and receive a signed result — end to end."
 ---
 
-This walks you from zero to a verified webhook in four steps. The example runs an
-**anonymous age check** (`age_verify`), but the flow is identical for any primitive.
+This walks you from zero to a verified webhook in four steps. The example runs a
+**business-redacted age check** (`age_verify`), but the flow is identical for any primitive.
 
 <Steps>
   <Step title="Get your API key + set a webhook">
@@ -12,9 +12,9 @@ This walks you from zero to a verified webhook in four steps. The example runs a
     dashboard copy your **API key** (`uip_...`) and set your **webhook URL**.
 
     <Warning>
-      A webhook URL is **required**. Results are delivered only by webhook — there's
-      no polling for outcomes — so a session won't be created until your business has
-      a webhook configured. You'll also need your **webhook signing secret**
+      A webhook URL is **required**. Webhooks are the primary result channel; the
+      session GET exists only for one-off reconciliation, not polling. A session won't
+      be created until your business has a webhook configured. You'll also need your **webhook signing secret**
       (`uip_whsec_...`) from the dashboard to verify deliveries (step 4).
     </Warning>
   </Step>
@@ -55,21 +55,23 @@ This walks you from zero to a verified webhook in four steps. The example runs a
       "id": "sess_abc123",
       "status": "created",
       "url": "https://uip.digital/s/sess_abc123",
-      "expires": "2026-06-07T12:34:56Z"
+      "expires": "2026-06-07T12:34:56Z",
+      "client_reference_id": "order_4815"
     }
     ```
   </Step>
 
   <Step title="Send the user to the hosted page">
-    Hand the user `session.url`. On the **same device**, link to it directly; on a
-    **different device** (e.g. your desktop checkout → their phone), render it as a
-    QR code. UIP's hosted page drives the user's wallet over the W3C Digital
-    Credentials API — you host nothing and never touch the wallet.
+    Hand the user `session.url`. UIP's hosted page invokes the W3C Digital
+    Credentials API; the browser owns the same-device or cross-device handoff. Do
+    not call UIP's hosted-page transport endpoints or build a polling/QR protocol of
+    your own.
   </Step>
 
   <Step title="Receive the signed result">
     When the wallet responds and UIP verifies it, you get a `POST` to your webhook
-    URL — one `step.completed` per step, then a terminal `session.*` event.
+    URL — one logical `step.completed` per step plus a terminal `session.*` event.
+    Network retries can change arrival order.
 
     ```http
     POST /your-webhook
@@ -80,12 +82,16 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
     {
       "event": "step.completed",
+      "delivery_id": "sess_abc123:step.completed:0",
+      "sent": "2026-07-13T12:01:30Z",
       "data": {
         "session_id": "sess_abc123",
         "client_reference_id": "order_4815",
         "stage": 0,
         "primitive": "age_verify",
-        "satisfied": true
+        "audit_id": "sess_abc123_0",
+        "satisfied": true,
+        "min_age": 21
       }
     }
     ```
@@ -102,9 +108,12 @@ This walks you from zero to a verified webhook in four steps. The example runs a
       const sig = req.headers["x-uip-signature"];
       const expected = crypto
         .createHmac("sha256", secret)
-        .update(`${ts}.${req.rawBody}`) // raw bytes, not re-serialized JSON
-        .digest("hex");
-      return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+        .update(`${ts}.`)
+        .update(req.rawBody) // raw bytes, not re-serialized JSON
+        .digest();
+      const provided = Buffer.from(sig ?? "", "hex");
+      return provided.length === expected.length &&
+        crypto.timingSafeEqual(provided, expected);
     }
     ```
     ```python Python
@@ -122,7 +131,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
 Real flows often need more than one verified action — for example, *identify the
 signer, then sign the contract*. List them in order; the user completes them in one
-session and you receive one webhook per step, in sequence.
+session and UIP creates one logical webhook per step. Use `stage` and the stable
+delivery id because retries can arrive late or out of order.
 
 ```json
 {
@@ -139,11 +149,21 @@ session and you receive one webhook per step, in sequence.
   [Create a session](/api-reference/sessions/create).
 </Note>
 
-## Test without a phone
+## Choose a test mode
 
-In development you can drive the full pipeline (verify → webhook) from the hosted
-page's **Simulate** button — no wallet required. Real wallet verification runs in
-both demo and production; see [Wallets](/core-concepts/wallets).
+- **Local development:** run the service with `ENVIRONMENT` unset and the web app in
+  its development build. The hosted page then exposes **Simulate**, and backend
+  issuer trust is relaxed. These results are for development only.
+- **Google Sandbox:** `ENVIRONMENT=SANDBOX` uses Google's published request signer,
+  RP metadata, Utopia ID Pass profile, and sandbox IACA. It runs the real encrypted
+  wallet path with strict sandbox issuer trust; install a Utopia test ID in Google
+  Wallet first.
+- **Production:** `ENVIRONMENT=PRODUCTION` accepts only ledger routes explicitly
+  promoted to live, with provider credentials and authenticated issuer roots for each
+  exact credential profile.
+
+The API and webhook contract are identical in all three modes. See
+[Wallets & environments](/core-concepts/wallets#environments).
 
 ## Next steps
 

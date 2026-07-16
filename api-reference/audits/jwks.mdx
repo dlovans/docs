@@ -1,0 +1,54 @@
+---
+title: "Audit public keys"
+description: "GET /.well-known/uip-audit-jwks.json"
+---
+
+<Note>
+  `GET https://api.uip.digital/.well-known/uip-audit-jwks.json` · Public · CORS-readable
+</Note>
+
+Returns UIP's current audit-signing public key and explicitly retained verification
+keys. Use the key whose `kid` exactly matches `uip_signature.kid` in the audit
+record. The endpoint is cacheable for five minutes; refresh it when a new `kid`
+appears.
+
+`uip_signature` is a detached audit field, not a JWS object. Its `value` is a
+base64url-encoded ASN.1 DER ECDSA signature over the 32-byte record digest.
+
+<ResponseField name="keys" type="object[]">
+  <Expandable title="EC signing key">
+    <ResponseField name="kty" type="string">`EC`.</ResponseField>
+    <ResponseField name="crv" type="string">`P-256`.</ResponseField>
+    <ResponseField name="alg" type="string">`ES256`.</ResponseField>
+    <ResponseField name="use" type="string">`sig`.</ResponseField>
+    <ResponseField name="kid" type="string">Exact Google Cloud KMS crypto-key-version resource recorded on audit signatures.</ResponseField>
+    <ResponseField name="x" type="string">Base64url P-256 X coordinate.</ResponseField>
+    <ResponseField name="y" type="string">Base64url P-256 Y coordinate.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 OK
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "crv": "P-256",
+      "alg": "ES256",
+      "use": "sig",
+      "kid": "projects/uip/locations/global/keyRings/audit/cryptoKeys/sign/cryptoKeyVersions/3",
+      "x": "...",
+      "y": "..."
+    }
+  ]
+}
+```
+</ResponseExample>
+
+The public key proves that the holder of UIP's configured signing key signed the
+canonical audit hash. It is separate from the symmetric key used to encrypt private
+data. The endpoint makes no claim about whether a particular deployed key version is
+software- or hardware-protected.
+
+See [Get an audit record](/api-reference/audits/get) and
+[offline verification](/core-concepts/verification#verify-a-record-offline).

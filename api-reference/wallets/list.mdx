@@ -8,17 +8,18 @@ description: "GET /v1/wallets"
 </Note>
 
 <Tip>
-  Calling from your backend? Use the authenticated
-  [`GET /v1/catalog`](/api-reference/catalog/get) instead — it returns the same
-  wallet capabilities plus `countries` and a `primitives` list. This unauthenticated
-  endpoint exists for UIP's own hosted page (the user's browser has no API key).
+  This is a legacy provider-capability projection. Use public
+  [`GET /v1/catalog`](/api-reference/catalog/get) for all new integrations; it adds
+  credential profiles, country routes, rollout state, and exact runtime availability.
 </Tip>
 
-Returns the live **wallet × primitive capability matrix** — every wallet UIP can
-verify and which primitives each supports. The booleans are derived from the active
-backend adapters, so the response is always the source of truth; never hard-code
-support. UIP also enforces this at session create (the chosen wallet must support
-every primitive in the session's `steps[]`).
+Returns the live **provider × primitive capability matrix** — every provider in this
+deployment's catalog, whether its adapter is active, and which primitives an active
+adapter supports. The booleans are derived from the backend registry, so the response
+is the capability source of truth, but it does not prove a country/profile route is
+available. Session create checks that every
+primitive is available somewhere; when the hosted flow selects a wallet, UIP checks
+that adapter against the **whole chain** before issuing the first wallet request.
 
 ## Response
 
@@ -27,7 +28,7 @@ every primitive in the session's `steps[]`).
     <ResponseField name="id" type="string">Stable wallet id, e.g. `apple-wallet`.</ResponseField>
     <ResponseField name="label" type="string">Display name, e.g. `Apple Wallet`.</ResponseField>
     <ResponseField name="available" type="boolean">
-      Whether an active adapter can verify this wallet today.
+      Whether this deployment registered an active adapter for the wallet.
     </ResponseField>
     <ResponseField name="primitives" type="object">
       Per-primitive support booleans (`identify`, `age_verify`, `sign`,
@@ -57,4 +58,7 @@ every primitive in the session's `steps[]`).
 ```
 </ResponseExample>
 
-See [Wallets & coverage](/core-concepts/wallets) for context.
+The example shows provider adapters, not launch claims. In `SANDBOX`, the provider
+filter is Google-only and `/v1/catalog` exposes Utopia as the sole available route.
+
+See [Credential routes & coverage](/core-concepts/wallets) for context.

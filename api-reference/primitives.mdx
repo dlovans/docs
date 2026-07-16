@@ -8,17 +8,17 @@ A **primitive** is one verification verb. Every step in a session's
 `params`. This is the per-primitive parameter reference; for the design philosophy see
 [Primitives](/core-concepts/primitives).
 
-Every primitive verifies against the government credential in the user's wallet. You're
-billed only for steps that **successfully verify**, and results arrive by
+Every wallet-backed completion verifies against the government credential in the
+user's wallet. You're billed only for steps that **successfully verify**, and results arrive by
 [webhook](/api-reference/webhooks) (one `step.completed` per step) — never in the create
 response.
 
 | Primitive | Verifies | Price |
 | --- | --- | --- |
-| [`identify`](#identify) | Government-attested identity attributes | $0.01 |
-| [`age_verify`](#age-verify) | An age threshold, without revealing the birth date | $0.01 |
-| [`light_sign`](#light-sign) | A signature over short inline terms | $0.02 |
-| [`sign`](#sign) | A signature over one or more uploaded documents | $0.03 |
+| [`identify`](#identify) | Government-attested identity attributes | $0.10 |
+| [`age_verify`](#age-verify) | An age threshold, without revealing the birth date | $0.05 |
+| [`light_sign`](#light-sign) | A signature over short inline terms | $0.15 |
+| [`sign`](#sign) | A signature over one or more uploaded documents | $0.30 |
 
 ---
 
@@ -32,8 +32,8 @@ upload, no OCR.
 
 <ParamField body="blocks" type="string[]">
   The attributes to request. **Omit** to request the default set (`first_name`,
-  `last_name`, `dob`, `country`). A block the credential lacks is returned as
-  `"unavailable"`/`null` rather than erroring.
+  `last_name`, `dob`, `country`). A requested block the credential does not
+  disclose is present with JSON `null` rather than failing the step.
 </ParamField>
 
 Supported blocks:
@@ -49,23 +49,23 @@ Supported blocks:
 | `issue_date` | Date the credential was issued |
 | `expiry_date` | Date the credential expires |
 | `issuing_authority` | Authority that issued the credential |
-| `country` | Issuing country (always `"US"`) |
+| `country` | Issuing country selected by the verified credential route; sandbox uses fictional test data |
 | `state` | Issuing jurisdiction, e.g. `US-CA` |
 | `address` | Residence address (nullable) |
 | `resident_state` | Residence state (nullable) |
 
 <Note>
-  `country` and `state` describe where the credential was **issued** (always US;
-  e.g. `US-CA`). `address` and `resident_state` describe the holder's **residence**.
-  Nullable fields (`gender`, `portrait`, `address`, `resident_state`) return
-  `null`/`unavailable` when the credential doesn't carry them.
+  `country` and `state` describe where the credential was **issued** (for example,
+  `US` and `US-CA`). `address` and `resident_state` describe the holder's **residence**.
+  Nullable fields (`gender`, `portrait`, `address`, `resident_state`) return `null`
+  when the credential does not disclose them.
 </Note>
 
 <Note>
   ISO mDL has no single full-name element — request `first_name` + `last_name` and
   compose. `full_name` and `personal_number` are intentionally unmapped for US mDL
   (no single full-name element; no national identification number) and return
-  `unavailable`.
+  `null`.
 </Note>
 
 ### Result
@@ -84,7 +84,8 @@ Supported blocks:
 
 Proves the holder meets an age threshold **without disclosing their birth date**. UIP
 reads the DOB from the verified credential, computes `age ≥ min_age`, and returns only the
-boolean. The full identity is sealed in the audit (flagged redacted) and never sent to you.
+boolean. The signer claims and wallet evidence are sealed in the audit (flagged redacted)
+and never sent to you.
 
 ### Params
 
@@ -104,10 +105,13 @@ boolean. The full identity is sealed in the audit (flagged redacted) and never s
 
 ## sign
 
-Produces a government-attested signature over one or more documents you upload. UIP hashes
-each file **server-side** (you never supply a hash — WYSIWYS), and the wallet signs the
-manifest. The durable proof (hash + signature) lives in the audit; the uploaded file bytes
-are retained briefly, then purged after the session ends.
+Produces a wallet-device signature bound to a government-attested signer identity
+and one or more documents you upload. UIP hashes each file **server-side** (you never
+supply a hash — WYSIWYS), and the wallet signs the manifest. On successful
+verification, the result, audit, charge, and retention promotion commit atomically.
+The exact original files become immutable evidence: they are not customer-deletable
+or time-purged. Only an upload that never joined a completed sign result remains
+transient and cleanup-eligible.
 
 Because it carries files, a session containing a `sign` step must be created as
 **`multipart/form-data`**: a `steps` JSON part plus one file part per document. **The file
@@ -117,14 +121,21 @@ field name is the document id** the step references.
 
 <ParamField body="document_ids" type="string[]" required>
   The ids of the documents to sign. Each must match a multipart **file field name** in
-  the same request. 1–50 ids; combined upload ≤ 50&nbsp;MiB.
+  the same request. 1–50 ids; combined upload ≤ 50&nbsp;MiB. Use opaque, non-PII
+  ids because the ordered ids become part of the immutable cleartext audit proof.
 </ParamField>
 
 ### Result
 
-`document_hash` (the signed manifest digest) + `signature`. For a multi-file sign, the
-audit also keeps a per-file `{ id, hash }` manifest, so any single file stays provable
-after the bytes are purged.
+`document_hash` (the signed manifest digest) + `signature` + the default signer
+`claims`. For a multi-file sign, the audit also keeps a per-file `{ id, hash }`
+manifest, so any single file stays provable against its retained original.
+
+<Note>
+  Evidence retention is not a customer document-storage API. Keep your own originals;
+  the business API returns hashes, signatures, results, and audit disclosures, not
+  document-download endpoints.
+</Note>
 
 ```bash multipart
 curl https://api.uip.digital/v1/sessions \
@@ -138,20 +149,26 @@ curl https://api.uip.digital/v1/sessions \
 ## light_sign
 
 A lightweight signature over **short inline terms** — no file upload. Use it for consent,
-terms acceptance, or a disclosure you want to prove later. The exact terms text is retained
-in the audit (it's your content, not user PII), so "they signed THESE terms" needs nothing
-else.
+terms acceptance, or a disclosure for which you want retained evidence. The canonical
+terms text is retained in the audit, so the signed text stays self-contained.
 
 ### Params
 
 <ParamField body="terms" type="string" required>
-  The exact terms to sign. Up to **1000 words** (~5 minutes of reading); shown to the user
-  verbatim on the hosted page.
+  The terms to sign. Up to **1000 words** (~5 minutes of reading). UIP normalizes
+  line endings, then shows and hashes that same canonical text.
 </ParamField>
 
 ### Result
 
-`document_hash` (hash of the canonicalized terms) + `signature`.
+`document_hash` (hash of the canonicalized terms) + `signature` + the default signer
+`claims`.
+
+<Warning>
+  Canonical terms are visible to the capability-URL holder and retained in cleartext
+  in the immutable audit proof. Do not put secrets, payment credentials, or
+  unnecessary personal data in `terms`.
+</Warning>
 
 ```json step
 { "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }

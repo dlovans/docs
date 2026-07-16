@@ -1,81 +1,91 @@
 ---
-title: "Wallets & coverage"
-description: "Which wallets complete a session today, and how the wallet flow works."
+title: "Credential routes & coverage"
+description: "How countries, credential profiles, and wallet providers fit together."
 ---
 
-The user's credential lives in a **digital wallet**. Today that credential is the
-**US mobile driver's license**, presented from Apple Wallet (Safari) or Google Wallet
-(Chrome). UIP builds the request, the wallet presents the credential, and UIP verifies
-the signed response. What primitives a given wallet can fulfill is exposed live by the API.
+UIP treats a credential route as three separate facts:
 
-## Live today
+1. **Jurisdiction** — the issuing country or test jurisdiction.
+2. **Credential profile** — the signed format, doctype/namespace, claims, and issuer trust policy.
+3. **Presentation provider** — the wallet rail that carries the credential to the browser.
 
-<CardGroup cols={2}>
-  <Card title="Apple Wallet" icon="apple">
-    US mobile driver's license (mDL), over the W3C Digital Credentials API in Safari.
-  </Card>
-  <Card title="Google Wallet" icon="google">
-    US mobile driver's license (mDL), over the W3C Digital Credentials API in Chrome.
-  </Card>
-</CardGroup>
+A country can expose several profiles/providers, and a provider can carry credentials
+from several countries. UIP validates the exact tuple server-side and locks it for the
+whole session. The provider brand is never used as a substitute for issuer trust.
 
-Both present the **same ISO/IEC 18013-5 mobile document**, so UIP verifies them
-identically. Today's coverage is **United States** mDL; both wallets support every
-primitive (`identify`, `age_verify`, `sign`, `light_sign`).
+<Warning>
+  Google Utopia is the active private-beta sandbox route. A route marked
+  `coming_soon` is discoverable, not usable or promised live.
+</Warning>
+
+## Canonical ledger
+
+The public [`GET /v1/catalog`](/api-reference/catalog/get) is the runtime authority.
+It currently tracks:
+
+- **Google Wallet:** US mDL; US/Brazil/Singapore/Taiwan/UK Google ID Pass; India Aadhaar.
+- **Apple Wallet:** participating US state IDs, US passport-derived Digital ID, and Japan My Number Card.
+- **EUDI Wallets:** EU Person Identification Data routes for all 27 EU Member States, with gradual rollout.
+- **Google Sandbox:** fictional Utopia ID Pass.
+
+Production routes remain `coming_soon` until UIP has the exact provider/issuer approval,
+trust material, browser path, claim mapping, and real-presentation acceptance evidence.
+US state mDL routes are marked `partial`; country support never implies every issuer or
+every resident has an accepted credential.
 
 ## How the wallet flow works
 
-UIP uses the **W3C Digital Credentials API** (`DC_API`): the browser, not UIP, talks
-to the wallet on the device.
+UIP's implemented presentation rail uses the **W3C Digital Credentials API**. The
+browser, not your application, talks to the wallet.
 
 <Steps>
+  <Step title="Resolve">
+    UIP's hosted page reads the public catalog and offers only routes whose exact
+    `available` value is true and whose provider can complete every session step.
+  </Step>
   <Step title="Request">
-    UIP builds an OpenID4VP request (which fields, a per-request encryption key, a
-    fresh nonce) and the hosted page hands it to `navigator.credentials.get()`.
+    The server resolves the selected country/profile/provider tuple, pins it to the
+    session, and builds a credential request with a fresh nonce, origin binding, and
+    per-request response-encryption key.
   </Step>
   <Step title="Present">
-    The user approves in their wallet. The wallet returns an **encrypted, signed**
-    response to the page, which relays it to UIP.
+    The user approves in their wallet. The wallet returns an encrypted, signed response
+    to the hosted page, which relays it to UIP.
   </Step>
   <Step title="Verify">
-    UIP decrypts it server-side and [verifies it
-    cryptographically](/core-concepts/verification) before emitting your webhook.
+    UIP decrypts the response and verifies the profile's doctype, issuer chain, signed
+    claims, device signature, nonce/transcript, validity, and disclosure allow-list.
   </Step>
 </Steps>
 
-Because it's the browser's native wallet flow, there's no app to install and the
-same-device vs cross-device choice is handled for you by the browser's native flow.
+Your application hands over only the hosted session URL. It does not call the hosted
+page's internal request/response routes or implement wallet polling.
 
-## The capability matrix
+## Environments
 
-Never hard-code which wallet supports which primitive — read it at runtime. From your
-backend, call the authenticated [`GET /v1/catalog`](/api-reference/catalog/get), which
-returns wallet capabilities plus the primitives the platform supports.
-The hosted page uses the public, no-auth [`GET /v1/wallets`](/api-reference/wallets/list)
-(the user's browser has no API key). Both derive the per-primitive booleans from the
-live adapters, so they can't drift from reality.
+<AccordionGroup>
+  <Accordion title="Development (ENVIRONMENT unset)">
+    Local synthetic fixtures may bypass the public ledger for service tests. The
+    catalog itself never marks a `coming_soon` route available; its real Utopia
+    sandbox route remains usable for end-to-end development.
+  </Accordion>
+  <Accordion title="Google Sandbox (ENVIRONMENT=SANDBOX)">
+    Exactly one route is available: `UT / utopia-id-pass / google-wallet`. UIP uses
+    Google's published sandbox request signer, RP metadata, Utopia IACA, signed
+    OpenID4VP request, encrypted response, and strict issuer/device verification.
+    Production signer/root material must be absent.
+  </Accordion>
+  <Accordion title="Production (ENVIRONMENT=PRODUCTION)">
+    Only ledger routes explicitly promoted to `live` can become available. The
+    deployment must also enable the provider, register its adapter, supply its request
+    credentials, and load authenticated trust roots for the exact credential profile.
+    Missing security dependencies fail boot; missing route approval remains unavailable.
+  </Accordion>
+</AccordionGroup>
 
-```json
-{
-  "wallets": [
-    {
-      "id": "apple-wallet",
-      "label": "Apple Wallet",
-      "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
-    },
-    {
-      "id": "google-wallet",
-      "label": "Google Wallet",
-      "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
-    }
-  ]
-}
-```
+## Capability versus route availability
 
-When you create a session, UIP enforces that the user's chosen wallet supports the
-**whole chain** before any step runs — so a user is never sent into a flow their
-wallet can't finish, and you're never billed for a half-completable chain. A wallet
-listed but without an active adapter returns a clear "not yet available" rather than
-a broken flow.
+Provider capability answers “can this adapter implement `sign`?” Route availability
+answers “may this exact country/profile/provider tuple start here?” Both must be true.
+The legacy public [`GET /v1/wallets`](/api-reference/wallets/list) exposes the first;
+new integrations should use `/v1/catalog`, which includes both.

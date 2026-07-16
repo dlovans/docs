@@ -19,7 +19,8 @@ verified step. A webhook URL must be configured for your business first.
 
 <ParamField header="Idempotency-Key" type="string">
   Optional. A repeat create with the same key returns the original session instead of
-  creating a duplicate.
+  creating a duplicate. Reuse does not compare payloads; use a new key for a different
+  logical session.
 </ParamField>
 
 ## Body
@@ -45,12 +46,13 @@ verified step. A webhook URL must be configured for your business first.
 </ParamField>
 
 <ParamField body="client_reference_id" type="string">
-  Your own identifier, echoed on every webhook and stamped into the audit record.
+  Your own identifier (up to 200 characters), echoed on every webhook and stamped
+  into the audit record.
 </ParamField>
 
 <ParamField body="metadata" type="object">
-  Up to 50 string-valued keys. Operational only (webhooks + reads); never shown to
-  the user.
+  Up to 50 string-valued keys (key up to 40 characters, value up to 500).
+  Operational only (webhooks + reads); never shown to the user.
 </ParamField>
 
 <ParamField body="return_url" type="string">
@@ -62,12 +64,20 @@ verified step. A webhook URL must be configured for your business first.
   Session TTL in seconds (60–86400). Defaults to the standard cap.
 </ParamField>
 
+<Warning>
+  Keep `client_reference_id` non-PII: it is cleartext, stamped into every immutable
+  audit record, and retained with the evidence. `metadata` is encrypted operational
+  session data and echoed to your webhook, but it is not a secret store. Do not put
+  credentials, payment data, or unnecessary personal data in either field.
+</Warning>
+
 ## Response
 
 <ResponseField name="id" type="string">The session id, e.g. `sess_abc123`.</ResponseField>
 <ResponseField name="status" type="string">`created`.</ResponseField>
 <ResponseField name="url" type="string">The hosted page URL to hand the user.</ResponseField>
 <ResponseField name="expires" type="string">ISO 8601 expiry timestamp.</ResponseField>
+<ResponseField name="client_reference_id" type="string">Present when supplied in the request.</ResponseField>
 
 <RequestExample>
 ```bash identify + age_verify (JSON)
@@ -104,6 +114,6 @@ curl https://api.uip.digital/v1/sessions \
 
 ## Errors
 
-`400` invalid `steps[]` / unknown primitive / bad params · `401` bad key ·
-`402` insufficient balance · `422` no webhook configured · `409` idempotency
-conflict. See [Errors](/api-reference/errors).
+`400` invalid `steps[]` / unknown primitive / bad params · `401` bad key or
+archived/frozen business · `402` insufficient balance · `422` no webhook
+configured. See [Errors](/api-reference/errors).

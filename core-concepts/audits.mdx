@@ -3,9 +3,10 @@ title: "Audits & disclosure"
 description: "The audit id, the two disclosure tiers, and how to retrieve a record."
 ---
 
-Every successfully verified step writes an **immutable, hash-chained, timestamped**
-audit record — the durable proof that makes a UIP result legally meaningful. How that
-record is built (the chain, the RFC 3161 timestamp, the sealed identity) is covered in
+Every successfully verified step writes an **immutable, hash-chained** audit record.
+Sandbox and production records are also publicly signed; when trusted timestamping
+is enabled, the RFC 3161 outcome is explicit. The record preserves the material
+needed to verify the wallet proof at the applicable disclosure tier. How it is built is covered in
 [Verification & trust](/core-concepts/verification#audit-ledger). This page is about
 **getting at it**: the id, who can see what, and the lawful path to the full record.
 
@@ -17,63 +18,81 @@ Each record has a stable id of the form `{session_id}_{stage}` — e.g.
 - On every [`step.completed`](/api-reference/webhooks#step-completed) webhook, as `audit_id`.
 - On every result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 
-Store it (or your own `client_reference_id`) and you can pull the proof back on demand.
+Persist the `audit_id` alongside your own `client_reference_id` so you can pull the
+record back on demand.
 
 ## Two tiers of disclosure
 
 The same record is disclosed at **two very different levels**, by design.
 
 <CardGroup cols={2}>
-  <Card title="Developer — redacted" icon="code">
-    What you, the verifying business, can fetch with your API key. The cryptographic
-    proof, trusted timestamp, and hash-chain position — but the signer's **identity
-    stays sealed**. `age_verify` is the boolean, never the birth date.
+  <Card title="Business — authorized" icon="code">
+    What the owning business can fetch with its API key: the proof, chain, timestamp
+    status, UIP signature, and encrypted blocks needed to reproduce the record hash.
+    `identify`, `sign`, and `light_sign` also disclose their signer and any captured
+    wallet evidence. `age_verify` remains redacted to its boolean and threshold.
   </Card>
   <Card title="Legal — full" icon="scale-balanced">
-    The complete, **decrypted** record, including the signer's attested identity.
-    Disclosed only through a lawful request tied to a proceeding — never over the API.
+    The complete, **decrypted** record, including signer and wallet evidence for an
+    `age_verify` step. It is reached only through UIP's internal, role-gated legal
+    workflow after review — not with a customer API key.
   </Card>
 </CardGroup>
 
-This split is deliberate: businesses get everything they need to **prove an event
-happened and wasn't tampered with**, without UIP handing back a copy of the user's
-identity on every read. The identity is sealed at rest and only ever surfaced through
-the legal channel below.
+This split is deliberate. A business can re-verify the wallet material for ordinary
+disclosures and signatures. An age check stays anonymous to that business because its
+DeviceResponse includes the identity used to compute the threshold. All sensitive
+blocks remain encrypted at rest.
 
-## Fetch the redacted record
+## Fetch the business record
 
-Call [`GET /v1/audits/{id}`](/api-reference/audits/get) with your API key. It returns
-the proof, timestamp, and chain position, scoped to your business (a record you don't
-own returns `404`).
+Call [`GET /v1/audits/{id}`](/api-reference/audits/get) with your API key. It is
+scoped to your active business. The response includes the canonical hash context,
+timestamp status/token, and sealed ciphertext; sandbox/production records also carry
+`uip_signature`. For non-age primitives it includes decrypted `signer` and, for a
+wallet-backed completion, `wallet_evidence`.
 
 <Note>
-  For `identify`, the cleartext claims arrived on the `step.completed` webhook — the
-  audit keeps a `claims_digest` (a hash commitment), not a second copy. Keep the
-  webhook payload alongside the digest and you can prove the two match.
+  `proof.claims_digest` commits an `identify` record to the requested claims. The
+  returned `signer` lets you recompute that digest. For `sign` and `light_sign`, use
+  `wallet_evidence` with the offline verifier to re-run the ISO mdoc proof instead of
+  treating the compact `proof.signature` string as sufficient on its own.
 </Note>
+
+## Immutability and retention
+
+Completed results are not customer-deletable. Neither account closure nor a
+self-service request can alter or remove a result, original completed-sign document,
+signature, audit row, encrypted evidence, or hash-chain link. Only artifacts
+explicitly classified as transient because no sign result completed may enter
+scheduled cleanup. The contractual evidence period and legal-hold process must be set
+in the signed customer schedule before production use; expiry of a minimum period is
+not an automatic deletion right.
 
 ## Legal requests
 
 When a court order, subpoena, or other lawful proceeding requires the **full,
 decrypted** record — the attested identity behind a verification — that disclosure
-runs through a dedicated, human-reviewed channel, never the API.
+runs through a dedicated, human-reviewed channel, never a customer-facing API.
 
 <Steps>
   <Step title="Submit a request">
-    Counsel files the request at [uip.digital/legal](https://uip.digital/legal) with
+    The requester files at [uip.digital/legal](https://uip.digital/legal) with
     the audit id(s), the matter reference, and the legal basis for disclosure.
   </Step>
   <Step title="Review">
-    UIP's legally-authorized staff review the request against the proceeding.
+    UIP's authorized staff review the request against the proceeding.
     Submitting a request does not by itself compel disclosure.
   </Step>
   <Step title="Disclosure">
-    On approval, the full decrypted record is delivered to the requester by email.
+    Authorized staff fetch the decrypted record for review, compose the approved
+    disclosure, and send the response by email. The decrypted record is not persisted
+    in the admin console.
   </Step>
 </Steps>
 
 <Tip>
-  As the verifying business you never have to hold your users' identities to stay
-  compliant — UIP retains the sealed record and discloses it lawfully on request, so
-  the liability of storing identity documents doesn't land on you.
+  A legal request does not guarantee disclosure or any legal outcome. UIP reviews
+  the requester's asserted identity, authority, and basis, then records the decision.
+  Customers remain responsible for their own copies, notices, and legal obligations.
 </Tip>

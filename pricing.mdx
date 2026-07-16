@@ -1,6 +1,6 @@
 ---
 title: "Pricing"
-description: "Usage-based, per-successful-step. No subscriptions, no minimums."
+description: "Usage-based, per-successful-step. No subscription."
 ---
 
 UIP is **pay-as-you-go**. You're charged per **successfully verified step** — never
@@ -9,48 +9,45 @@ is the product; if a step doesn't produce a verified result, it isn't billed.
 
 ## Per-primitive prices
 
-| Primitive | Price | What it verifies |
-| --- | --- | --- |
-| `identify` | **$0.01** | Government-attested identity fields you request |
-| `age_verify` | **$0.01** | An anonymous age-threshold boolean |
-| `light_sign` | **$0.02** | A device signature over inline terms text |
-| `sign` | **$0.03** | A device signature over one or more documents |
+| Primitive | Price | Wallet units | What it verifies |
+| --- | --- | --- | --- |
+| `identify` | **$0.10** | 1,000 | Government-attested identity fields you request |
+| `age_verify` | **$0.05** | 500 | An age-threshold boolean; identity withheld from the business |
+| `light_sign` | **$0.15** | 1,500 | A device signature over inline terms text |
+| `sign` | **$0.30** | 3,000 | A device signature over one or more documents |
 
 <Note>
   A multi-step session is billed per step: an `identify` + `sign` session that
-  completes both steps costs $0.01 + $0.03 = **$0.04**. If the user stops after the
-  first step, you're billed only **$0.01**.
+  completes both steps costs $0.10 + $0.30 = **$0.40**. If the user stops after the
+  first step, you're billed only **$0.10**.
 </Note>
-
-<Card title="$20 launch credit" icon="gift">
-  Every new account starts with **$20** in credit — enough for ~2,000 identity
-  checks or ~666 document signatures while you build.
-</Card>
 
 ## How billing works
 
 <Steps>
   <Step title="Top up your balance">
-    Add funds to your business wallet from the dashboard (card payment). Your balance
-    is held in **wallet units** — `1 USD = 10,000` units — so sub-cent prices are
-    exact.
+    Add at least **$5** manually from Billing through embedded Stripe Checkout.
+    Applicable Stripe Tax is added above the selected wallet credit, never deducted
+    from it. The payment and its Stripe identifiers are recorded in the billing ledger.
+    Your balance is held in **wallet units** — `1 USD = 10,000` units.
   </Step>
   <Step title="Spend per verified step">
     Each step that verifies successfully deducts its price from your balance, charged
-    the moment the result is durably recorded. A failed verification charges nothing.
+    in the same atomic commit as the result and audit record. A failed verification
+    charges nothing.
   </Step>
   <Step title="Stay within your floor">
     Self-serve accounts can dip into a small overdraft buffer so a momentary low
-    balance never blocks a paying user; a session is cut off once you cross the floor.
-    Top up to resume.
+    balance does not immediately block a paying user. Once the buffer is exhausted,
+    UIP refuses additional paid progress; top up promptly.
   </Step>
 </Steps>
 
 ## Enterprise
 
 Need volume pricing, invoicing, or a credit line instead of prepaid balance?
-Enterprise accounts run on an admin-set **credit limit** and are never interrupted
-mid-session. <a href="mailto:support@uip.digital">Talk to us</a>.
+Enterprise accounts can run on an admin-set **credit limit** instead of the fixed
+self-serve buffer. <a href="mailto:support@uip.digital">Talk to us</a>.
 
 ## FAQ
 
@@ -62,8 +59,13 @@ mid-session. <a href="mailto:support@uip.digital">Talk to us</a>.
   <Accordion title="Is there a subscription or minimum?">
     No subscription, no monthly minimum. You pay only for verified steps.
   </Accordion>
-  <Accordion title="Do prices differ by wallet (Apple vs Google)?">
-    No. Pricing is per primitive, not per wallet — an `identify` step costs $0.01
-    whether the user presents from Apple Wallet or Google Wallet.
+  <Accordion title="Do prices differ by credential route?">
+    No. Pricing is per primitive, not per country, credential, or wallet provider —
+    an `identify` step costs $0.10 on every available route.
+  </Accordion>
+  <Accordion title="What happens after a refund or dispute?">
+    An actionable Stripe refund or dispute freezes new customer API activity while
+    UIP staff reconcile the corresponding wallet credit. Reconciliation never alters
+    completed session results, original signed documents, or audit evidence.
   </Accordion>
 </AccordionGroup>

@@ -3,7 +3,7 @@
   "theme": "mint",
   "name": "UIP Documentation",
   "colors": {
-    "primary": "#E34234",
+    "primary": "#B22F22",
     "light": "#F4604E",
     "dark": "#B22F22"
   },
@@ -62,7 +62,8 @@
           {
             "group": "Audits",
             "pages": [
-              "api-reference/audits/get"
+              "api-reference/audits/get",
+              "api-reference/audits/jwks"
             ]
           },
           {

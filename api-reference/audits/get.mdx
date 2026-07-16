@@ -7,71 +7,119 @@ description: "GET /v1/audits/{id}"
   `GET https://api.uip.digital/v1/audits/{id}` · Auth: `Bearer` API key
 </Note>
 
-Returns the **redacted** audit record for one verified step: the cryptographic proof,
-trusted timestamp, and hash-chain position. The signer's **identity stays sealed** —
-this endpoint never decrypts it (see [Audits](/core-concepts/audits) for the two
-disclosure tiers). Scoped to your business: a record belonging to another business —
-or one that doesn't exist — returns `404`.
+Returns the owning business's audit disclosure for one verified step. It includes
+the canonical record hash, per-session chain link, UIP public signature, RFC 3161
+status/token, primitive proof, and the encrypted blocks required to reproduce the
+hash. For `identify`, `sign`, and `light_sign`, it also decrypts `signer` and
+the available `wallet_evidence` so you can re-run wallet verification. A simulated
+development result has no wallet evidence. `age_verify` deliberately withholds both
+and returns only its boolean/threshold proof.
 
-The audit `id` is `{session_id}_{stage}`. You receive it on the
-[`step.completed`](/api-reference/webhooks#step-completed) webhook and on every result
-in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
+The audit id is `{session_id}_{stage}`. You receive it on the
+[`step.completed`](/api-reference/webhooks#step-completed) webhook and on every
+result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 
 ## Path parameters
 
 <ParamField path="id" type="string" required>
-  The audit id, e.g. `sess_abc123_0` (session id + `_` + zero-based stage).
+  The audit id, e.g. `sess_abc123_0`.
 </ParamField>
 
 ## Response
 
 <ResponseField name="id" type="string">The audit id.</ResponseField>
-<ResponseField name="session_id" type="string">The session this step belonged to.</ResponseField>
-<ResponseField name="stage" type="integer">Zero-based index of the step within the session.</ResponseField>
+<ResponseField name="session_id" type="string">The source session.</ResponseField>
+<ResponseField name="business_id" type="string">The owning business; part of the canonical hash/AAD context.</ResponseField>
+<ResponseField name="environment" type="string">Signed trust/data plane.</ResponseField>
+<ResponseField name="credential_profile" type="string">Signed credential trust profile id.</ResponseField>
+<ResponseField name="jurisdiction" type="string">Signed route jurisdiction; withheld from the business tier for `age_verify`.</ResponseField>
+<ResponseField name="stage" type="integer">Zero-based step position.</ResponseField>
 <ResponseField name="primitive" type="string">`identify` · `age_verify` · `sign` · `light_sign`.</ResponseField>
-<ResponseField name="wallet" type="string">The wallet that fulfilled the step.</ResponseField>
+<ResponseField name="wallet" type="string">The wallet adapter that fulfilled the step.</ResponseField>
+<ResponseField name="delivery_mode" type="string">The response transport, currently `DC_API`.</ResponseField>
 <ResponseField name="proof" type="object">
-  The cleartext cryptographic proof — PII-free by construction. Shape depends on the
-  primitive:
+  Cleartext, PII-minimized proof fields plus `evidence_digest` when wallet evidence
+  was captured.
   <Expandable title="proof by primitive">
-    <ResponseField name="claims_digest" type="string">`identify` — a hash commitment to the disclosed claims (the cleartext claims arrived by webhook; the ledger keeps only the digest).</ResponseField>
-    <ResponseField name="satisfied" type="boolean">`age_verify` — the threshold result.</ResponseField>
-    <ResponseField name="min_age" type="integer">`age_verify` — the threshold that was proven.</ResponseField>
-    <ResponseField name="document_hash" type="string">`sign`/`light_sign` — the hash the wallet signed.</ResponseField>
-    <ResponseField name="signature" type="string">`sign`/`light_sign` — the device signature.</ResponseField>
-    <ResponseField name="terms" type="string">`light_sign` — the exact terms text attested to.</ResponseField>
-    <ResponseField name="documents" type="object[]">`sign` — per-file `{ id, hash }` manifest, so any one file stays provable after the bytes are purged.</ResponseField>
+    <ResponseField name="claims_digest" type="string">`identify` — RFC 8785/SHA-256 commitment to the disclosed claims.</ResponseField>
+    <ResponseField name="satisfied" type="boolean">`age_verify` — threshold result.</ResponseField>
+    <ResponseField name="min_age" type="integer">`age_verify` — requested threshold.</ResponseField>
+    <ResponseField name="document_hash" type="string">`sign`/`light_sign` — signed manifest/terms digest.</ResponseField>
+    <ResponseField name="signature" type="string">`sign`/`light_sign` — compact DeviceAuth signature value. Verify it with `wallet_evidence`; it is not a standalone proof.</ResponseField>
+    <ResponseField name="terms" type="string">`light_sign` — exact canonical terms.</ResponseField>
+    <ResponseField name="documents" type="object[]">`sign` — ordered per-file `{ id, hash }` manifest.</ResponseField>
+    <ResponseField name="evidence_digest" type="string">Commitment to the complete wallet evidence object.</ResponseField>
   </Expandable>
 </ResponseField>
-<ResponseField name="record_hash" type="string">This record's content hash (`sha256:…`), the head of the chain link.</ResponseField>
-<ResponseField name="prev_hash" type="string">The previous stage's `record_hash` (or the genesis value for stage 0) — the per-session hash chain.</ResponseField>
-<ResponseField name="ts_token" type="string">RFC 3161 trusted-timestamp token, when a timestamping authority is configured.</ResponseField>
-<ResponseField name="occurred_at" type="string">ISO 8601 time the step verified.</ResponseField>
-<ResponseField name="client_reference_id" type="string">Your durable correlation key, if you set one at create.</ResponseField>
-<ResponseField name="business_redacted" type="boolean">`true` when the underlying identity was sealed (e.g. `age_verify`) — a flag, never the PII.</ResponseField>
+<ResponseField name="signer" type="object">Decrypted signer claims for non-age primitives only.</ResponseField>
+<ResponseField name="wallet_evidence" type="object">For wallet-backed non-age primitives, decrypted ISO mdoc verification material: exact DeviceResponse, transcript, nonce/content binding, origin, profile, and verification time.</ResponseField>
+<ResponseField name="signer_sealed" type="object">Encrypted signer block retained so an offline tool can reproduce `record_hash` without plaintext.</ResponseField>
+<ResponseField name="wallet_evidence_sealed" type="object">Encrypted wallet-evidence block retained for canonical hash reproduction.</ResponseField>
+<ResponseField name="prev_hash" type="string">Previous stage's `record_hash`, or `0x000` at stage 0.</ResponseField>
+<ResponseField name="record_hash" type="string">SHA-256 over the RFC 8785 canonical record content.</ResponseField>
+<ResponseField name="uip_signature" type="object">Sandbox/production only. UIP's P-256/SHA-256 signature over the record digest: `{ version, alg: "ES256", kid, issuer, signed, value }`. `value` is base64url ASN.1 DER ECDSA, not a compact JWS.</ResponseField>
+<ResponseField name="ts_status" type="string">Present when trusted timestamping is configured. Immutable synchronous outcome: `ok` when the initial RFC 3161 request returned a validated token; `deferred` when it failed. A recovered record keeps `deferred` and adds `ts_backfilled`.</ResponseField>
+<ResponseField name="ts_token" type="string">Base64 RFC 3161 token captured initially or merged after recovery.</ResponseField>
+<ResponseField name="ts_backfilled" type="boolean">`true` when a deferred token was recovered in the append-only timestamp collection.</ResponseField>
+<ResponseField name="occurred_at" type="string">ISO 8601 verification time.</ResponseField>
+<ResponseField name="client_reference_id" type="string">Your non-PII correlation key, if supplied; part of the immutable record.</ResponseField>
 
 <ResponseExample>
 ```json 200 OK
 {
   "id": "sess_abc123_0",
   "session_id": "sess_abc123",
+  "business_id": "biz_42",
+	"environment": "sandbox",
+	"credential_profile": "utopia-id-pass",
   "stage": 0,
   "primitive": "age_verify",
-  "wallet": "apple-wallet",
-  "proof": { "satisfied": true, "min_age": 21 },
-  "occurred_at": "2026-06-07T12:01:30.000000000Z",
-  "client_reference_id": "order_4815",
+  "wallet": "google-wallet",
+  "delivery_mode": "DC_API",
+  "proof": {
+    "satisfied": true,
+    "min_age": 21,
+    "evidence_digest": "sha256:3e8a..."
+  },
+  "signer_sealed": { "alg": "AES-256-GCM+GCPKMS", "key_id": "projects/.../cryptoKeyVersions/7", "aad_v": 1, "enc": "...", "dek": "..." },
+  "wallet_evidence_sealed": { "alg": "AES-256-GCM+GCPKMS", "key_id": "projects/.../cryptoKeyVersions/7", "aad_v": 1, "enc": "...", "dek": "..." },
+  "occurred_at": "2026-07-13T12:01:30.000000000Z",
   "prev_hash": "0x000",
   "record_hash": "sha256:9f86d081...",
-  "ts_token": "MIIE...",
-  "business_redacted": true
+  "uip_signature": {
+    "version": "uip-audit-signature/v1",
+    "alg": "ES256",
+    "kid": "projects/.../cryptoKeyVersions/3",
+    "issuer": "https://uip.digital",
+    "signed": "record_hash",
+    "value": "MEUCIQ..."
+  },
+  "ts_status": "ok",
+  "ts_token": "MIIE..."
 }
 ```
 </ResponseExample>
 
-`404` if the audit record doesn't exist or isn't owned by your business.
+`404` if the record doesn't exist or isn't owned by your business. An archived or
+billing-frozen business's API key is rejected during authentication (`401`).
+
+## Offline verification
+
+Download the public keys from
+`https://api.uip.digital/.well-known/uip-audit-jwks.json`, save this response, and use
+`cmd/verify-audit` from the `uipv2-services` source tree. It reproduces the record
+hash and verifies the required sandbox/production UIP signature; when
+`wallet_evidence` is present, it also re-runs the ISO mdoc proof against roots you
+supply. See
+[Verification & trust](/core-concepts/verification#verify-a-record-offline).
+
+<Warning>
+  Integrity verification does not by itself establish admissibility, legal effect,
+  or suitability for your transaction. Preserve the complete response and original
+  signed files, and obtain legal advice where needed.
+</Warning>
 
 <Note>
-  Need the **full, decrypted** record for a legal proceeding? That's a separate,
-  lawful channel — see [Audits → Legal requests](/core-concepts/audits#legal-requests).
+  Re-running the withheld `age_verify` wallet proof requires an approved legal-tier
+  disclosure. It is not available through a customer API key.
 </Note>

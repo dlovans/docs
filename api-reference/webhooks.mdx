@@ -18,11 +18,14 @@ delivery model and **signature verification**, see
 
 Every payload is `{ "event": "...", "data": { ... } }`, and `data` always echoes
 `session_id`, plus your `client_reference_id` and `metadata` when set.
+The body also includes `sent` (RFC 3339) and `delivery_id`, matching the delivery
+header. The compact examples below omit those two envelope fields.
 
 ## `step.completed`
 
-Fires once per step, in order, the moment it verifies. The result fields depend on
-the step's primitive.
+Created once logically for each step after it verifies. The result fields depend on
+the primitive. Use `stage` to order results: at-least-once retries mean webhook
+arrival order is not guaranteed.
 
 <CodeGroup>
 ```json identify
@@ -34,6 +37,9 @@ the step's primitive.
     "stage": 0,
     "primitive": "identify",
     "audit_id": "sess_abc123_0",
+	"country": "US",
+	"wallet": "google-wallet",
+	"credential_profile": "us-mdl",
     "claims": { "first_name": "Jane", "last_name": "Doe", "country": "US" }
   }
 }
@@ -59,6 +65,10 @@ the step's primitive.
     "stage": 1,
     "primitive": "sign",
     "audit_id": "sess_abc123_1",
+	"country": "US",
+	"wallet": "google-wallet",
+	"credential_profile": "us-mdl",
+    "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" },
     "signature": "mdoc:3045...",
     "document_hash": "sha256:9f86..."
   }
@@ -69,7 +79,10 @@ the step's primitive.
 <ResponseField name="stage" type="integer">Zero-based index of the completed step.</ResponseField>
 <ResponseField name="primitive" type="string">The step's primitive.</ResponseField>
 <ResponseField name="audit_id" type="string">Id of this step's audit record — fetch the proof via [`GET /v1/audits/{id}`](/api-reference/audits/get).</ResponseField>
-<ResponseField name="claims" type="object">`identify` only — the disclosed blocks.</ResponseField>
+<ResponseField name="country" type="string">Non-anonymous results — route jurisdiction.</ResponseField>
+<ResponseField name="wallet" type="string">Non-anonymous results — presentation provider id.</ResponseField>
+<ResponseField name="credential_profile" type="string">Non-anonymous results — verified credential profile id.</ResponseField>
+<ResponseField name="claims" type="object">`identify`, `sign`, and `light_sign` — disclosed identity blocks. Signing steps include the default signer fields.</ResponseField>
 <ResponseField name="satisfied" type="boolean">`age_verify` only — the threshold result. The birth date is never included.</ResponseField>
 <ResponseField name="min_age" type="integer">`age_verify` only — the threshold that was checked.</ResponseField>
 <ResponseField name="signature" type="string">`sign`/`light_sign` only — the device signature.</ResponseField>
@@ -85,7 +98,7 @@ All steps verified.
 
 ## `session.stopped`
 
-You ended the session at a gate via [stop](/api-reference/sessions/stop).
+You ended an active session via [stop](/api-reference/sessions/stop).
 
 ```json
 { "event": "session.stopped", "data": { "session_id": "sess_abc123", "status": "stopped" } }
@@ -103,7 +116,19 @@ A step failed verification, funds ran out, or an internal error occurred.
   e.g. a verification error message, `insufficient_funds`, or `internal_error`.
 </ResponseField>
 
+## `session.expired`
+
+A total or per-step deadline elapsed. Expiry is persisted before this event is
+enqueued, and the deterministic delivery id ensures it is announced at most once
+logically (transport retries remain at-least-once).
+
+```json
+{ "event": "session.expired", "data": { "session_id": "sess_abc123", "status": "expired" } }
+```
+
 <Warning>
   Always [verify the signature](/core-concepts/webhooks#verifying-signatures) over the
   raw body and dedupe on `X-UIP-Delivery-Id` before acting — delivery is at-least-once.
+  After eight failed attempts the delivery is dead-lettered; use a one-off session
+  GET for reconciliation rather than polling continuously.
 </Warning>

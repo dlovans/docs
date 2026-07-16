@@ -18,8 +18,9 @@ around it. This page covers the second.
     decrypt it. The hosted page relays ciphertext it cannot read.
   </Card>
   <Card title="PII sealed at rest" icon="vault">
-    Signer identity in the audit ledger is encrypted with envelope encryption
-    (KMS-backed in production).
+    Private session data, sign documents, webhook payloads, signer identity, and
+    wallet evidence use application-layer envelope encryption outside local
+    development. Ciphertext is bound to its object and purpose with AAD.
   </Card>
   <Card title="Signed webhooks" icon="webhook">
     Every delivery is HMAC-SHA256 signed; verify it before trusting a payload (see
@@ -36,15 +37,20 @@ around it. This page covers the second.
 - **Idempotency.** An `Idempotency-Key` on create makes retried creates safe; webhook
   `X-UIP-Delivery-Id` makes retried deliveries safe to dedupe.
 
-## Data minimization
+## Data handling & retention
 
-UIP is designed to hold as little as possible:
+UIP minimizes each disclosure, but it deliberately preserves completed evidence:
 
 - **Only what you request.** `identify` discloses exactly the blocks you ask for.
-- **`age_verify` reveals a boolean** — never the birth date — to you; the underlying
-  identity is sealed in the audit and flagged redacted.
-- **Documents are ephemeral.** `sign` file bytes are purged after the session ends;
-  only the hash + signature persist.
+- **`age_verify` reveals a boolean and threshold** to you, not the birth date; the
+  underlying identity is sealed in the audit and flagged redacted.
+- **Completed evidence is immutable.** A verified `sign` promotes its original file
+  bytes to retained evidence. The completed result, original, audit, signature, and
+  integrity links cannot be customer-deleted or time-purged.
+- **Transient artifacts are separate.** Only uploads explicitly marked transient
+  because no sign result completed may be removed by scheduled cleanup. Terminal
+  webhook-delivery copies expire after their operational window; they are not the
+  canonical result.
 - **No standing identity.** There's no UIP login the user maintains; each session is
   a fresh, consented disclosure from their wallet.
 
@@ -69,9 +75,18 @@ UIP is designed to hold as little as possible:
 ## Compliance posture
 
 - Tamper-evident, append-only [audit records](/core-concepts/verification#audit-ledger)
-  with independent (RFC 3161) timestamps — designed to be presentable as evidence.
-- Data-minimizing by construction (selective disclosure, anonymous age checks).
-- Government-issuer–anchored verification, not document scraping.
+  with sandbox/production UIP signatures and independently checkable RFC 3161 status
+  — designed to support evidentiary review, without promising admissibility or legal
+  effect.
+- Data-minimizing disclosure (selective fields; `age_verify` is anonymous to the
+  business, not to UIP).
+- Production government-issuer–anchored verification, not document scraping;
+  sandbox uses Google's fictional test issuer.
+
+The current managed deployment processes data in US regions, with global Google
+Cloud KMS key resources. Production contracts must state the retention period, legal-hold
+process, and any required transfer safeguards. Account closure starts a review; it
+does not erase completed evidence.
 
 <Note>
   Have a specific regulatory requirement (GDPR data-processing terms, retention,

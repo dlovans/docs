@@ -3,18 +3,20 @@ title: "Webhooks"
 description: "How results reach you — delivery guarantees, signing, and verification."
 ---
 
-Results are delivered **only by webhook**. There's no polling for outcomes: when a
-step verifies or a session concludes, UIP `POST`s a signed event to your configured
-URL. Set the URL in your dashboard before creating sessions.
+Webhooks are the primary result-delivery channel: when a step verifies or a session
+concludes, UIP `POST`s a signed event to your configured URL. There is no supported
+polling loop. If a delivery is missed or dead-lettered, reconcile once with
+[`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 
 ## Events
 
 | Event | When | Key payload |
 | --- | --- | --- |
-| `step.completed` | A step verified successfully | `stage`, `primitive`, and `claims` / `satisfied` / `signature` |
+| `step.completed` | A step verified successfully | `stage`, `primitive`, route provenance for non-anonymous results, and `claims` / `satisfied` / `signature` |
 | `session.completed` | All steps done | `session_id`, `status` |
-| `session.stopped` | You ended it at a gate | `session_id`, `reason` |
+| `session.stopped` | You ended the active session | `session_id`, `status` |
 | `session.failed` | A step failed, funds ran out, or an internal error | `session_id`, `reason` |
+| `session.expired` | A session/step deadline elapsed | `session_id`, `status` |
 
 Every delivery also echoes your `client_reference_id` and any `metadata`. See
 [the event reference](/api-reference/webhooks) for full payloads.
@@ -22,21 +24,23 @@ Every delivery also echoes your `client_reference_id` and any `metadata`. See
 ## Delivery guarantees
 
 <CardGroup cols={2}>
-  <Card title="Ordered per step" icon="list-ol">
-    `step.completed` fires in step order (`stage` 0, 1, 2…), followed by the terminal
-    `session.*` event.
+  <Card title="Stage-numbered" icon="list-ol">
+    Events are created in state order and every step carries `stage` 0, 1, 2… .
+    Network retries mean arrival order is not guaranteed; process by stage and make
+    terminal handling tolerant of a late step delivery.
   </Card>
   <Card title="At-least-once" icon="rotate">
-    Delivery is retried with backoff until it succeeds. Each event has a stable
-    `X-UIP-Delivery-Id` — **dedupe on it** so a retry is harmless.
+    Delivery gets up to eight attempts with persisted exponential backoff, then
+    becomes `failed`. Each event has a stable `X-UIP-Delivery-Id` — **dedupe on it**
+    so a retry is harmless.
   </Card>
   <Card title="Off the request path" icon="bolt">
     Webhooks are queued and sent out-of-band, so a slow endpoint never blocks
     verification — but it does delay your delivery.
   </Card>
   <Card title="Fired after the result is durable" icon="database">
-    An event is only sent once the verified result + audit record are committed, so a
-    webhook you receive always reflects persisted state.
+    A step event is sent only after result, audit, applicable usage charge, and any
+    document-evidence promotion commit, so a webhook always reflects persisted state.
   </Card>
 </CardGroup>
 
@@ -68,12 +72,14 @@ app.post("/uip-webhook", (req, res) => {
   const sig = req.get("X-UIP-Signature");
   const expected = crypto
     .createHmac("sha256", process.env.UIP_WEBHOOK_SECRET)
-    .update(`${ts}.${req.body}`) // req.body is a Buffer (raw)
-    .digest("hex");
+    .update(`${ts}.`)
+    .update(req.body) // req.body is the raw Buffer
+    .digest();
+  const provided = Buffer.from(sig ?? "", "hex");
 
   const ok =
-    sig &&
-    crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    provided.length === expected.length &&
+    crypto.timingSafeEqual(provided, expected);
   if (!ok) return res.sendStatus(401);
 
   // Optional: reject stale timestamps to limit replay windows.
@@ -108,5 +114,7 @@ def uip_webhook():
 
 ## Rotating the secret
 
-Generate or rotate your webhook secret from the dashboard. Signatures are computed
-with the secret snapshotted at delivery time, so rotate, then update your verifier.
+Generate or rotate your webhook secret from the dashboard. A session snapshots its
+webhook URL and secret when the session is created, and its queued deliveries keep
+that snapshot. During rotation, accept the old and new secret until in-flight
+sessions and retries have drained, then retire the old one.

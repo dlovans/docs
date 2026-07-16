@@ -19,8 +19,10 @@ checked the `identify` claims against your records.
 ## Behavior
 
 - Valid only when the session is `awaiting_decision`; otherwise returns an error.
-- If the gated step was the last remaining step, the session moves to `completed`;
-  the matching `session.completed` webhook fires.
+- The deadline is checked first. A due session is persisted as `expired`, emits
+  `session.expired`, and returns that terminal projection without advancing.
+- A final step cannot be gated, so a successful continue always advances to a later
+  step.
 - Owner-only: the API key's business must own the session.
 
 <ResponseExample>
@@ -30,10 +32,14 @@ checked the `identify` claims against your records.
   "status": "in_progress",
   "current_step": 1,
   "step_count": 2,
-  "current_primitive": "sign"
+  "results": [
+    { "step": 0, "primitive": "identify", "audit_id": "sess_abc123_0", "claims": { "first_name": "Ada" }, "verified_at": "2026-07-13T12:01:30Z" }
+  ],
+  "outcome": "",
+  "updated_at": "2026-07-13T12:02:00Z"
 }
 ```
 </ResponseExample>
 
-`404` unknown/foreign session · `409`/`400` if the session isn't at a gate. See
+`404` unknown session · `403` foreign session · `409` if the session isn't at a gate. See
 [Errors](/api-reference/errors).

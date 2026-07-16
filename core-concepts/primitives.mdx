@@ -4,12 +4,13 @@ description: "The verified actions you compose — identify, age_verify, sign, l
 ---
 
 A **primitive** is one verified action against the user's wallet credential. Each
-step in a session names a primitive and its `params`. UIP builds the right wallet
-request, verifies the signed response, and returns a normalized result.
+step in a session names a primitive and its `params`. In a wallet-backed completion,
+UIP builds the request, verifies the signed response, and returns a normalized
+result.
 
 <CardGroup cols={2}>
   <Card title="identify" icon="id-card" href="#identify">Disclose attested fields</Card>
-  <Card title="age_verify" icon="user-shield" href="#age_verify">Anonymous age threshold</Card>
+  <Card title="age_verify" icon="user-shield" href="#age_verify">Business-redacted age threshold</Card>
   <Card title="sign" icon="signature" href="#sign">Sign documents</Card>
   <Card title="light_sign" icon="file-signature" href="#light_sign">Sign inline terms</Card>
 </CardGroup>
@@ -38,19 +39,20 @@ what you need; the user consents to exactly that.
 | `issue_date` | Issue date (`YYYY-MM-DD`) |
 | `expiry_date` | Expiry date (`YYYY-MM-DD`) |
 | `issuing_authority` | Issuing authority |
-| `country` | Issuing country (always `"US"`) |
+| `country` | Issuing country selected by the verified credential route |
 | `state` | Issuing jurisdiction (e.g. `US-CA`) |
 | `address` | Residence address |
 | `resident_state` | Residence state |
 
 If `blocks` is omitted, UIP requests a sensible default (`first_name`,
 `last_name`, `dob`, `country`). A requested block the credential doesn't carry
-comes back as `"unavailable"` rather than failing the step.
+comes back as JSON `null` rather than failing the step.
 
 <Note>
-  v2 covers the US mDL only, so `country` is always `"US"`. `personal_number` and
-  `full_name` are intentionally unmapped (they return null) — the US mDL carries no
-  national ID number and no single full-name element.
+  `country` is the issuing jurisdiction, not residence. A route profile supplies its
+  fixed jurisdiction only when the verified credential omits `issuing_country`.
+  Google Sandbox uses fictional Utopia data. Claim availability remains profile-
+  specific; a requested block not carried by that profile returns `null`.
 </Note>
 
 **Result** (`step.completed` → `data.claims`):
@@ -65,7 +67,8 @@ comes back as `"unavailable"` rather than failing the step.
 
 Prove the holder meets an age threshold **without disclosing their birth date**.
 UIP reads the date from the credential, computes the result, and returns only the
-boolean. The birth date never reaches your webhook.
+boolean verdict plus the requested threshold. The birth date never reaches your
+age-result webhook.
 
 ```json
 { "primitive": "age_verify", "params": { "min_age": 21 } }
@@ -73,16 +76,17 @@ boolean. The birth date never reaches your webhook.
 
 `min_age` is a whole number (1–120; defaults to `18`).
 
-**Result** (`step.completed` → `data.satisfied`):
+**Result** (`step.completed`):
 
 ```json
-{ "satisfied": true }
+{ "satisfied": true, "min_age": 21 }
 ```
 
 <Note>
-  This is "anonymous to you, not to UIP": the full identity used to compute the
-  result is sealed in the [audit record](/core-concepts/verification#audit-ledger),
-  flagged as redacted, and never exposed on your webhook or session reads.
+  This is "anonymous to you, not to UIP": the signer claims and wallet evidence used
+  to compute the result are sealed in the
+  [audit record](/core-concepts/verification#audit-ledger), flagged as redacted, and
+  never exposed on your webhook or session reads.
 </Note>
 
 ---
@@ -96,8 +100,11 @@ what-you-see-is-what-you-sign signature bound to their wallet credential. Becaus
 - UIP computes the SHA-256 of each file and a single **manifest digest** over all of
   them (in declared order). The wallet signs the manifest; you never supply a hash.
 - The user reads the exact bytes UIP hashed on the hosted page before signing.
-- Up to **50 files**, **50 MB** combined. The file bytes are purged after the session
-  ends — only the hash + signature persist as the durable proof.
+- Up to **50 files**, **50 MB** combined. When the step verifies, every referenced
+  original is promoted atomically to immutable evidence alongside the result and
+  audit. Customers cannot delete those completed originals. An upload that never
+  joins a completed sign result remains transient and may be purged after the
+  cleanup window.
 
 ```bash
 curl https://api.uip.digital/v1/sessions \
@@ -106,10 +113,10 @@ curl https://api.uip.digital/v1/sessions \
   -F 'contract=@contract.pdf'
 ```
 
-**Result** (`step.completed`):
+**Result** (`step.completed`; includes the default signer identity fields):
 
 ```json
-{ "primitive": "sign", "signature": "mdoc:3045...", "document_hash": "sha256:9f86..." }
+{ "primitive": "sign", "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" }, "signature": "mdoc:3045...", "document_hash": "sha256:9f86..." }
 ```
 
 ---
@@ -128,10 +135,15 @@ consent, acceptance, and disclosure flows.
   signs that hash. The exact terms + hash + signature are kept in the audit, so the
   signature stays provable.
 
-**Result** (`step.completed`):
+<Warning>
+  Terms are shown through the capability URL and retained in cleartext in the
+  immutable audit proof. Do not include secrets or unnecessary personal data.
+</Warning>
+
+**Result** (`step.completed`; includes the default signer identity fields):
 
 ```json
-{ "primitive": "light_sign", "signature": "mdoc:3045...", "document_hash": "sha256:1b2c..." }
+{ "primitive": "light_sign", "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" }, "signature": "mdoc:3045...", "document_hash": "sha256:1b2c..." }
 ```
 
 ---
@@ -139,8 +151,9 @@ consent, acceptance, and disclosure flows.
 ## Chaining steps
 
 Chaining is not a primitive — it's the `steps[]` array. List steps in order and the
-user completes them in one session; you receive one `step.completed` per step, in
-sequence, then a terminal `session.*` event.
+user completes them in one session. UIP creates one logical `step.completed` event
+per step and then a terminal `session.*` event; delivery retries can arrive late or
+out of order, so use `stage` and the delivery id.
 
 ```json
 {

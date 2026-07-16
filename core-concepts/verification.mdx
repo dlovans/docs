@@ -8,10 +8,11 @@ extracted from the issuing authority's **digitally signed credential** and verif
 cryptographically. This page explains what that verification checks and the
 tamper-evident record it produces.
 
-## What every result is checked against
+## What every wallet result is checked against
 
 For an ISO/IEC 18013-5 mobile document, UIP runs four independent checks before a
-step can succeed. If any fails, the step fails — there is no partial trust.
+wallet-backed step can succeed. If any fails, the step fails — there is no partial
+trust.
 
 <AccordionGroup>
   <Accordion title="1. Issuer authenticity — it's really from the government" icon="building-columns">
@@ -25,7 +26,7 @@ step can succeed. If any fails, the step fails — there is no partial trust.
     commitments in the credential's security object. A single altered character —
     say, a changed birth date — fails the check.
   </Accordion>
-  <Accordion title="3. Holder binding — it's the real holder, not a copy" icon="user-check">
+  <Accordion title="3. Device-key binding — not a copied credential" icon="user-check">
     The wallet proves possession of the device key the issuer bound to the
     credential by signing the request. A captured or copied credential can't be
     re-presented without that key.
@@ -37,47 +38,93 @@ step can succeed. If any fails, the step fails — there is no partial trust.
   </Accordion>
 </AccordionGroup>
 
-### Demo vs production trust
+### Development, sandbox, and production
 
-UIP runs the same cryptography in both environments — only the **trust anchors**
-differ. In **production**, the issuer chain must validate against the real
-government roots. In **demo**, issuer trust is relaxed (so you can exercise the full
-flow with sandbox/simulator credentials) while integrity, holder binding, and the
-nonce/origin anti-replay checks are **still enforced**. A demo result is flagged
-internally so it can never be mistaken for a production one.
+| Mode | Credential path | Issuer trust |
+| --- | --- | --- |
+| Development (service `ENVIRONMENT` unset; web dev build for the button) | Real mdoc verification plus an explicit hosted-page simulation path | Relaxed for real mdocs; simulation is not wallet evidence |
+| Google Sandbox (`ENVIRONMENT=SANDBOX`) | Real encrypted Google Wallet presentation using the Utopia ID Pass | Strictly pinned to Google's published sandbox IACA |
+| Production (`ENVIRONMENT=PRODUCTION`) | Only accepted `live` country/profile/provider routes | Strictly pinned to the selected profile's configured production roots |
+
+Sandbox is not merely relaxed production: it uses Google's published test request
+certificate, RP metadata, credential profile, and trust root. Production fails closed
+if required verifier credentials, trust roots, encryption, signing, storage, or rate
+limiting are absent. Sandbox and simulated outputs must never be represented as a
+real person's identity or a production signature.
 
 ## Audit ledger
 
-Every successfully verified step writes an **immutable audit record**. This is what
-makes a UIP result legally meaningful and disputable.
+Every successfully verified step writes an **immutable audit record**. It preserves
+what was verified and provides machine-checkable integrity; legal effect still
+depends on the transaction, notices, consent, jurisdiction, and applicable law.
 
 <CardGroup cols={2}>
   <Card title="Hash-chained" icon="link">
-    Records form a per-session hash chain — any tampering or reordering is
-    detectable. Append-only; never edited or deleted.
+    RFC 8785 canonical JSON is SHA-256 hashed and linked to the previous step's hash.
+    Any content change or reordering is detectable.
   </Card>
   <Card title="Trusted timestamp" icon="clock">
-    Each record carries an RFC 3161 timestamp from an independent authority — proof
-    of *when*, not just *what*.
+    `ts_status: "ok"` means the RFC 3161 token passed the configured TSA signer-chain
+    and policy checks during the initial write. An outage is recorded as `deferred`;
+    a recovered token is merged at read time with `ts_backfilled: true` without
+    mutating the audit row.
   </Card>
   <Card title="Sealed identity" icon="lock">
-    Signer PII is encrypted at rest (envelope encryption). For `age_verify`, the full
-    identity is sealed and flagged redacted — you get the boolean, the proof keeps the
-    detail.
+    Signer PII and the complete wallet DeviceResponse/transcript are envelope-
+    encrypted with object-specific AAD. For `age_verify`, the business receives only
+    the threshold result; full evidence remains in the legal tier.
   </Card>
   <Card title="Atomic with the result" icon="shield-check">
-    The audit record and the session state commit together — the ledger can never get
-    ahead of, or behind, what actually happened.
+    Result, audit, usage charge, and any signed-document retention promotion commit
+    in one transaction.
   </Card>
 </CardGroup>
 
-For `sign` and `light_sign`, the audit keeps the document hash (or the exact terms
-text) plus the device signature, so the signature stays provable long after the
-ephemeral document bytes are purged. Store your `client_reference_id` alongside it
-and you can tie any verified action back to your own records.
+Every production/sandbox record also carries `uip_signature`: UIP's ES256 signature
+over the canonical `record_hash`, identified by an exact key-version `kid`. Current
+and retained public keys are published at
+`https://api.uip.digital/.well-known/uip-audit-jwks.json` with CORS enabled.
+
+For `sign`, the audit has the signed manifest digest and every per-file hash, while
+UIP retains the exact original bytes as immutable evidence. `light_sign` retains the
+exact canonical terms. Persist the `audit_id` alongside your own
+`client_reference_id` to retrieve the record later.
+
+## Verify a record offline
+
+The Go service source includes `cmd/verify-audit`. From the `uipv2-services` tree,
+give it an audit JSON file, a downloaded JWKS file, and trusted issuer roots:
+
+```bash
+go run ./cmd/verify-audit \
+  -record audit.json \
+  -jwks uip-audit-jwks.json \
+  -iaca-dir ./trusted-iaca
+```
+
+For a Google Utopia test record, add `-google-sandbox`. The verifier reproduces the
+canonical record hash, verifies UIP's public signature, checks the wallet-evidence
+digest, reconstructs the signed transcript/content nonce, and re-runs issuer, MSO,
+disclosure, and DeviceAuth verification when decrypted `wallet_evidence` is present.
+
+<Warning>
+  The current command does not accept original document files. For `sign`, it verifies
+  the audit and wallet evidence around `document_hash`, but it does not re-hash the
+  files or recompute the ordered manifest. Independently match each retained original
+  to `proof.documents[].hash`; complete file-to-DeviceAuth verification requires the
+  manifest check to be added to the verifier.
+</Warning>
 
 <Note>
-  UIP minimizes what it retains: requested fields only, document **bytes purged**
-  after the session ends, and PII encrypted at rest. The durable record is
-  the cryptographic proof — not a copy of the user's identity.
+  For wallet-backed results, the business audit response includes decrypted wallet
+  evidence for `identify`, `sign`, and `light_sign`. It deliberately withholds it for `age_verify` because the
+  DeviceResponse contains the identity used to derive the boolean. An age record can
+  still be checked for audit hash/UIP signature integrity; re-running its wallet
+  proof requires an authorized legal-tier disclosure.
+</Note>
+
+<Note>
+  Neither the public UIP signature nor the audit format alone guarantees court
+  admissibility, legal enforceability, notarization, or suitability for a particular
+  transaction. Those conclusions require the full evidence and a legal assessment.
 </Note>

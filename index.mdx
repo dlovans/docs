@@ -3,14 +3,20 @@ title: "UIP Documentation"
 description: "Government-attested identity, age checks, and document signatures — from the user's own digital wallet, in one small REST API."
 ---
 
-**UIP (Universal Identity Protocol)** turns a government-issued credential in a
-user's digital wallet — like a US mobile driver's license in Apple Wallet or
-Google Wallet — into a verified result your app can trust: their name, that
-they're over 21, or a legally meaningful signature on your document.
+<Warning>
+  UIP is in private beta. Google Sandbox exercises the real encrypted wallet path
+  with fictional Utopia credentials. Every production country/profile/provider route
+  stays coming soon until verifier/issuer enrollment, trust, acceptance, and UIP approval.
+</Warning>
 
-You never build a verification stack, store a document, or touch a wallet SDK.
-You **create a session**, hand the user a link, and **receive a signed webhook**
-when their wallet completes it on-device.
+**UIP (Universal Identity Protocol)** turns a government-issued credential in a
+user's digital wallet into a verified result your app can trust: their name, that
+they're over 21, or a device signature tied to your document and retained evidence.
+
+You never build a wallet-verification stack or touch a wallet SDK. You **create a
+session**, hand the user a link, and **receive a signed webhook** when their wallet
+completes it in the browser. For `sign`, UIP stores the exact uploaded originals as
+immutable evidence after the result completes.
 
 ```bash
 curl https://api.uip.digital/v1/sessions \
@@ -50,15 +56,15 @@ curl https://api.uip.digital/v1/sessions \
 <CardGroup cols={2}>
   <Card title="Identity verification" icon="id-card">
     Government-attested name, date of birth, country, and document number — no
-    document upload, no OCR, no liveness vendor.
+    photographed-ID upload, OCR, or liveness vendor.
   </Card>
-  <Card title="Anonymous age gates" icon="user-shield">
-    Prove a user is over 18 or 21. You receive only `true`/`false` — never the
-    birth date.
+  <Card title="Business-redacted age gates" icon="user-shield">
+    Prove a user is over 18 or 21. The age result contains only `true`/`false` and
+    the threshold, not the birth date; UIP retains the encrypted underlying evidence.
   </Card>
   <Card title="Document signatures" icon="signature">
-    A legally meaningful signature bound to a verified identity, with a permanent,
-    tamper-evident audit reference.
+    A device signature bound to a verified identity, with the original signed bytes
+    and an independently checkable audit reference.
   </Card>
   <Card title="Terms acceptance" icon="file-signature">
     A lightweight signature over short inline terms — consent you can prove later.
@@ -77,7 +83,7 @@ curl https://api.uip.digital/v1/sessions \
     completes them in one flow; you get one webhook per step.
   </Card>
   <Card title="Pay per result" icon="receipt">
-    You're charged only for steps that successfully verify — from **$0.01**. Every
-    new account starts with **$20** in launch credit.
+    You're charged only for steps that successfully verify — from **$0.05**. There
+    is no subscription; self-serve accounts fund their balance manually.
   </Card>
 </CardGroup>
