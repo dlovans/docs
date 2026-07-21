@@ -50,7 +50,7 @@ of the **dashboard UI**, not the endpoints behind them.
   docs theme uses deep `#B22F22` as its light-background primary for WCAG contrast.
   The old midnight-blue/cyan is retired. Domain: `alentra.app`; docs at
   `docs.alentra.app`; API base `https://api.alentra.app/v1`; support
-  `support@alentra.app`.
+  `hello@alentra.app`.
 
 ## Style
 - Use Mintlify components: `Card`/`CardGroup`, `Steps`/`Step`, `CodeGroup`,
