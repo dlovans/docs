@@ -49,8 +49,8 @@ of the **dashboard UI**, not the endpoints behind them.
   Mirror `alentra-web/src/app.css` (`--color-accent`) — it's the source of truth; the
   docs theme uses deep `#B22F22` as its light-background primary for WCAG contrast.
   The old midnight-blue/cyan is retired. Domain: `alentra.app`; docs at
-  `docs.alentra.app`; API base `https://api.alentra.app/v1`; support
-  `hello@alentra.app`.
+  `docs.alentra.app`; API base `https://api.alentra.app/v1`; public support routes
+  through `https://alentra.app/contact`.
 
 ## Style
 - Use Mintlify components: `Card`/`CardGroup`, `Steps`/`Step`, `CodeGroup`,
