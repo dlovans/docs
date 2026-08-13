@@ -4,8 +4,10 @@ description: "The lifecycle of a verification — from create to a terminal resu
 ---
 
 A **session** is one user-facing verification flow containing one or more
-[primitive](/core-concepts/primitives) steps. You create it server-to-server; the
-user completes it on Alentra's hosted page; you receive results by webhook.
+[primitive](/core-concepts/primitives) steps. Developers can create it server-to-server;
+an owner can also create and email one from the dashboard. The user completes it on
+Alentra's hosted page. API integrations receive results by webhook, while the owner
+dashboard receives the same business-safe result projection live.
 
 ## Lifecycle
 
@@ -14,7 +16,7 @@ user completes it on Alentra's hosted page; you receive results by webhook.
     `POST /v1/sessions` returns the session and its hosted `url`. Nothing is charged.
   </Step>
   <Step title="in_progress">
-    The user opens the hosted page and begins; each step's wallet response is
+    The user opens the hosted page, explicitly starts on that browser, and begins; each step's wallet response is
     verified and emits `step.completed`.
   </Step>
   <Step title="awaiting_decision (optional)">
@@ -45,12 +47,18 @@ the link is what lets a user open the session. Treat it like a secret: deliver i
 over a channel only the intended user controls (your authenticated app, their phone).
 
 <Warning>
-  **First-open binding.** The first browser to open a session is cryptographically
-  bound to it; only that browser can submit a wallet response. A second device that
-  later opens the same link is refused. This stops a leaked link from being completed
-  by anyone but the user who started it — so don't "preview" the URL server-side
-  before handing it over.
+  **Explicit-start binding.** Loading or previewing the page is read-only. The first
+  browser whose user presses **Start secure session** is cryptographically bound; only
+  that browser can submit a wallet response. A second device may load the neutral page
+  but is refused when it tries to start. This also prevents email scanners from
+  consuming an invitation.
 </Warning>
+
+Dashboard-created invitations expire exactly 24 hours after creation. Emailing or
+resending the opaque link never extends that deadline. Once the recipient starts, each
+wallet step also has its shorter 3/10/30-minute security window. Terminal signer access
+to completed materials remains available for 48 hours under the existing binding or a
+verified-email receipt.
 
 ## Reading a session
 

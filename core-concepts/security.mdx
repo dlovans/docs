@@ -32,8 +32,8 @@ around it. This page covers the second.
 
 - **Per-step nonce + origin.** The holder's signature covers a fresh nonce and your
   origin, so a captured response can't be replayed against another request.
-- **First-open binding.** The first browser to open a session is bound to it; no
-  other device can submit a response for that session.
+- **Explicit-start binding.** Loading a link is read-only. The first browser whose user
+  presses **Start secure session** is bound to it; no other device can submit a response.
 - **Idempotency.** An `Idempotency-Key` on create makes retried creates safe; webhook
   `X-Alentra-Delivery-Id` makes retried deliveries safe to dedupe.
 
@@ -59,8 +59,8 @@ Alentra minimizes each disclosure, but it deliberately preserves completed evide
 <AccordionGroup>
   <Accordion title="Protect the session URL">
     The hosted `url` is a [capability URL](/core-concepts/sessions#the-hosted-page--capability-urls)
-    — deliver it only to the intended user, and don't open it server-side before
-    handing it over (that would consume the binding).
+    — deliver it only to the intended user. Server-side previews no longer consume the
+    binding, but anyone who obtains the URL can try to start it before the recipient.
   </Accordion>
   <Accordion title="Verify every webhook">
     Recompute the HMAC over the raw body and compare in constant time. Reject stale

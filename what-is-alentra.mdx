@@ -53,15 +53,15 @@ Read current route status and provider capabilities from public
 
 ## 3. Sessions — one flow for the user
 
-A **session** bundles the steps you need into a single user experience. You create
-it server-to-server, then hand the user its **hosted URL**. On
+A **session** bundles the steps you need into a single user experience. Create it through
+the API or, without code, from the owner dashboard; then hand the user its **hosted URL**. On
 that page the user's wallet completes each step on-device; Alentra verifies each one
 and sends you a **signed webhook** as it happens.
 
 <Steps>
   <Step title="Create">
-    `POST /v1/sessions` with your `steps[]`. Alentra returns a session `id` and a hosted
-    `url`.
+    Use `POST /v1/sessions` with your `steps[]`, or compose the same supported steps on
+    the dashboard Sessions page. Alentra returns a session `id` and hosted `url`.
   </Step>
   <Step title="Hand off">
     Send the user to `url`. Alentra's page and the browser's native Digital Credentials
