@@ -15,7 +15,7 @@ Apple, and EUDI routes remain individually gated. Alentra builds the request,
 cryptographically verifies the wallet's signed (encrypted) response against the
 issuer's trust anchors, and delivers results by webhook.
 
-- **Primitives:** `identify`, `age_verify`, `sign`, `light_sign` (reserved/roadmap:
+- **Primitives:** `identify`, `age_verify`, `light_sign`, `sign` (reserved/roadmap:
   `envelope` for multi-party). Chaining = the `steps[]` array, not a primitive.
 - **Flow:** business `POST /v1/sessions` (API key) → hand the user the hosted
   `url` (`/s/{id}`) → the browser invokes the wallet → **signed webhook** per

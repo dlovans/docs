@@ -1,6 +1,6 @@
 ---
 title: "Primitives"
-description: "The verified actions you compose — identify, age_verify, sign, light_sign."
+description: "The verified actions you compose — identify, age_verify, light_sign, sign."
 ---
 
 A **primitive** is one verified action against the user's wallet credential. Each
@@ -11,8 +11,8 @@ result.
 <CardGroup cols={2}>
   <Card title="identify" icon="id-card" href="#identify">Disclose attested fields</Card>
   <Card title="age_verify" icon="user-shield" href="#age_verify">Business-redacted age threshold</Card>
-  <Card title="sign" icon="signature" href="#sign">Sign documents</Card>
   <Card title="light_sign" icon="file-signature" href="#light_sign">Sign inline terms</Card>
+  <Card title="sign" icon="signature" href="#sign">Sign documents</Card>
 </CardGroup>
 
 ---
@@ -41,6 +41,7 @@ what you need; the user consents to exactly that.
 | `issuing_authority` | Issuing authority |
 | `country` | Issuing country selected by the verified credential route |
 | `state` | Issuing jurisdiction (e.g. `US-CA`) |
+| `personal_number` | Personal administrative or national identification number, when carried |
 | `address` | Residence address |
 | `resident_state` | Residence state |
 
@@ -91,6 +92,33 @@ age-result webhook.
 
 ---
 
+## light_sign
+
+The same device signature, over **short inline terms text** — no file upload. For
+consent, acceptance, and disclosure flows.
+
+```json
+{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
+```
+
+- Terms are limited to ~1,000 words (about a 5-minute read).
+- Alentra canonicalizes the text (normalizes line endings), hashes it, and the wallet
+  signs that hash. The exact terms + hash + signature are kept in the audit, so the
+  signature stays provable.
+
+<Warning>
+  Terms are shown through the capability URL and retained in cleartext in the
+  immutable audit proof. Do not include secrets or unnecessary personal data.
+</Warning>
+
+**Result** (`step.completed`; includes the default signer identity fields):
+
+```json
+{ "primitive": "light_sign", "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" }, "signature": "mdoc:3045...", "document_hash": "sha256:1b2c..." }
+```
+
+---
+
 ## sign
 
 The holder's device signs a hash of **one or more documents you provide** — a
@@ -117,33 +145,6 @@ curl https://api.alentra.app/v1/sessions \
 
 ```json
 { "primitive": "sign", "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" }, "signature": "mdoc:3045...", "document_hash": "sha256:9f86..." }
-```
-
----
-
-## light_sign
-
-The same device signature, over **short inline terms text** — no file upload. For
-consent, acceptance, and disclosure flows.
-
-```json
-{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
-```
-
-- Terms are limited to ~1,000 words (about a 5-minute read).
-- Alentra canonicalizes the text (normalizes line endings), hashes it, and the wallet
-  signs that hash. The exact terms + hash + signature are kept in the audit, so the
-  signature stays provable.
-
-<Warning>
-  Terms are shown through the capability URL and retained in cleartext in the
-  immutable audit proof. Do not include secrets or unnecessary personal data.
-</Warning>
-
-**Result** (`step.completed`; includes the default signer identity fields):
-
-```json
-{ "primitive": "light_sign", "claims": { "first_name": "Jane", "last_name": "Doe", "dob": "1990-04-01", "country": "US" }, "signature": "mdoc:3045...", "document_hash": "sha256:1b2c..." }
 ```
 
 ---

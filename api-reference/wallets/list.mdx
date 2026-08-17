@@ -31,8 +31,8 @@ that adapter against the **whole chain** before issuing the first wallet request
       Whether this deployment registered an active adapter for the wallet.
     </ResponseField>
     <ResponseField name="primitives" type="object">
-      Per-primitive support booleans (`identify`, `age_verify`, `sign`,
-      `light_sign`).
+      Per-primitive support booleans (`identify`, `age_verify`, `light_sign`,
+      `sign`).
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -45,13 +45,13 @@ that adapter against the **whole chain** before issuing the first wallet request
       "id": "apple-wallet",
       "label": "Apple Wallet",
       "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+      "primitives": { "identify": true, "age_verify": true, "light_sign": true, "sign": true }
     },
     {
       "id": "google-wallet",
       "label": "Google Wallet",
       "available": true,
-      "primitives": { "identify": true, "age_verify": true, "sign": true, "light_sign": true }
+      "primitives": { "identify": true, "age_verify": true, "light_sign": true, "sign": true }
     }
   ]
 }

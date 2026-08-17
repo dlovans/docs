@@ -51,6 +51,7 @@ Supported blocks:
 | `issuing_authority` | Authority that issued the credential |
 | `country` | Issuing country selected by the verified credential route; sandbox uses fictional test data |
 | `state` | Issuing jurisdiction, e.g. `US-CA` |
+| `personal_number` | Personal administrative or national identification number (EUDI PID; nullable) |
 | `address` | Residence address (nullable) |
 | `resident_state` | Residence state (nullable) |
 
@@ -63,9 +64,8 @@ Supported blocks:
 
 <Note>
   ISO mDL has no single full-name element — request `first_name` + `last_name` and
-  compose. `full_name` and `personal_number` are intentionally unmapped for US mDL
-  (no single full-name element; no national identification number) and return
-  `null`.
+  compose. `full_name` is intentionally unmapped. `personal_number` is available
+  from credential profiles such as EUDI PID, but returns `null` for US mDL.
 </Note>
 
 ### Result
@@ -99,6 +99,36 @@ and never sent to you.
 
 ```json step
 { "primitive": "age_verify", "params": { "min_age": 21 } }
+```
+
+---
+
+## light_sign
+
+A lightweight signature over **short inline terms** — no file upload. Use it for consent,
+terms acceptance, or a disclosure for which you want retained evidence. The canonical
+terms text is retained in the audit, so the signed text stays self-contained.
+
+### Params
+
+<ParamField body="terms" type="string" required>
+  The terms to sign. Up to **1000 words** (~5 minutes of reading). Alentra normalizes
+  line endings, then shows and hashes that same canonical text.
+</ParamField>
+
+### Result
+
+`document_hash` (hash of the canonicalized terms) + `signature` + the default signer
+`claims`.
+
+<Warning>
+  Canonical terms are visible to the capability-URL holder and retained in cleartext
+  in the immutable audit proof. Do not put secrets, payment credentials, or
+  unnecessary personal data in `terms`.
+</Warning>
+
+```json step
+{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
 ```
 
 ---
@@ -142,36 +172,6 @@ curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -F 'steps=[{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
   -F 'contract=@contract.pdf'
-```
-
----
-
-## light_sign
-
-A lightweight signature over **short inline terms** — no file upload. Use it for consent,
-terms acceptance, or a disclosure for which you want retained evidence. The canonical
-terms text is retained in the audit, so the signed text stays self-contained.
-
-### Params
-
-<ParamField body="terms" type="string" required>
-  The terms to sign. Up to **1000 words** (~5 minutes of reading). Alentra normalizes
-  line endings, then shows and hashes that same canonical text.
-</ParamField>
-
-### Result
-
-`document_hash` (hash of the canonicalized terms) + `signature` + the default signer
-`claims`.
-
-<Warning>
-  Canonical terms are visible to the capability-URL holder and retained in cleartext
-  in the immutable audit proof. Do not put secrets, payment credentials, or
-  unnecessary personal data in `terms`.
-</Warning>
-
-```json step
-{ "primitive": "light_sign", "params": { "terms": "I authorize a one-time charge of $49.00." } }
 ```
 
 ---

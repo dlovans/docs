@@ -10,7 +10,7 @@ description: "GET /v1/audits/{id}"
 Returns the owning business's audit disclosure for one verified step. It includes
 the canonical record hash, per-session chain link, Alentra public signature, RFC 3161
 status/token, primitive proof, and the encrypted blocks required to reproduce the
-hash. For `identify`, `sign`, and `light_sign`, it also decrypts `signer` and
+hash. For `identify`, `light_sign`, and `sign`, it also decrypts `signer` and
 the available `wallet_evidence` so you can re-run wallet verification. A simulated
 development result has no wallet evidence. `age_verify` deliberately withholds both
 and returns only its boolean/threshold proof.
@@ -34,7 +34,7 @@ result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 <ResponseField name="credential_profile" type="string">Signed credential trust profile id.</ResponseField>
 <ResponseField name="jurisdiction" type="string">Signed route jurisdiction; withheld from the business tier for `age_verify`.</ResponseField>
 <ResponseField name="stage" type="integer">Zero-based step position.</ResponseField>
-<ResponseField name="primitive" type="string">`identify` · `age_verify` · `sign` · `light_sign`.</ResponseField>
+<ResponseField name="primitive" type="string">`identify` · `age_verify` · `light_sign` · `sign`.</ResponseField>
 <ResponseField name="wallet" type="string">The wallet adapter that fulfilled the step.</ResponseField>
 <ResponseField name="delivery_mode" type="string">The response transport, currently `DC_API`.</ResponseField>
 <ResponseField name="proof" type="object">

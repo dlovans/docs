@@ -32,7 +32,7 @@ one-off reconciliation, not as a polling loop.
   delivered by webhook. `age_verify` alone withholds its signer claims.
   <Expandable title="result">
     <ResponseField name="step" type="integer">Zero-based index of the step this verdict belongs to.</ResponseField>
-    <ResponseField name="primitive" type="string">The step's primitive (`identify` · `age_verify` · `sign` · `light_sign`).</ResponseField>
+    <ResponseField name="primitive" type="string">The step's primitive (`identify` · `age_verify` · `light_sign` · `sign`).</ResponseField>
     <ResponseField name="country" type="string">Non-anonymous results — route jurisdiction.</ResponseField>
     <ResponseField name="wallet" type="string">Non-anonymous results — presentation provider id.</ResponseField>
     <ResponseField name="credential_profile" type="string">Non-anonymous results — verified credential profile id.</ResponseField>
@@ -40,7 +40,7 @@ one-off reconciliation, not as a polling loop.
     <ResponseField name="audit_id" type="string">Id of the immutable audit record. Fetch the business-authorized record via `GET /v1/audits/{id}`.</ResponseField>
     <ResponseField name="satisfied" type="boolean">`age_verify` only — whether `age >= min_age`.</ResponseField>
     <ResponseField name="min_age" type="integer">`age_verify` only — the threshold checked.</ResponseField>
-    <ResponseField name="claims" type="object">`identify`, `sign`, and `light_sign` — disclosed identity attributes. Signing steps request the default signer fields.</ResponseField>
+    <ResponseField name="claims" type="object">`identify`, `light_sign`, and `sign` — disclosed identity attributes. Signing steps request the default signer fields.</ResponseField>
     <ResponseField name="document_hash" type="string">`sign` / `light_sign` only — the hash the wallet device-signed.</ResponseField>
     <ResponseField name="signature" type="string">`sign` / `light_sign` only — the wallet signature over the hash.</ResponseField>
   </Expandable>
