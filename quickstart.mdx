@@ -7,9 +7,13 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 **business-redacted age check** (`age_verify`), but the flow is identical for any primitive.
 
 <Steps>
-  <Step title="Get your API key + set a webhook">
+  <Step title="Publish a workflow + configure delivery">
     Sign up at [alentra.app](https://alentra.app), create a business, and from the
-    dashboard copy your **API key** (`alentra_...`) and set your **webhook URL**.
+    dashboard:
+
+    1. Create a workflow with one `age_verify` step and set its threshold to 21.
+    2. Choose **API only**, configure a signed webhook, and publish revision 1.
+    3. Copy the workflow id and an **API key** (`alentra_...`).
 
     <Warning>
       A webhook URL is **required**. Webhooks are the primary result channel; the
@@ -20,7 +24,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
   </Step>
 
   <Step title="Create a session">
-    Server-to-server, with your API key. List the `steps` you want verified.
+    Server-to-server, with your API key. Pass the published `workflow_id` plus any
+    string-valued correlation metadata for this run.
 
     <CodeGroup>
     ```bash cURL
@@ -28,8 +33,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
       -H "Authorization: Bearer $ALENTRA_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ],
-        "client_reference_id": "order_4815"
+        "workflow_id": "wf_age_gate",
+        "metadata": { "order_id": "order_4815" }
       }'
     ```
     ```javascript Node
@@ -40,8 +45,8 @@ This walks you from zero to a verified webhook in four steps. The example runs a
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        steps: [{ primitive: "age_verify", params: { min_age: 21 } }],
-        client_reference_id: "order_4815"
+        workflow_id: "wf_age_gate",
+        metadata: { order_id: "order_4815" }
       })
     });
     const session = await res.json();
@@ -54,9 +59,10 @@ This walks you from zero to a verified webhook in four steps. The example runs a
     {
       "id": "sess_abc123",
       "status": "created",
+      "workflow_id": "wf_age_gate",
+      "workflow_revision": 1,
       "url": "https://alentra.app/s/sess_abc123",
-      "expires": "2026-06-07T12:34:56Z",
-      "client_reference_id": "order_4815"
+      "expires": "2026-06-07T12:34:56Z"
     }
     ```
   </Step>
@@ -86,7 +92,12 @@ This walks you from zero to a verified webhook in four steps. The example runs a
       "sent": "2026-07-13T12:01:30Z",
       "data": {
         "session_id": "sess_abc123",
-        "client_reference_id": "order_4815",
+        "workflow": {
+          "id": "wf_age_gate",
+          "name": "Age gate",
+          "revision": 1
+        },
+        "metadata": { "order_id": "order_4815" },
         "stage": 0,
         "primitive": "age_verify",
         "audit_id": "sess_abc123_0",
@@ -129,24 +140,22 @@ This walks you from zero to a verified webhook in four steps. The example runs a
 
 ## Compose multiple steps
 
-Real flows often need more than one verified action — for example, *identify the
-signer, then sign the contract*. List them in order; the user completes them in one
-session and Alentra creates one logical webhook per step. Use `stage` and the stable
-delivery id because retries can arrive late or out of order.
+Real flows often need more than one verified action—for example, *identify the signer,
+then sign the contract*. Add both primitives to the workflow builder and drag them into
+the order you want before publishing. Every run snapshots that exact revision. Alentra
+creates one logical webhook per step; use `stage` and the stable delivery id because
+retries can arrive late or out of order.
 
 ```json
-{
-  "steps": [
-    { "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } },
-    { "primitive": "sign", "params": { "document_ids": ["contract"] } }
-  ]
-}
+Workflow revision 3
+1. identify — first_name, last_name, country
+2. sign — documents supplied for each run
 ```
 
 <Note>
-  `sign` carries documents, so its session is created as `multipart/form-data` — see
-  [Primitives → sign](/core-concepts/primitives#sign) and
-  [Create a session](/api-reference/sessions/create).
+  A reusable workflow never stores run documents. When an API-only workflow contains
+  `sign`, create each session as `multipart/form-data`: send `workflow_id` and one
+  named file part per document. See [Primitives → sign](/core-concepts/primitives#sign).
 </Note>
 
 ## Choose a test mode

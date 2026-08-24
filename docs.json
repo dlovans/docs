@@ -29,6 +29,7 @@
             "group": "Core Concepts",
             "pages": [
               "core-concepts/primitives",
+              "core-concepts/workflows",
               "core-concepts/sessions",
               "core-concepts/wallets",
               "core-concepts/verification",

@@ -17,7 +17,8 @@ delivery model and **signature verification**, see
 | `X-Alentra-Delivery-Id` | Stable per-event id — dedupe on this |
 
 Every payload is `{ "event": "...", "data": { ... } }`, and `data` always echoes
-`session_id`, plus your `client_reference_id` and `metadata` when set.
+`session_id` plus the workflow id/revision/definition hash/launch mode. Caller metadata
+is included when set.
 The body also includes `sent` (RFC 3339) and `delivery_id`, matching the delivery
 header. The compact examples below omit those two envelope fields.
 
@@ -33,7 +34,8 @@ arrival order is not guaranteed.
   "event": "step.completed",
   "data": {
     "session_id": "sess_abc123",
-    "client_reference_id": "order_4815",
+    "workflow": { "id": "wf_customer_onboarding", "name": "Customer onboarding", "revision": 3, "definition_hash": "sha256:...", "launch_mode": "api_only" },
+    "metadata": { "order_id": "order_4815" },
     "stage": 0,
     "primitive": "identify",
     "audit_id": "sess_abc123_0",

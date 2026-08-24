@@ -3,9 +3,10 @@ title: "Introduction"
 description: "Base URL, authentication, and conventions for the Alentra API."
 ---
 
-The Alentra API is a small REST surface. You call it **server-to-server** with your API
-key to create and manage sessions; users complete those sessions on Alentra's hosted
-page; results arrive at your [webhook](/core-concepts/webhooks).
+The Alentra API is a small REST surface. Publish an API-only workflow in the dashboard,
+then call the API **server-to-server** with its `workflow_id` to create and manage
+session runs. Users complete them on Alentra's hosted page; results arrive at your
+[webhook](/core-concepts/webhooks).
 
 ## Base URL
 
@@ -36,7 +37,7 @@ and you never call them directly.
 
 | You call (this reference) | Purpose |
 | --- | --- |
-| `POST /v1/sessions` | Create a verification session |
+| `POST /v1/sessions` | Create one run of a published API-only workflow |
 | `GET /v1/sessions/{id}` | One-off reconciliation of status and completed results |
 | `POST /v1/sessions/{id}/continue` | Resume a gated session |
 | `POST /v1/sessions/{id}/stop` | End an active session |
@@ -47,8 +48,8 @@ and you never call them directly.
 
 ## Content types
 
-JSON for most requests. The `sign` primitive carries files, so a session that
-includes a `sign` step is created as `multipart/form-data` — see
+JSON for most requests. A workflow containing `sign` needs files for each run, so its
+session is created as `multipart/form-data` — see
 [Create a session](/api-reference/sessions/create).
 
 ## Idempotency

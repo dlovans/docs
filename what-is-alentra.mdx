@@ -51,17 +51,18 @@ Read current route status and provider capabilities from public
 [`GET /v1/catalog`](/api-reference/catalog/get). See
 [Credential routes & coverage](/core-concepts/wallets) for the current map.
 
-## 3. Sessions — one flow for the user
+## 3. Workflows and sessions — define once, run safely
 
-A **session** bundles the steps you need into a single user experience. Create it through
-the API or, without code, from the owner dashboard; then hand the user its **hosted URL**. On
-that page the user's wallet completes each step on-device; Alentra verifies each one
-and sends you a **signed webhook** as it happens.
+A **workflow** is the reusable, customer-ordered definition. A **session** is one
+non-repeatable run of one published workflow revision. Build and publish the flow in
+the dashboard, then launch it through a reusable link, as a one-time dashboard link,
+or through the API with its `workflow_id`.
 
 <Steps>
   <Step title="Create">
-    Use `POST /v1/sessions` with your `steps[]`, or compose the same supported steps on
-    the dashboard Sessions page. Alentra returns a session `id` and hosted `url`.
+    Compose and order the primitives in the dashboard Workflows page, choose one launch
+    mode, and publish. For API-only runs, call `POST /v1/sessions` with the published
+    `workflow_id` and optional metadata. Alentra returns a session `id` and hosted `url`.
   </Step>
   <Step title="Hand off">
     Send the user to `url`. Alentra's page and the browser's native Digital Credentials

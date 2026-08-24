@@ -7,9 +7,11 @@ description: "POST /v1/sessions"
   `POST https://api.alentra.app/v1/sessions` · Auth: `Bearer` API key
 </Note>
 
-Creates a verification session from an ordered list of [primitive](/core-concepts/primitives)
-steps and returns its hosted URL. Creating a session is free; you're billed per
-verified step. A webhook URL must be configured for your business first.
+Creates one non-repeatable session from a published **API-only**
+[workflow](/core-concepts/workflows) and returns its hosted URL. The workflow owns the
+primitive sequence and exact order; this endpoint accepts only the workflow id and
+run-specific input. Creating a session is free; billing occurs per verified step. A
+signed webhook must be configured for the business first.
 
 ## Headers
 
@@ -18,46 +20,26 @@ verified step. A webhook URL must be configured for your business first.
 </ParamField>
 
 <ParamField header="Idempotency-Key" type="string">
-  Optional. A repeat create with the same key returns the original session instead of
-  creating a duplicate. Reuse does not compare payloads; use a new key for a different
-  logical session.
+  Optional. A repeat with the same key returns the original session instead of creating
+  a duplicate. Reuse does not compare payloads; use a new key for each logical run.
 </ParamField>
 
 ## Body
 
-<ParamField body="steps" type="object[]" required>
-  Ordered steps to verify. Each has a `primitive`, optional `params`, and optional
-  `gate`.
-  <Expandable title="step">
-    <ParamField body="primitive" type="string" required>
-      One of `identify`, `age_verify`, `light_sign`, `sign`.
-    </ParamField>
-    <ParamField body="params" type="object">
-      Primitive-specific — see [Primitives](/api-reference/primitives) for each.
-      `identify` → `{ "blocks": [...] }`; `age_verify` → `{ "min_age": 21 }`;
-      `light_sign` → `{ "terms": "..." }`; `sign` → `{ "document_ids": [...] }`
-      (the ids name multipart file parts sent in the same request).
-    </ParamField>
-    <ParamField body="gate" type="boolean" default="false">
-      Pause the session after this step for your `continue`/`stop` decision. Not
-      allowed on the final step.
-    </ParamField>
-  </Expandable>
-</ParamField>
-
-<ParamField body="client_reference_id" type="string">
-  Your own identifier (up to 200 characters), echoed on every webhook and stamped
-  into the audit record.
+<ParamField body="workflow_id" type="string" required>
+  The id of a live workflow whose access mode is **API only**. Inline `steps[]` are
+  rejected; edit and publish the workflow in the dashboard instead.
 </ParamField>
 
 <ParamField body="metadata" type="object">
-  Up to 50 string-valued keys (key up to 40 characters, value up to 500).
-  Operational only (webhooks + reads); never shown to the user.
+  Up to 50 string-valued keys (key up to 40 characters, value up to 500). Use this for
+  caller-owned correlation context such as `order_id` or `case_id`. It is returned in
+  signed webhooks and authenticated session reads, and never shown to the signer.
 </ParamField>
 
 <ParamField body="return_url" type="string">
-  An `https` URL. Renders a "Return to {host}" button on the hosted page after the
-  flow completes (never an automatic redirect).
+  An `https` URL. Renders a "Return to &#123;host&#125;" button on the hosted page after
+  completion; it never causes an automatic redirect.
 </ParamField>
 
 <ParamField body="expires_in" type="integer">
@@ -65,11 +47,18 @@ verified step. A webhook URL must be configured for your business first.
 </ParamField>
 
 <Warning>
-  Keep `client_reference_id` non-PII: it is cleartext, stamped into every immutable
-  audit record, and retained with the evidence. `metadata` is encrypted operational
-  session data and echoed to your webhook, but it is not a secret store. Do not put
-  credentials, payment data, or unnecessary personal data in either field.
+  There is no `recipient_email` field. Dashboard invitation delivery does not identify
+  the signer, and the signer independently chooses at completion whether to send their
+  result to a verified email address. Treat metadata as retained operational data—not
+  a secret store—and do not include credentials, payment data, or unnecessary PII.
 </Warning>
+
+## Signing documents
+
+If the published workflow contains `sign`, use `multipart/form-data`. Send
+`workflow_id` as a form field and each document as one named file part. Alentra injects
+those document ids into this session's immutable workflow snapshot, hashes the exact
+bytes, and presents those bytes to the signer. The reusable workflow stores no files.
 
 ## Response
 
@@ -77,27 +66,28 @@ verified step. A webhook URL must be configured for your business first.
 <ResponseField name="status" type="string">`created`.</ResponseField>
 <ResponseField name="url" type="string">The hosted page URL to hand the user.</ResponseField>
 <ResponseField name="expires" type="string">ISO 8601 expiry timestamp.</ResponseField>
-<ResponseField name="client_reference_id" type="string">Present when supplied in the request.</ResponseField>
+<ResponseField name="workflow_id" type="string">The workflow used for this run.</ResponseField>
+<ResponseField name="workflow_revision" type="integer">The immutable published revision snapshotted by the session.</ResponseField>
 
 <RequestExample>
-```bash identify + age_verify (JSON)
+```bash identity + age (JSON)
 curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
+  -H "Idempotency-Key: run_4815" \
   -H "Content-Type: application/json" \
   -d '{
-    "steps": [
-      { "primitive": "identify", "params": { "blocks": ["first_name", "last_name", "country"] } },
-      { "primitive": "age_verify", "params": { "min_age": 21 } }
-    ],
-    "client_reference_id": "order_4815",
+    "workflow_id": "wf_customer_onboarding",
+    "metadata": { "order_id": "order_4815", "customer_id": "cus_17" },
     "return_url": "https://shop.example.com/verified"
   }'
 ```
-```bash with a sign step (multipart)
+```bash workflow with sign (multipart)
 curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
-  -F 'steps=[{"primitive":"identify","gate":true},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
-  -F 'contract=@contract.pdf'
+  -H "Idempotency-Key: contract_4815" \
+  -F 'workflow_id=wf_contract_signature' \
+  -F 'metadata={"case_id":"case_4815"}' \
+  -F 'contract=@contract.pdf;type=application/pdf'
 ```
 </RequestExample>
 
@@ -106,6 +96,8 @@ curl https://api.alentra.app/v1/sessions \
 {
   "id": "sess_abc123",
   "status": "created",
+  "workflow_id": "wf_customer_onboarding",
+  "workflow_revision": 3,
   "url": "https://alentra.app/s/sess_abc123",
   "expires": "2026-06-07T12:34:56Z"
 }
@@ -114,6 +106,6 @@ curl https://api.alentra.app/v1/sessions \
 
 ## Errors
 
-`400` invalid `steps[]` / unknown primitive / bad params · `401` bad key or
-archived/frozen business · `402` insufficient balance · `422` no webhook
-configured. See [Errors](/api-reference/errors).
+`400` missing workflow id / inline steps / invalid metadata or files · `401` bad key
+or archived/frozen business · `402` insufficient balance · `409` workflow not live or
+wrong launch mode · `422` no webhook configured. See [Errors](/api-reference/errors).

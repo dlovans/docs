@@ -4,7 +4,8 @@ description: "The verified actions you compose — identify, age_verify, light_s
 ---
 
 A **primitive** is one verified action against the user's wallet credential. Each
-step in a session names a primitive and its `params`. In a wallet-backed completion,
+step in a workflow names a primitive and its `params`; publishing preserves the
+customer-selected order for every new session run. In a wallet-backed completion,
 Alentra builds the request, verifies the signed response, and returns a normalized
 result.
 
@@ -121,9 +122,10 @@ consent, acceptance, and disclosure flows.
 
 ## sign
 
-The holder's device signs a hash of **one or more documents you provide** — a
-what-you-see-is-what-you-sign signature bound to their wallet credential. Because
-`sign` carries files, its session is created as `multipart/form-data`.
+The holder's device signs a hash of **one or more documents you provide**—a
+what-you-see-is-what-you-sign signature bound to their wallet credential. The workflow
+definition contains the `sign` action but no file bytes or document ids. Each run
+supplies its own files as `multipart/form-data`.
 
 - Alentra computes the SHA-256 of each file and a single **manifest digest** over all of
   them (in declared order). The wallet signs the manifest; you never supply a hash.
@@ -137,7 +139,8 @@ what-you-see-is-what-you-sign signature bound to their wallet credential. Becaus
 ```bash
 curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
-  -F 'steps=[{"primitive":"identify"},{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
+  -F 'workflow_id=wf_contract_signature' \
+  -F 'metadata={"case_id":"case_4815"}' \
   -F 'contract=@contract.pdf'
 ```
 
@@ -149,31 +152,30 @@ curl https://api.alentra.app/v1/sessions \
 
 ---
 
-## Chaining steps
+## Ordering and chaining
 
-Chaining is not a primitive — it's the `steps[]` array. List steps in order and the
-user completes them in one session. Alentra creates one logical `step.completed` event
-per step and then a terminal `session.*` event; delivery retries can arrive late or
-out of order, so use `stage` and the delivery id.
+Chaining is not a primitive. Add steps in the workflow builder, drag them into the
+exact order the user should complete them, then publish. API callers pass only that
+published `workflow_id` plus run-specific data. Alentra creates one logical
+`step.completed` event per step and then a terminal `session.*` event; delivery retries
+can arrive late or out of order, so use `stage` and the delivery id.
 
 ```json
-{
-  "steps": [
-    { "primitive": "identify", "params": { "blocks": ["first_name", "country"] } },
-    { "primitive": "age_verify", "params": { "min_age": 18 } },
-    { "primitive": "sign", "params": { "document_ids": ["contract"] } }
-  ]
-}
+Workflow revision 4
+1. identify — first_name, country
+2. age_verify — minimum 18
+3. sign — documents supplied for each run
 ```
 
 ### Gates (pause for a decision)
 
-Set `"gate": true` on a step to **pause** the session after it completes, so your
-server can decide whether to continue. Useful when a later step should depend on an
-earlier result (e.g. only sign if the identity matched your records).
+For an API-only workflow, enable a gate on a non-final step to **pause** the session
+after it completes, so your server can decide whether to continue. Useful when a later
+step should depend on an earlier result (e.g. only sign if the identity matched your
+records).
 
 ```json
-{ "primitive": "identify", "gate": true }
+identify → Pause for API decision
 ```
 
 On a gated step the session moves to `awaiting_decision` after `step.completed`.

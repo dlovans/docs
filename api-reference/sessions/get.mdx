@@ -49,11 +49,12 @@ one-off reconciliation, not as a polling loop.
   Terminal reason — `completed` · `stopped` · `failed` · `expired`. Empty while the
   session is still in progress.
 </ResponseField>
-<ResponseField name="client_reference_id" type="string">
-  Optional — echoed back if you supplied it at create.
-</ResponseField>
 <ResponseField name="metadata" type="object">
   Optional — echoed back if you supplied it at create.
+</ResponseField>
+<ResponseField name="workflow" type="object">
+  The immutable workflow snapshot identity: `id`, `name`, `revision`,
+  `definition_hash`, and `launch_mode`.
 </ResponseField>
 <ResponseField name="updated_at" type="string">ISO 8601 last update.</ResponseField>
 
@@ -82,8 +83,14 @@ one-off reconciliation, not as a polling loop.
     }
   ],
   "outcome": "",
-  "client_reference_id": "order_4417",
-  "metadata": { "checkout": "abc" },
+  "metadata": { "order_id": "order_4417", "checkout": "abc" },
+  "workflow": {
+    "id": "wf_customer_onboarding",
+    "name": "Customer onboarding",
+    "revision": 3,
+    "definition_hash": "sha256:...",
+    "launch_mode": "api_only"
+  },
   "updated_at": "2026-06-07T12:01:30Z"
 }
 ```

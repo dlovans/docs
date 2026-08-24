@@ -18,8 +18,8 @@ Each record has a stable id of the form `{session_id}_{stage}` — e.g.
 - On every [`step.completed`](/api-reference/webhooks#step-completed) webhook, as `audit_id`.
 - On every result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 
-Persist the `audit_id` alongside your own `client_reference_id` so you can pull the
-record back on demand.
+Persist the `audit_id` alongside your own case/order id in session `metadata` so you
+can pull the record back on demand.
 
 ## Two tiers of disclosure
 

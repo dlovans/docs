@@ -62,8 +62,6 @@ result in [`GET /v1/sessions/{id}`](/api-reference/sessions/get).
 <ResponseField name="ts_token" type="string">Base64 RFC 3161 token captured initially or merged after recovery.</ResponseField>
 <ResponseField name="ts_backfilled" type="boolean">`true` when a deferred token was recovered in the append-only timestamp collection.</ResponseField>
 <ResponseField name="occurred_at" type="string">ISO 8601 verification time.</ResponseField>
-<ResponseField name="client_reference_id" type="string">Your non-PII correlation key, if supplied; part of the immutable record.</ResponseField>
-
 <ResponseExample>
 ```json 200 OK
 {

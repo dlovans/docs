@@ -3,17 +3,18 @@ title: "Sessions"
 description: "The lifecycle of a verification — from create to a terminal result."
 ---
 
-A **session** is one user-facing verification flow containing one or more
-[primitive](/core-concepts/primitives) steps. Developers can create it server-to-server;
-an owner can also create and email one from the dashboard. The user completes it on
-Alentra's hosted page. API integrations receive results by webhook, while the owner
-dashboard receives the same business-safe result projection live.
+A **session** is one non-repeatable run of a published
+[workflow](/core-concepts/workflows). It snapshots that workflow's ordered primitive
+steps, revision, and definition hash. Developers can create API-only runs
+server-to-server; authorized members can create and optionally email one-time links
+from the workflow. Each explicit start from a reusable link creates a separate session.
 
 ## Lifecycle
 
 <Steps>
   <Step title="created">
-    `POST /v1/sessions` returns the session and its hosted `url`. Nothing is charged.
+    `POST /v1/sessions` with a published `workflow_id` returns the session and its
+    hosted `url`. Nothing is charged.
   </Step>
   <Step title="in_progress">
     The user opens the hosted page, explicitly starts on that browser, and begins; each step's wallet response is
@@ -54,8 +55,8 @@ over a channel only the intended user controls (your authenticated app, their ph
   consuming an invitation.
 </Warning>
 
-Dashboard-created invitations expire exactly 24 hours after creation. Emailing or
-resending the opaque link never extends that deadline. Once the recipient starts, each
+One-time dashboard invitations expire exactly 24 hours after creation. Emailing or
+resending the opaque link never extends that deadline or identify the signer. Once the user starts, each
 wallet step also has its shorter 3/10/30-minute security window. Terminal signer access
 to completed materials remains available for 48 hours under the existing binding or a
 verified-email receipt.
@@ -69,13 +70,14 @@ hosted page sees only its status projection and cannot read these results. Webho
 remain the primary push channel; use GET to reconcile a missed event, not as a polling
 loop.
 
-## Create options
+## Run-specific options
 
-Beyond `steps`, `POST /v1/sessions` accepts:
+The workflow owns the ordered steps. `POST /v1/sessions` accepts the published
+`workflow_id` plus these optional values for one run:
 
 | Field | Type | Purpose |
 | --- | --- | --- |
-| `client_reference_id` | string (≤200 chars) | Your own id, echoed on every webhook and stamped into the audit |
+| `workflow_id` | string | Required id of a live `api_only` workflow |
 | `metadata` | object | Up to 50 string-valued keys (key ≤40 chars, value ≤500); operational only, never shown to the user |
 | `return_url` | https URL | Renders a "Return to {host}" button on the hosted page after completion (never an auto-redirect) |
 | `expires_in` | seconds | Override the session TTL (60s–24h) |
@@ -84,8 +86,11 @@ Plus an optional **`Idempotency-Key`** header so a retried create returns the
 original session instead of a duplicate. See
 [Create a session](/api-reference/sessions/create) for the full reference.
 
-Keep `client_reference_id` non-PII because it is cleartext in the immutable audit.
 Treat `metadata` as retained operational data, not a secret store.
+
+There is no `recipient_email` API option. Dashboard invitation email is delivery of an
+opaque one-time link only. At completion, the signer independently chooses whether to
+send their result to a verified email address.
 
 ## Expiry
 

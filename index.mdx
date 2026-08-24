@@ -13,16 +13,16 @@ description: "Government-attested identity, age checks, and document signatures 
 user's digital wallet into a verified result your app can trust: their name, that
 they're over 21, or a device signature tied to your document and retained evidence.
 
-You never build a wallet-verification stack or touch a wallet SDK. You **create a
-session**, hand the user a link, and **receive a signed webhook** when their wallet
-completes it in the browser. For `sign`, Alentra stores the exact uploaded originals as
-immutable evidence after the result completes.
+You never build a wallet-verification stack or touch a wallet SDK. You publish the
+ordered flow once as a **workflow**, create a fresh **session** from its id, hand the
+user a link, and receive a signed webhook when their wallet completes it. For `sign`,
+Alentra stores the exact uploaded originals as immutable evidence after completion.
 
 ```bash
 curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "steps": [ { "primitive": "age_verify", "params": { "min_age": 21 } } ] }'
+  -d '{ "workflow_id": "wf_age_gate", "metadata": { "order_id": "order_4815" } }'
 ```
 
 ```json
@@ -30,6 +30,8 @@ curl https://api.alentra.app/v1/sessions \
   "id": "sess_abc123",
   "url": "https://alentra.app/s/sess_abc123",
   "status": "created",
+  "workflow_id": "wf_age_gate",
+  "workflow_revision": 1,
   "expires": "2026-06-07T12:34:56Z"
 }
 ```
@@ -41,7 +43,10 @@ curl https://api.alentra.app/v1/sessions \
     The model in two minutes: primitives, wallets, and sessions.
   </Card>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Create your first session and receive a verified result end to end.
+    Publish a workflow, create its first run, and receive a verified result.
+  </Card>
+  <Card title="Workflows" icon="diagram-project" href="/core-concepts/workflows">
+    Reusable definitions, launch modes, revisions, and run-specific data.
   </Card>
   <Card title="Primitives" icon="cube" href="/core-concepts/primitives">
     `identify`, `age_verify`, `light_sign`, `sign` — and how to chain them.

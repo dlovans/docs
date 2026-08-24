@@ -3,9 +3,9 @@ title: "Primitives"
 description: "What each primitive verifies, the params it accepts, and what you get back."
 ---
 
-A **primitive** is one verification verb. Every step in a session's
-[`steps[]`](/api-reference/sessions/create) names exactly one primitive plus optional
-`params`. This is the per-primitive parameter reference; for the design philosophy see
+A **primitive** is one verification verb. Every customer-ordered step in a published
+[workflow](/core-concepts/workflows) names exactly one primitive plus its configuration.
+This is the per-primitive reference; for the design philosophy see
 [Primitives](/core-concepts/primitives).
 
 Every wallet-backed completion verifies against the government credential in the
@@ -143,17 +143,16 @@ The exact original files become immutable evidence: they are not customer-deleta
 or time-purged. Only an upload that never joined a completed sign result remains
 transient and cleanup-eligible.
 
-Because it carries files, a session containing a `sign` step must be created as
-**`multipart/form-data`**: a `steps` JSON part plus one file part per document. **The file
-field name is the document id** the step references.
+Because documents belong to a run—not a reusable definition—a workflow's `sign` step
+has no document parameters. Create each API session as **`multipart/form-data`** with a
+`workflow_id` field plus one file part per document. **The file field name becomes the
+document id** in that immutable session snapshot.
 
 ### Params
 
-<ParamField body="document_ids" type="string[]" required>
-  The ids of the documents to sign. Each must match a multipart **file field name** in
-  the same request. 1–50 ids; combined upload ≤ 50&nbsp;MiB. Use opaque, non-PII
-  ids because the ordered ids become part of the immutable cleartext audit proof.
-</ParamField>
+There are no persistent `sign` parameters. Each run accepts 1–50 named file parts,
+up to 50&nbsp;MiB combined. Use opaque, non-PII field names because their ordered ids
+become part of the immutable cleartext audit proof.
 
 ### Result
 
@@ -170,7 +169,7 @@ manifest, so any single file stays provable against its retained original.
 ```bash multipart
 curl https://api.alentra.app/v1/sessions \
   -H "Authorization: Bearer $ALENTRA_API_KEY" \
-  -F 'steps=[{"primitive":"sign","params":{"document_ids":["contract"]}}]' \
+  -F 'workflow_id=wf_contract_signature' \
   -F 'contract=@contract.pdf'
 ```
 
@@ -178,9 +177,9 @@ curl https://api.alentra.app/v1/sessions \
 
 ## Composition & reserved
 
-- **Chaining:** to verify several things in one flow, list multiple steps in `steps[]` —
-  the user completes them in one session and you get one webhook per step. Add a `gate` to
-  a step to pause for your [continue](/api-reference/sessions/continue) /
+- **Chaining:** add and order multiple steps in the workflow builder—the user completes
+  them in one session and you get one webhook per step. On an API-only workflow, add a
+  gate to pause for your [continue](/api-reference/sessions/continue) /
   [stop](/api-reference/sessions/stop) decision. See
   [Create a session](/api-reference/sessions/create).
 - **`envelope`** (multi-party signing — N signers across N wallets) is a **reserved**

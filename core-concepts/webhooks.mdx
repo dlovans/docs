@@ -18,7 +18,8 @@ polling loop. If a delivery is missed or dead-lettered, reconcile once with
 | `session.failed` | A step failed, funds ran out, or an internal error | `session_id`, `reason` |
 | `session.expired` | A session/step deadline elapsed | `session_id`, `status` |
 
-Every delivery also echoes your `client_reference_id` and any `metadata`. See
+Every delivery also echoes the immutable workflow identity (`id`, `name`, `revision`,
+definition hash, and launch mode), plus caller `metadata` when supplied. See
 [the event reference](/api-reference/webhooks) for full payloads.
 
 ## Delivery guarantees

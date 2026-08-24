@@ -16,8 +16,10 @@ cryptographically verifies the wallet's signed (encrypted) response against the
 issuer's trust anchors, and delivers results by webhook.
 
 - **Primitives:** `identify`, `age_verify`, `light_sign`, `sign` (reserved/roadmap:
-  `envelope` for multi-party). Chaining = the `steps[]` array, not a primitive.
-- **Flow:** business `POST /v1/sessions` (API key) → hand the user the hosted
+  `envelope` for multi-party). Chaining = the customer-ordered steps in a published
+  workflow, not a primitive.
+- **Flow:** business publishes a workflow in the dashboard → `POST /v1/sessions`
+  with its `workflow_id` (API key) → hand the user the hosted
   `url` (`/s/{id}`) → the browser invokes the wallet → **signed webhook** per
   step, with `GET /v1/sessions/{id}` for one-off reconciliation.
 - **Pricing:** per **successfully verified step** — age_verify $0.05, identify $0.10,

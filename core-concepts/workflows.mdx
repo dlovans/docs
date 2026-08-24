@@ -1,0 +1,60 @@
+---
+title: "Workflows"
+description: "Reusable, versioned definitions for ordered identity and signing flows."
+---
+
+A **workflow** is the reusable definition of what Alentra asks one person to do. A
+**session** is one non-repeatable run of one published workflow revision.
+
+Create and publish workflows in the Alentra dashboard. Add the primitives you need,
+drag them into the exact order the user should complete them, configure access and
+delivery, then publish. API callers pass the resulting `workflow_id`; they do not send
+an inline `steps[]` definition on every request.
+
+## Drafts, publishing, and evidence
+
+Editing a live workflow changes only its draft. Publishing increments the revision
+and commits a definition hash. Each new session copies the workflow id, name,
+revision, definition hash, launch mode, and ordered steps into its immutable session
+record. Existing sessions and evidence never change when a workflow is edited later.
+
+## Access modes
+
+| Mode | Who starts a run | Run-specific input |
+| --- | --- | --- |
+| **Reusable link** | Anyone with the unlisted workflow URL | None; each explicit start creates a fresh session |
+| **One-time links** | An authorized dashboard member | Optional invitation email, metadata, and signing documents |
+| **API only** | Your backend with an API key | Metadata, signing documents, expiry, return URL, and idempotency key |
+
+Access modes are deliberately exclusive. An API-only workflow cannot also be launched
+from its public URL, and the API cannot run a one-time dashboard workflow.
+
+<Warning>
+  Reusable public links cannot contain `sign` in the first release because documents
+  are specific to an individual run. Use one-time links or API-only access when the
+  workflow signs files.
+</Warning>
+
+## Metadata and email are different
+
+`metadata` is caller-owned correlation context, such as an order or case id. It is
+available to authenticated dashboard members, signed webhooks, and authenticated
+session reads; it is never shown on the hosted signer page. Anonymous reusable-link
+launches accept no metadata because there is no authenticated caller to trust.
+
+There is no API `recipient_email` field. For one-time dashboard links, entering an
+email only delivers the opaque invitation—it does not identify or pre-bind the signer.
+Separately, the signer may enter a verified email at the end of the session to receive
+their result. A workflow may also notify a configured business address when a run
+finishes; that message contains no claims, signatures, documents, or result data.
+
+## Gates
+
+API-only workflows may pause after a non-final step so your backend can inspect the
+signed `step.completed` event and call `continue` or `stop`. Dashboard and reusable
+links cannot contain gates because there is no authenticated backend decision-maker
+in those launch modes.
+
+<Card title="Next: Sessions" icon="diagram-project" href="/core-concepts/sessions">
+  See how each workflow run binds to a browser, advances, expires, and retains evidence.
+</Card>

@@ -6,19 +6,19 @@ description: "Error format and HTTP status codes."
 Errors use standard HTTP status codes and a JSON body with a human-readable message:
 
 ```json
-{ "error": "body must include a non-empty steps[]" }
+{ "error": "body must include a published workflow_id" }
 ```
 
 ## Status codes
 
 | Status | Meaning | Typical cause |
 | --- | --- | --- |
-| `400` | Bad Request | Malformed body, unknown primitive, invalid `min_age`, bad `steps[]` |
+| `400` | Bad Request | Malformed body, missing `workflow_id`, invalid metadata, or unexpected inline `steps[]` |
 | `401` | Unauthorized | Missing/invalid API key, or its business is archived/billing-frozen |
 | `402` | Payment Required | Insufficient balance to start the session |
 | `403` | Forbidden | A known session belongs to another active business (or an archive race was detected) |
 | `404` | Not Found | Unknown session or audit id |
-| `409` | Conflict | Wrong session state or concurrent modification |
+| `409` | Conflict | Wrong session state, stale/archived workflow, wrong launch mode, or concurrent modification |
 | `422` | Unprocessable | No webhook configured for your business (set one in the dashboard) |
 | `5xx` | Server / Unavailable | Transient error (`500`) or a dependency not configured (`503`) |
 
