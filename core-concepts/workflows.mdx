@@ -48,11 +48,15 @@ Separately, the signer may enter a verified email at the end of the session to r
 their result. A workflow may also notify a configured business address when a run
 finishes; that message contains no claims, signatures, documents, or result data.
 
-## Continue or stop
+## Conditions
 
-Add a decision after any primitive, including the last one. Its conditions use the
-verified result of that primitive. Choose **All conditions match** or **Any condition
-matches**, then select a result field, a plain-language comparison, and a value.
+<a id="continue-or-stop"></a>
+
+Add **Conditions** after any primitive, including the last one. Choose **Continue
+when** or **Stop when**, then select a result field, a plain-language comparison,
+and a value from that primitive's verified result. For multiple conditions, choose
+**All conditions match** or **Any condition matches**. The opposite action is always
+shown as **Otherwise**.
 
 | Preceding primitive | Available values | Comparisons |
 | --- | --- | --- |
@@ -61,8 +65,9 @@ matches**, then select a result field, a plain-language comparison, and a value.
 | Attestation | Whether the terms were attested | Yes/No equality |
 | Document signing | Whether documents were signed; number signed | Yes/No equality; numeric comparisons |
 
-For example, after Identity, request date of birth and set **Age in whole years is
-at least 18**. After Age verification, set **Age 18+ requirement met is equal to Yes**.
+For example, after Identity, request date of birth and set **Continue when Age in
+whole years is at least 18**. After Age verification, set **Stop when Age 18+
+requirement met is No**; otherwise, continue.
 Age verification never exposes date of birth or exact age to a condition.
 
 **Continue** requests the next primitive, or proceeds to result delivery when there
@@ -72,14 +77,16 @@ the session failure flow. They work with every access mode.
 
 Text comparisons ignore case and surrounding spaces. Dates use calendar dates; age is
 calculated at verification in UTC. Missing values do not match ordinary comparisons,
-including “is not equal to.” Use an explicit availability condition to handle missing
+including “is not.” A non-matching rule takes the Otherwise path, so **Stop when**
+continues when its conditions do not match. Use an explicit availability condition to handle missing
 identity fields. Up to eight conditions are allowed per decision. Unrequested fields
 cannot be tested, and changing a proof's requested fields requires repairing any
 conditions that use a removed field.
 
-Conditions are part of the published revision and its definition hash. Editing them
+The selected action and conditions are part of the published revision and its definition hash. Editing them
 cannot alter an existing session. The verified result, decision, audit, charge, and
-webhook are committed together, including a signed terminal marker on Stop.
+webhook are committed together, including a signed terminal marker on Stop. Existing
+configured conditions without an action keep their original Continue-when behavior.
 
 ### Existing API-controlled gates
 

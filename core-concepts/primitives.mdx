@@ -181,7 +181,7 @@ identify → Pause for API decision
 On a gated step the session moves to `awaiting_decision` after `step.completed`.
 Resume with [`POST /v1/sessions/{id}/continue`](/api-reference/sessions/continue) or
 end it with [`POST /v1/sessions/{id}/stop`](/api-reference/sessions/stop). A caller-controlled pause on
-the final step is rejected. Configured [Continue/Stop conditions](/core-concepts/workflows#continue-or-stop)
+the final step is rejected. Configured [Conditions](/core-concepts/workflows#conditions)
 can follow any primitive, including the final one, and execute automatically in every
 access mode. They continue to the next proof or result delivery, or stop while keeping
 verified results.
