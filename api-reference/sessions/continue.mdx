@@ -21,8 +21,9 @@ checked the `identify` claims against your records.
 - Valid only when the session is `awaiting_decision`; otherwise returns an error.
 - The deadline is checked first. A due session is persisted as `expired`, emits
   `session.expired`, and returns that terminal projection without advancing.
-- A final step cannot be gated, so a successful continue always advances to a later
-  step.
+- An API-controlled pause cannot follow the final step, so this endpoint advances
+  to a later proof. Configured workflow conditions execute automatically and can
+  continue from the final proof to completed result delivery.
 - Owner-only: the API key's business must own the session.
 
 <ResponseExample>

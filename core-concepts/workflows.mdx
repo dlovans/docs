@@ -48,12 +48,45 @@ Separately, the signer may enter a verified email at the end of the session to r
 their result. A workflow may also notify a configured business address when a run
 finishes; that message contains no claims, signatures, documents, or result data.
 
-## Gates
+## Continue or stop
 
-API-only workflows may pause after a non-final step so your backend can inspect the
-signed `step.completed` event and call `continue` or `stop`. Dashboard and reusable
-links cannot contain gates because there is no authenticated backend decision-maker
-in those launch modes.
+Add a decision after any primitive, including the last one. Its conditions use the
+verified result of that primitive. Choose **All conditions match** or **Any condition
+matches**, then select a result field, a plain-language comparison, and a value.
+
+| Preceding primitive | Available values | Comparisons |
+| --- | --- | --- |
+| Identity | Requested identity fields; age in whole years when date of birth is requested | Text equality, date ordering, numeric comparisons, availability |
+| Age verification | Whether the configured age threshold is met | Yes/No equality |
+| Attestation | Whether the terms were attested | Yes/No equality |
+| Document signing | Whether documents were signed; number signed | Yes/No equality; numeric comparisons |
+
+For example, after Identity, request date of birth and set **Age in whole years is
+at least 18**. After Age verification, set **Age 18+ requirement met is equal to Yes**.
+Age verification never exposes date of birth or exact age to a condition.
+
+**Continue** requests the next primitive, or proceeds to result delivery when there
+are no more primitives. **Stop** ends the session while retaining all verified results.
+Conditions run after successful verification; a declined or invalid proof still uses
+the session failure flow. They work with every access mode.
+
+Text comparisons ignore case and surrounding spaces. Dates use calendar dates; age is
+calculated at verification in UTC. Missing values do not match ordinary comparisons,
+including “is not equal to.” Use an explicit availability condition to handle missing
+identity fields. Up to eight conditions are allowed per decision. Unrequested fields
+cannot be tested, and changing a proof's requested fields requires repairing any
+conditions that use a removed field.
+
+Conditions are part of the published revision and its definition hash. Editing them
+cannot alter an existing session. The verified result, decision, audit, charge, and
+webhook are committed together, including a signed terminal marker on Stop.
+
+### Existing API-controlled gates
+
+Existing API-only workflows may still pause after a non-final step for your backend
+to inspect `step.completed` and call `continue` or `stop`. A gate without configured
+conditions retains that behavior. The editor offers **Use conditions instead** to
+convert it explicitly; configured decisions do not pause in `awaiting_decision`.
 
 <Card title="Next: Sessions" icon="diagram-project" href="/core-concepts/sessions">
   See how each workflow run binds to a browser, advances, expires, and retains evidence.

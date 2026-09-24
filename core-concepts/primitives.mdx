@@ -169,7 +169,7 @@ Workflow revision 4
 
 ### Gates (pause for a decision)
 
-For an API-only workflow, enable a gate on a non-final step to **pause** the session
+Existing API-controlled gates in an API-only workflow use a non-final step to **pause** the session
 after it completes, so your server can decide whether to continue. Useful when a later
 step should depend on an earlier result (e.g. only sign if the identity matched your
 records).
@@ -180,8 +180,11 @@ identify → Pause for API decision
 
 On a gated step the session moves to `awaiting_decision` after `step.completed`.
 Resume with [`POST /v1/sessions/{id}/continue`](/api-reference/sessions/continue) or
-end it with [`POST /v1/sessions/{id}/stop`](/api-reference/sessions/stop). A gate on
-the final step is rejected at create (there's nothing to continue to).
+end it with [`POST /v1/sessions/{id}/stop`](/api-reference/sessions/stop). A caller-controlled pause on
+the final step is rejected. Configured [Continue/Stop conditions](/core-concepts/workflows#continue-or-stop)
+can follow any primitive, including the final one, and execute automatically in every
+access mode. They continue to the next proof or result delivery, or stop while keeping
+verified results.
 
 <Card title="Reserved: envelope (multi-party)" icon="people-group">
   All primitives today are single-subject. Multi-party signing (Alice → Bob →

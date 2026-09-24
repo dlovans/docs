@@ -21,8 +21,9 @@ from the workflow. Each explicit start from a reusable link creates a separate s
     verified and emits `step.completed`.
   </Step>
   <Step title="awaiting_decision (optional)">
-    If a step is a [gate](/core-concepts/primitives#gates-pause-for-a-decision), the
-    session pauses here until you `continue` or `stop` it.
+    If a step is an API-controlled [gate](/core-concepts/primitives#gates-pause-for-a-decision), the
+    session pauses here until you `continue` or `stop` it. Configured workflow conditions
+    evaluate automatically after verification and do not enter this state.
   </Step>
   <Step title="completed / stopped / failed / expired">
     A terminal state. The matching `session.*` webhook fires. Original files that
