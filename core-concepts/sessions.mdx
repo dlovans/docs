@@ -59,8 +59,8 @@ over a channel only the intended user controls (your authenticated app, their ph
 One-time dashboard invitations expire exactly 24 hours after creation. Emailing or
 resending the opaque link never extends that deadline or identify the signer. Once the user starts, each
 wallet step also has its shorter 3/10/30-minute security window. Terminal signer access
-to completed materials remains available for 48 hours under the existing binding or a
-verified-email receipt.
+to completed materials remains available for 48 hours in the original bound browser,
+unless the signer closes online access earlier.
 
 After any completed step, the bound browser can **Download receipt (PDF)** without
 entering an email. This includes the completed results, audit references, and a
@@ -69,10 +69,21 @@ a clearly labelled partial receipt; sandbox simulations stay labelled as example
 The PDF is a readable record, not a new signature on a document. Signed originals
 can be downloaded separately. Saved files do not expire when online access ends.
 
-**Email me a receipt** is optional. Its six-digit code confirms the destination
-address before Alentra sends a protected return link. Email contains no result data
-or attachments. The link covers the completed prefix at issuance; it cannot extend
-the terminal access deadline. Download the PDF and any originals before it expires.
+**Email me a receipt** is optional. Verify the destination with a six-digit code,
+then Alentra emails a PDF attachment containing the completed results and audit
+references. The code lasts up to ten minutes; the page shows its countdown and a
+resend option after one minute. Sending is limited to five codes per hour per session.
+Keep the attachment private. It remains available after online access ends.
+
+The original browser’s session page is the signer’s place to download receipts and
+signed originals. After the session ends, **Close online access** permanently disables
+those downloads and further receipt emails, without changing the session outcome or
+retained evidence. A warning appears when no PDF download was recorded in that
+browser; it cannot confirm that a file was saved. Copies already saved or emailed
+remain available. A delivery authorized before closure may already be in flight.
+
+New receipt emails contain an attachment, not a return link. Previously emailed
+receipt links work until their original expiry or until online access is closed.
 
 ## Reading a session
 
