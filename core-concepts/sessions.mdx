@@ -62,12 +62,26 @@ wallet step also has its shorter 3/10/30-minute security window. Terminal signer
 to completed materials remains available for 48 hours under the existing binding or a
 verified-email receipt.
 
+After any completed step, the bound browser can **Download receipt (PDF)** without
+entering an email. This includes the completed results, audit references, and a
+structured JSON attachment for technical verification. Incomplete sessions produce
+a clearly labelled partial receipt; sandbox simulations stay labelled as examples.
+The PDF is a readable record, not a new signature on a document. Signed originals
+can be downloaded separately. Saved files do not expire when online access ends.
+
+**Email me a receipt** is optional. Its six-digit code confirms the destination
+address before Alentra sends a protected return link. Email contains no result data
+or attachments. The link covers the completed prefix at issuance; it cannot extend
+the terminal access deadline. Download the PDF and any originals before it expires.
+
 ## Reading a session
 
 [`GET /v1/sessions/{id}`](/api-reference/sessions/get), authenticated with your API
 key, returns status plus results already produced: requested `identify` claims,
 `age_verify`'s boolean and threshold, and signing hashes/signatures. The unauthenticated
-hosted page sees only its status projection and cannot read these results. Webhooks
+hosted status projection contains no results. The bound signer can explicitly read
+their completed prefix through `GET /v1/sessions/{id}/receipt`; this read never starts
+or advances the session and requires the existing binding cookie. Webhooks
 remain the primary push channel; use GET to reconcile a missed event, not as a polling
 loop.
 
